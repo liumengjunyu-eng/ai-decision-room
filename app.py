@@ -711,13 +711,20 @@ function runFreeDecision() {
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify(payload)
  }).then(function(res) {
+ if (!res.ok) {
+ throw new Error('API 返回状态: ' + res.status);
+ }
  return res.json();
  }).then(function(data) {
+ if (data.detail) {
+ throw new Error(data.detail);
+ }
  if (data.agents) renderAgents(data.agents);
  if (data.conflicts) renderConflicts(data.conflicts);
  if (data.decision) renderDecision(data.decision);
- }).catch(function() {
+ }).catch(function(err) {
  renderMockData();
+ decisionContainer.innerHTML = '<div class="verdict">接口错误</div><div class="reason" style="color:#FF6B6B;margin-top:8px;">' + err.message + '</div>';
  }).finally(function() {
  runBtn.disabled = false;
  runBtn.textContent = '生成分析';
@@ -914,6 +921,10 @@ async def api_run(request: Request):
 # ============================================================
 # ROUTES
 # ============================================================
+@app.get("/health")
+def health():
+    return {"status": "ok", "api_key_configured": bool(SILICONFLOW_API_KEY)}
+
 @app.get("/", response_class=HTMLResponse)
 def landing():
     return LANDING_HTML
