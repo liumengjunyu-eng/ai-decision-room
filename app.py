@@ -181,7 +181,8 @@ p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
 # ============================================================
 
 # ============================================================
-# ROOM PAGE — V3.5 微信群聊式会议 UI
+# ============================================================
+# ROOM PAGE — V3.5 Decision Trace OS
 # ============================================================
 ROOM_HTML = r"""
 <!DOCTYPE html>
@@ -189,378 +190,416 @@ ROOM_HTML = r"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Decision Board</title>
+<title>AI Decision Trace</title>
 <style>
 /* ─── 全局 ─── */
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
     background: #0B0F1A;
-    color: #E8EDF5;
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
-    display: flex; justify-content: center;
-    padding: 32px 20px; min-height: 100vh;
+    color: #E6EAF2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
-.container { max-width: 720px; width: 100%; }
 
 /* ─── 顶部 ─── */
 .header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
-    margin-bottom: 24px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #1F2430;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(11,15,26,0.95);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
-.header .logo { font-weight: 600; font-size: 18px; letter-spacing: -0.3px; color: #E8EDF5; }
+.header .logo { font-size: 14px; font-weight: 600; color: #E6EAF2; }
 .header .logo span { color: #7C5CFF; }
-.header .status { font-size: 12px; color: #5A657A; display: flex; align-items: center; gap: 8px; }
-.header .status .dot {
+.header .tagline { font-size: 12px; color: #6B7280; }
+
+/* ─── 容器 ─── */
+.container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 20px;
+}
+
+/* ─── 状态栏 ─── */
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    background: rgba(124,92,255,0.04);
+    border: 1px solid rgba(124,92,255,0.08);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #8B93A7;
+}
+.status-bar .dot {
     width: 8px; height: 8px; border-radius: 50%; background: #4A5268;
+    flex-shrink: 0;
 }
-.header .status .dot.active { background: #4ADE80; animation: pulse-dot 1.2s ease-in-out infinite; }
-.header .status .dot.speaking { background: #F59E0B; animation: pulse-dot 1.2s ease-in-out infinite; }
-@keyframes pulse-dot {
-    0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)}
-}
+.status-bar .dot.active { background: #4ADE80; animation: pulse-dot 1.2s ease-in-out infinite; }
+.status-bar .dot.running { background: #F59E0B; animation: pulse-dot 1.2s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
+.status-bar .stext { flex: 1; }
+.status-bar .saction { font-size: 12px; color: #7C5CFF; cursor: pointer; }
 
-/* ─── 投票概览 ─── */
-.vote-summary {
-    display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+/* ─── 问题 ─── */
+.question {
+    background: #121827;
+    border: 1px solid #232A3B;
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 20px;
 }
-.vote-pill {
-    font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px;
-    display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.06);
-}
-.vote-pill.support { background: rgba(74,222,128,0.08); color: #4ADE80; border-color: rgba(74,222,128,0.12); }
-.vote-pill.oppose { background: rgba(255,107,107,0.08); color: #FF6B6B; border-color: rgba(255,107,107,0.12); }
-.vote-pill.neutral { background: rgba(255,255,255,0.04); color: #8A92A8; border-color: rgba(255,255,255,0.06); }
-
-/* ─── 输入区 ─── */
-.input-area { margin-bottom: 24px; }
-.input-area .row { display: flex; gap: 12px; }
-.input-area input {
-    flex: 1; padding: 14px 18px; background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #E8EDF5;
-    font-size: 15px; outline: none; transition: border 0.2s; font-family: inherit;
-}
-.input-area input:focus { border-color: #7C5CFF; }
-.input-area input::placeholder { color: #4A5268; }
-.input-area .btn {
-    padding: 14px 28px; background: #7C5CFF; border: none; border-radius: 12px;
-    color: #fff; font-weight: 600; font-size: 14px; cursor: pointer;
-    transition: background 0.2s; white-space: nowrap;
-}
-.input-area .btn:hover { background: #6B4DE0; }
-.input-area .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* ─── 会议桌（群聊风格） ─── */
-.boardroom { margin-bottom: 32px; }
-.boardroom .label {
+.question .qlabel {
     font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.06em; color: #5A657A; margin-bottom: 14px;
-    display: flex; align-items: center; gap: 8px;
+    letter-spacing: 0.06em; color: #7AA2FF; margin-bottom: 6px;
 }
-.boardroom .label .count { font-size: 12px; color: #4A5268; font-weight: 400; }
+.question .qinput {
+    display: flex; gap: 10px;
+}
+.question input {
+    flex: 1; padding: 12px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid #232A3B; border-radius: 10px;
+    color: #E6EAF2; font-size: 14px; outline: none;
+    font-family: inherit;
+}
+.question input:focus { border-color: #7C5CFF; }
+.question input::placeholder { color: #4A5268; }
+.question button {
+    padding: 12px 24px; background: #7C5CFF; border: none;
+    border-radius: 10px; color: #fff; font-weight: 600;
+    font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.question button:hover { background: #6B4DE0; }
+.question button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* 发言气泡（微信群聊式） */
-.speech {
-    display: flex; gap: 12px; padding: 12px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    opacity: 0; transform: translateY(6px);
+/* ─── 冲突矩阵 ─── */
+.matrix {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.cell {
+    background: #0E1320;
+    border: 1px solid #222838;
+    padding: 12px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.5;
+}
+.cell .num { font-size: 20px; font-weight: 700; display: block; margin-bottom: 2px; }
+.cell.support .num { color: #22C55E; }
+.cell.oppose .num { color: #EF4444; }
+.cell.neutral .num { color: #FBBF24; }
+.cell.verdict .num { color: #7C5CFF; }
+.cell .label { color: #8B93A7; font-size: 11px; }
+
+/* ─── 模块（推理块） ─── */
+.block {
+    margin-bottom: 12px;
+    border-radius: 12px;
+    background: #0F1422;
+    border: 1px solid #222838;
+    padding: 14px;
+    opacity: 0;
+    transform: translateY(8px);
     animation: fadeUp 0.4s ease forwards;
 }
 @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
-.speech .avatar {
-    width: 40px; height: 40px; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
-    position: relative;
-}
-.speech .avatar .typing {
-    position: absolute; bottom: -2px; right: -2px;
-    width: 14px; height: 14px; border-radius: 50%;
-    background: #F59E0B; border: 2px solid #0B0F1A;
-    display: none; animation: pulse-dot 1.2s ease-in-out infinite;
-}
-.speech .avatar .typing.active { display: block; }
+.block.support { border-left: 3px solid #22C55E; }
+.block.oppose { border-left: 3px solid #EF4444; }
+.block.neutral { border-left: 3px solid #FBBF24; }
 
-.speech .body { flex: 1; min-width: 0; }
-.speech .body .meta {
+.block .role {
+    font-size: 12px; color: #7AA2FF; margin-bottom: 6px;
     display: flex; align-items: center; gap: 8px;
-    margin-bottom: 4px; flex-wrap: wrap;
 }
-.speech .body .meta .name { font-weight: 600; font-size: 14px; color: #E8EDF5; }
-.speech .body .meta .title { font-size: 12px; color: #5A657A; }
-.speech .body .meta .tag {
-    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+.block .role .tag {
+    font-size: 10px; font-weight: 600; padding: 1px 8px;
+    border-radius: 8px;
 }
-.tag.support { background: rgba(74,222,128,0.12); color: #4ADE80; }
-.tag.oppose { background: rgba(255,107,107,0.12); color: #FF6B6B; }
-.tag.neutral { background: rgba(255,255,255,0.04); color: #8A92A8; }
-.tag.error { background: rgba(245,158,11,0.12); color: #F59E0B; }
-.tag.waiting { background: rgba(124,92,255,0.1); color: #7C5CFF; animation: pulse-text 1.5s ease-in-out infinite; }
+.block .role .tag.support { background: rgba(34,197,94,0.12); color: #22C55E; }
+.block .role .tag.oppose { background: rgba(239,68,68,0.12); color: #EF4444; }
+.block .role .tag.neutral { background: rgba(251,191,36,0.12); color: #FBBF24; }
+.block .role .weight-badge { color: #8B93A7; font-size: 11px; }
 
-@keyframes pulse-text {
-    0%,100%{opacity:1} 50%{opacity:0.5}
+.block .summary {
+    font-size: 14px; color: #C8D0E0; line-height: 1.6;
+    margin-bottom: 8px;
+}
+.block .summary .type-cursor {
+    display: inline-block; width: 2px; height: 15px;
+    background: #7C5CFF; animation: blink 0.8s step-end infinite;
+    vertical-align: text-bottom; margin-left: 1px;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.block .expand-hint {
+    font-size: 12px; color: #6B7280; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 0;
+}
+.block .expand-hint:hover { color: #7C5CFF; }
+
+/* 推理链 */
+.block .trace {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(124,92,255,0.04);
+    border: 1px solid rgba(124,92,255,0.08);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #9AA8C0;
+    line-height: 1.7;
+    display: none;
+}
+.block .trace.open { display: block; }
+.block .trace .chain-step {
+    padding: 2px 0; display: flex; align-items: flex-start; gap: 8px;
+}
+.block .trace .chain-step::before {
+    content: "→"; color: #7C5CFF; flex-shrink: 0;
 }
 
-/* 发言内容 */
-.speech .body .text {
-    font-size: 14px; color: #C8D0E0; line-height: 1.7;
-    max-height: 4.2em; /* 约3行 */
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-.speech .body .text.expanded {
-    max-height: none;
-    overflow: visible;
-}
-.speech .body .text-collapsed {
-    font-size: 14px; color: #C8D0E0; line-height: 1.7;
-    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-.speech .body .text-collapsed.expanded {
-    -webkit-line-clamp: unset; display: block;
-}
-.speech .body .expand-btn {
-    font-size: 12px; color: #7C5CFF; margin-top: 4px; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 4px; user-select: none;
-}
-.speech .body .expand-btn:hover { color: #A78BFA; }
+/* 错误状态 */
+.block.error { border-left: 3px solid #F59E0B; }
+.block.error .role { color: #F59E0B; }
+.block .error-msg { font-size: 13px; color: #F59E0B; font-style: italic; }
 
-/* 错误/等待状态 */
-.speech.error .avatar { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.15); }
-.speech.waiting .avatar { background: rgba(124,92,255,0.08); border-color: rgba(124,92,255,0.15); }
-.speech .body .error-text { font-size: 13px; color: #F59E0B; font-style: italic; }
-.speech .body .retry-btn {
-    font-size: 12px; color: #7C5CFF; margin-top: 4px; cursor: pointer;
-    display: inline-block; padding: 2px 8px; border-radius: 6px;
-    background: rgba(124,92,255,0.08); border: 1px solid rgba(124,92,255,0.12);
+/* ─── 决策结果 ─── */
+.result {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 14px;
+    background: #11162A;
+    border: 1px solid rgba(124,92,255,0.25);
+    display: none;
 }
-.speech .body .retry-btn:hover { background: rgba(124,92,255,0.15); }
-
-/* ─── CEO裁决 ─── */
-.ceo-section { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 24px; }
-.ceo-card {
-    background: rgba(124,92,255,0.05); border: 1px solid rgba(124,92,255,0.12);
-    border-radius: 14px; padding: 20px 24px;
-}
-.ceo-card .ceo-label {
+.result.open { display: block; }
+.result .rlabel {
     font-size: 11px; font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.08em; color: #7C5CFF; margin-bottom: 4px;
 }
-.ceo-card .ceo-verdict { font-size: 24px; font-weight: 700; color: #E8EDF5; margin-bottom: 2px; }
-.ceo-card .ceo-confidence { font-size: 14px; color: #5A657A; margin-bottom: 12px; }
-.ceo-card .ceo-reason { font-size: 14px; color: #9AA8C0; line-height: 1.7; }
-.ceo-card .ceo-steps { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
-.ceo-card .ceo-steps .step {
-    font-size: 13px; color: #B0C0D8; padding-left: 16px; position: relative;
+.result .rverdict { font-size: 22px; font-weight: 700; color: #E8EDF5; margin-bottom: 2px; }
+.result .rconfidence {
+    font-size: 13px; color: #8B93A7; margin-bottom: 10px;
 }
-.ceo-card .ceo-steps .step::before {
-    content: ""; position: absolute; left: 0; top: 8px;
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #7C5CFF;
+.result .bar-track {
+    height: 6px; background: #1F2430; border-radius: 6px;
+    overflow: hidden; margin-bottom: 12px;
+}
+.result .bar-track .bar-fill {
+    height: 100%; border-radius: 6px;
+    transition: width 0.8s ease;
+}
+.result .bar-track .bar-fill.support { background: #22C55E; }
+.result .bar-track .bar-fill.oppose { background: #EF4444; }
+.result .bar-track .bar-fill.neutral { background: #FBBF24; }
+.result .rlogic {
+    background: rgba(124,92,255,0.04);
+    border: 1px solid rgba(124,92,255,0.08);
+    border-radius: 10px; padding: 12px 14px;
+    font-size: 13px; color: #9AA8C0; line-height: 1.7;
+}
+.result .rsteps { margin-top: 10px; }
+.result .rsteps .step {
+    font-size: 13px; color: #B0C0D8; padding: 3px 0 3px 16px; position: relative;
+}
+.result .rsteps .step::before {
+    content: ""; position: absolute; left: 0; top: 9px;
+    width: 6px; height: 6px; border-radius: 50%; background: #7C5CFF;
 }
 
 /* ─── 空状态 ─── */
-.empty { text-align: center; color: #4A5268; padding: 40px 0; font-size: 14px; }
-.empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
-
-/* ─── 错误提示 ─── */
-.error-banner {
-    background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.15);
-    border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #FF6B6B; margin-bottom: 16px;
-    display: none;
+.empty {
+    text-align: center; color: #4A5268; padding: 60px 0; font-size: 14px;
 }
-.error-banner.active { display: block; }
-
-/* ─── 打字动画 ─── */
-.typing-indicator {
-    display: inline-flex; gap: 3px; align-items: center; padding: 4px 0;
-}
-.typing-indicator span {
-    width: 6px; height: 6px; border-radius: 50%; background: #7C5CFF;
-    animation: typing-bounce 1.4s infinite ease-in-out both;
-}
-.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-@keyframes typing-bounce {
-    0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; }
-    40% { transform: scale(1); opacity: 1; }
-}
+.empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
 
 /* ─── 响应式 ─── */
-@media (max-width: 560px) {
-    body { padding: 16px; }
-    .input-area .row { flex-direction: column; }
-    .ceo-card .ceo-verdict { font-size: 20px; }
+@media (max-width: 640px) {
+    .container { padding: 16px 12px; }
+    .matrix { grid-template-columns: 1fr 1fr; }
+    .question .qinput { flex-direction: column; }
 }
 </style>
 </head>
 <body>
 
+<div class="header">
+    <div class="logo">🧠 AI <span>Decision Trace</span></div>
+    <div class="tagline">Explainable Decision Engine</div>
+</div>
+
 <div class="container">
 
-    <!-- 顶部 -->
-    <header class="header">
-        <div class="logo">🧠 AI <span>Decision Board</span></div>
-        <div class="status">
-            <span class="dot" id="statusDot"></span>
-            <span id="statusText">就绪</span>
-        </div>
-    </header>
-
-    <!-- 投票概览（动态） -->
-    <div class="vote-summary" id="voteSummary" style="display:none;">
-        <div class="vote-pill support" id="voteSupport"><span>✅</span> <span>支持 0</span></div>
-        <div class="vote-pill oppose" id="voteOppose"><span>❌</span> <span>反对 0</span></div>
-        <div class="vote-pill neutral" id="voteNeutral"><span>⚖️</span> <span>中立 0</span></div>
+    <!-- 状态 -->
+    <div class="status-bar" id="statusBar">
+        <span class="dot" id="statusDot"></span>
+        <span class="stext" id="statusText">就绪 — 输入决策问题启动分析</span>
+        <span class="saction" id="statusAction"></span>
     </div>
 
-    <!-- 输入 -->
-    <div class="input-area">
-        <div class="row">
-            <input id="topicInput" placeholder="输入决策问题，例如：是否要进入五官灸健康赛道？" />
-            <button class="btn" id="runBtn">召开董事会</button>
+    <!-- 问题 -->
+    <div class="question">
+        <div class="qlabel">🔍 决策问题</div>
+        <div class="qinput">
+            <input id="topicInput" placeholder="例如：是否要进入五官灸健康赛道？" />
+            <button id="runBtn">分析决策</button>
         </div>
     </div>
 
-    <!-- 错误提示 -->
-    <div class="error-banner" id="errorBanner"></div>
-
-    <!-- 会议桌 -->
-    <div class="boardroom">
-        <div class="label">💬 董事会发言 <span class="count" id="speakCount"></span></div>
-        <div id="boardroomContainer">
-            <div class="empty" id="emptyState">
-                <div class="icon">🏛️</div>
-                <div>输入问题后，AI 将依次发言</div>
-                <div style="font-size:12px;color:#4A5268;margin-top:8px;">7位董事 → 冲突分析 → CEO裁决</div>
-            </div>
+    <!-- 冲突矩阵 -->
+    <div class="matrix" id="matrixContainer">
+        <div class="cell support">
+            <span class="num" id="mSupport">0</span>
+            <span class="label">✅ 支持</span>
+        </div>
+        <div class="cell oppose">
+            <span class="num" id="mOppose">0</span>
+            <span class="label">❌ 反对</span>
+        </div>
+        <div class="cell neutral">
+            <span class="num" id="mNeutral">0</span>
+            <span class="label">⚖️ 中立</span>
+        </div>
+        <div class="cell verdict">
+            <span class="num" id="mVerdict">—</span>
+            <span class="label">🏁 结论</span>
         </div>
     </div>
 
-    <!-- CEO裁决 -->
-    <div class="ceo-section" id="ceoSection" style="display:none;">
-        <div class="ceo-card">
-            <div class="ceo-label">👑 CEO 裁决</div>
-            <div class="ceo-verdict" id="ceoVerdict">—</div>
-            <div class="ceo-confidence" id="ceoConfidence">置信度 —</div>
-            <div class="ceo-reason" id="ceoReason"></div>
-            <div class="ceo-steps" id="ceoSteps"></div>
+    <!-- 推理链列表 -->
+    <div id="traceContainer">
+        <div class="empty" id="emptyState">
+            <div class="icon">🧠</div>
+            <div>输入决策问题，启动 AI 分析</div>
+            <div style="font-size:12px;color:#4A5268;margin-top:8px;">7位董事 → 冲突分析 → 加权决策</div>
         </div>
+    </div>
+
+    <!-- 决策结果 -->
+    <div class="result" id="resultContainer">
+        <div class="rlabel">👑 最终裁决</div>
+        <div class="rverdict" id="rVerdict">—</div>
+        <div class="rconfidence" id="rConfidence">置信度 —</div>
+        <div class="bar-track"><div class="bar-fill" id="rBar" style="width:0%"></div></div>
+        <div class="rlogic" id="rLogic"></div>
+        <div class="rsteps" id="rSteps"></div>
     </div>
 
 </div>
 
 <script>
-// 董事会配置（与后端7角色对齐）
+// 董事会配置
 const BOARD = [
     { id: 0, name: '战略官',   icon: '🧙', title: 'CSO', tagClass: 'support' },
     { id: 1, name: '批判官',   icon: '⚔️', title: 'CRO', tagClass: 'oppose' },
     { id: 2, name: '风控官',   icon: '🛡️', title: 'CTO', tagClass: 'oppose' },
     { id: 3, name: '增长官',   icon: '📈', title: 'CGO', tagClass: 'support' },
     { id: 4, name: '洞察官',   icon: '🔍', title: 'CIO', tagClass: 'neutral' },
-    { id: 5, name: '创新官',   icon: '💡', title: 'CIO', tagClass: 'support' },
-    { id: 6, name: 'CEO裁决官', icon: '👑', title: 'CEO', tagClass: 'support' }
+    { id: 5, name: '创新官',   icon: '💡', title: 'CIO', tagClass: 'support' }
 ];
 
-const container = document.getElementById('boardroomContainer');
+const container = document.getElementById('traceContainer');
 const emptyState = document.getElementById('emptyState');
-const ceoSection = document.getElementById('ceoSection');
-const ceoVerdict = document.getElementById('ceoVerdict');
-const ceoConfidence = document.getElementById('ceoConfidence');
-const ceoReason = document.getElementById('ceoReason');
-const ceoSteps = document.getElementById('ceoSteps');
 const topicInput = document.getElementById('topicInput');
 const runBtn = document.getElementById('runBtn');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
-const errorBanner = document.getElementById('errorBanner');
-const voteSummary = document.getElementById('voteSummary');
-const voteSupport = document.getElementById('voteSupport');
-const voteOppose = document.getElementById('voteOppose');
-const voteNeutral = document.getElementById('voteNeutral');
-const speakCount = document.getElementById('speakCount');
+const matrix = {
+    support: document.getElementById('mSupport'),
+    oppose: document.getElementById('mOppose'),
+    neutral: document.getElementById('mNeutral'),
+    verdict: document.getElementById('mVerdict')
+};
+const resultContainer = document.getElementById('resultContainer');
+const rVerdict = document.getElementById('rVerdict');
+const rConfidence = document.getElementById('rConfidence');
+const rBar = document.getElementById('rBar');
+const rLogic = document.getElementById('rLogic');
+const rSteps = document.getElementById('rSteps');
 
 let isRunning = false;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function clearBoardroom() {
-    document.querySelectorAll('.speech').forEach(el => el.remove());
+// 清空
+function clearAll() {
+    document.querySelectorAll('.block').forEach(el => el.remove());
     emptyState.style.display = 'block';
-    ceoSection.style.display = 'none';
-    errorBanner.classList.remove('active');
-    voteSummary.style.display = 'none';
-    speakCount.textContent = '';
+    resultContainer.classList.remove('open');
+    // Reset matrix
+    matrix.support.textContent = '0';
+    matrix.oppose.textContent = '0';
+    matrix.neutral.textContent = '0';
+    matrix.verdict.textContent = '—';
 }
 
-function showError(msg) {
-    errorBanner.textContent = '⚠️ ' + msg;
-    errorBanner.classList.add('active');
+// 展开/折叠推理链
+function toggleTrace(el) {
+    const trace = el.nextElementSibling;
+    if (trace && trace.classList.contains('trace')) {
+        const isOpen = trace.classList.contains('open');
+        trace.classList.toggle('open');
+        el.textContent = isOpen ? '展开推理链 →' : '收起推理链 ↓';
+    }
 }
 
-function getStanceTag(stance) {
-    if (stance === '支持') return { text: '支持', cls: 'support' };
-    if (stance === '反对') return { text: '反对', cls: 'oppose' };
-    if (stance === '中立') return { text: '中立', cls: 'neutral' };
-    return { text: stance || '—', cls: 'neutral' };
+// 推断推理链（从角色文本中提取关键短语）
+function extractReasoningChain(text) {
+    if (!text || text.length < 20) return [];
+    // 尝试按 。！？分割成有意义的短句
+    const sentences = text.split(/[。！？\n]/).filter(s => s.trim().length > 5);
+    if (sentences.length <= 2) {
+        // 太短就用原始文本中的关键词
+        const parts = text.split(/[,，、]/).filter(s => s.trim().length > 3);
+        return parts.slice(0, 5).map(s => s.trim());
+    }
+    return sentences.slice(0, 5).map(s => s.trim());
 }
 
-function updateVoteSummary(agents) {
-    if (!agents || agents.length === 0) return;
-    const sup = agents.filter(a => a.stance === '支持').length;
-    const opp = agents.filter(a => a.stance === '反对').length;
-    const neu = agents.filter(a => a.stance === '中立' || a.stance === '—').length;
-    voteSupport.innerHTML = '<span>✅</span> <span>支持 ' + sup + '</span>';
-    voteOppose.innerHTML = '<span>❌</span> <span>反对 ' + opp + '</span>';
-    voteNeutral.innerHTML = '<span>⚖️</span> <span>中立/待决 ' + neu + '</span>';
-    voteSummary.style.display = 'flex';
-    speakCount.textContent = '（' + agents.length + '/7）';
-}
-
-// 添加发言气泡
-function addSpeech(member, text, stance, isError) {
+// 创建推理块
+function addTraceBlock(member, text, stance, isError, index) {
     emptyState.style.display = 'none';
-    const st = getStanceTag(stance);
-    const isLong = text.length > 120;
-    const displayClass = isLong ? 'text-collapsed' : 'text';
-    const errorCls = isError ? ' error' : '';
+    
     const div = document.createElement('div');
-    div.className = 'speech' + errorCls;
-    div.id = 'speech-' + member.id;
-    
-    const tagHTML = isError 
-        ? '<span class="tag error">暂不可用</span>'
-        : '<span class="tag ' + st.cls + '">' + st.text + '</span>';
-    
-    const expandHTML = isLong && !isError
-        ? '<div class="expand-btn" onclick="this.previousElementSibling.classList.toggle(\'expanded\'); this.textContent=this.previousElementSibling.classList.contains(\'expanded\') ? \\'收起 ▲\\' : \\'展开全文 ▼\\'">展开全文 ▼</div>'
-        : '';
-    
+    div.className = 'block ' + (isError ? 'error' : (stance === '支持' ? 'support' : stance === '反对' ? 'oppose' : 'neutral'));
+    div.style.animationDelay = (index * 0.15) + 's';
+
+    const chain = extractReasoningChain(text);
+    let traceHTML = '';
+    if (chain.length > 0 && !isError) {
+        traceHTML = '<div class="trace" id="trace-' + index + '">' +
+            chain.map(s => '<div class="chain-step">' + s + '</div>').join('') +
+            '</div>';
+    }
+
+    // 默认不展开推理链
     div.innerHTML = `
-        <div class="avatar">${member.icon}<div class="typing" id="typing-${member.id}"></div></div>
-        <div class="body">
-            <div class="meta">
-                <span class="name">${member.name}</span>
-                <span class="title">${member.title}</span>
-                ${tagHTML}
-            </div>
-            <div class="${displayClass}" id="text-${member.id}">${isError ? '<span class="error-text">' + text + '</span>' : text}</div>
-            ${expandHTML}
+        <div class="role">
+            ${member.icon} ${member.name}
+            <span class="tag ${isError ? 'neutral' : stance}">${isError ? '暂不可用' : (stance || '中立')}</span>
+            <span class="weight-badge">${isError ? '' : member.title}</span>
         </div>
+        <div class="summary" id="sum-${index}">${isError ? '<span class="error-msg">' + text + '</span>' : ''}</div>
+        ${chain.length > 0 && !isError ? '<div class="expand-hint" onclick="toggleTrace(this)">展开推理链 →</div>' : ''}
+        ${traceHTML}
     `;
     container.appendChild(div);
-    div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    return div.querySelector('#text-' + member.id);
-}
-
-function setTyping(memberId, active) {
-    const el = document.getElementById('typing-' + memberId);
-    if (el) el.classList.toggle('active', active);
+    return div.querySelector('.summary');
 }
 
 // 打字效果
-async function typeText(el, text, speed = 18) {
+async function typeText(el, text, speed = 15) {
     el.textContent = '';
     for (let i = 0; i < text.length; i++) {
         el.textContent += text[i];
@@ -568,36 +607,70 @@ async function typeText(el, text, speed = 18) {
     }
 }
 
-// 显示CEO裁决
-function showCEO(decision) {
-    ceoVerdict.textContent = decision.decision || '—';
-    ceoConfidence.textContent = '置信度 ' + (decision.confidence || 0) + '%';
-    ceoReason.textContent = decision.rationale || decision.reasoning || '';
-    ceoSteps.innerHTML = '';
+// 更新冲突矩阵
+function updateMatrix(agents) {
+    const sup = agents.filter(a => a.stance === '支持').length;
+    const opp = agents.filter(a => a.stance === '反对').length;
+    const neu = agents.filter(a => a.stance === '中立' || a.stance === '—').length;
+    matrix.support.textContent = sup;
+    matrix.oppose.textContent = opp;
+    matrix.neutral.textContent = neu;
+    // 初步结论
+    if (sup > opp) matrix.verdict.textContent = '支持领先';
+    else if (opp > sup) matrix.verdict.textContent = '反对领先';
+    else matrix.verdict.textContent = '胶着';
+}
+
+// 显示决策结果
+function showResult(decision, agents) {
+    if (!decision) return;
+    rVerdict.textContent = decision.decision || '—';
+    const conf = decision.confidence || 0;
+    rConfidence.textContent = '置信度：' + conf + '%（基于风险权重主导）';
+    const rational = decision.rationale || decision.reasoning || '';
+    rLogic.textContent = '计算逻辑：' + rational;
+
+    // 条形图颜色
+    const sup = agents.filter(a => a.stance === '支持').length;
+    const opp = agents.filter(a => a.stance === '反对').length;
+    if (conf >= 50) {
+        const dominating = sup > opp ? '支持' : '反对';
+        rBar.className = 'bar-fill ' + (dominating === '支持' ? 'support' : 'oppose');
+    } else {
+        rBar.className = 'bar-fill neutral';
+    }
+    rBar.style.width = conf + '%';
+
+    // 步骤
+    rSteps.innerHTML = '';
     const steps = decision.steps || [];
     steps.forEach(s => {
         const el = document.createElement('div');
         el.className = 'step';
         el.textContent = s;
-        ceoSteps.appendChild(el);
+        rSteps.appendChild(el);
     });
-    ceoSection.style.display = 'block';
-    setTimeout(() => ceoSection.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+
+    resultContainer.classList.add('open');
+    setTimeout(() => resultContainer.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
 }
 
-async function runBoard() {
+// 运行分析
+async function runAnalysis() {
     if (isRunning) return;
     const topic = topicInput.value.trim();
-    if (!topic) { showError('请输入决策问题'); return; }
+    if (!topic) {
+        statusText.textContent = '⚠️ 请先输入决策问题';
+        return;
+    }
 
     isRunning = true;
     runBtn.disabled = true;
-    runBtn.textContent = '⏳ 会议中…';
-    statusDot.className = 'dot speaking';
-    statusText.textContent = '会议中';
-    errorBanner.classList.remove('active');
+    runBtn.textContent = '⏳ 分析中…';
+    statusDot.className = 'dot running';
+    statusText.textContent = '正在调用 AI 董事会分析…';
 
-    clearBoardroom();
+    clearAll();
 
     try {
         const resp = await fetch('/api/run', {
@@ -605,58 +678,83 @@ async function runBoard() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ topic: topic })
         });
-        if (!resp.ok) throw new Error('API 请求失败 (' + resp.status + ')');
+
+        if (!resp.ok) {
+            const errText = await resp.text().catch(() => '');
+            throw new Error(errText || 'API 请求失败 (' + resp.status + ')');
+        }
+
         const data = await resp.json();
         const agents = data.agents || [];
         const decision = data.decision || null;
-        if (agents.length === 0) throw new Error('未收到 AI 董事会回应');
 
-        // 依次显示
+        if (!agents || agents.length === 0) {
+            throw new Error('未收到 AI 董事会回应');
+        }
+
+        statusText.textContent = '分析进行中…';
+
+        // 依次显示每个推理块
         for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
             const agent = agents[i];
             const member = BOARD[i];
-            const isError = agent.stance === '—' || (agent.reason && agent.reason.startsWith('API 错误')) || (agent.reason && agent.reason.startsWith('请求失败'));
+            
+            // 检查是否CEO（CEO单独在最后）
+            if (i === agents.length - 1 && agent.role === 'CEO裁决官') continue;
+
+            const isError = !agent.stance || agent.stance === '—' || 
+                (agent.reason && (agent.reason.startsWith('API 错误') || agent.reason.startsWith('请求失败')));
             const text = agent.reason || agent.output || '分析中…';
-            
-            setTyping(member.id, true);
-            const el = addSpeech(member, isError ? '模型暂不可用，正在分析中…' : text, agent.stance, isError);
-            updateVoteSummary(agents.slice(0, i + 1));
+
+            const el = addTraceBlock(member, text, agent.stance, isError, i);
+            updateMatrix(agents.slice(0, i + 1));
+
+            if (!isError) {
+                await typeText(el, text, 15);
+            } else {
+                el.innerHTML = '<span class="error-msg">' + (text.includes('403') ? '模型暂不可用，正在切换…' : text) + '</span>';
+            }
             await sleep(200);
-            
-            if (!isError) await typeText(el, text, 16);
-            setTyping(member.id, false);
-            await sleep(300);
         }
 
+        // 显示决策结果
         if (decision) {
-            await sleep(400);
-            showCEO(decision);
+            await sleep(300);
+            statusText.textContent = '正在生成最终裁决…';
+            await sleep(500);
+            showResult(decision, agents);
+            matrix.verdict.textContent = decision.decision || '—';
         }
-        statusText.textContent = '已结束';
+
+        statusDot.className = 'dot';
+        statusText.textContent = '✅ 分析完成 — ' + (decision?.decision || '已结束');
+
     } catch (err) {
-        showError(err.message || '请求失败');
-        statusText.textContent = '出错了';
+        statusDot.className = 'dot';
+        statusText.textContent = '❌ 出错了: ' + (err.message || '未知错误');
+        // 显示错误在页面上
+        const errDiv = document.createElement('div');
+        errDiv.className = 'block error';
+        errDiv.innerHTML = '<div class="role">⚠️ 系统</div><div class="summary"><span class="error-msg">请求失败: ' + (err.message || '') + '</span></div>';
+        container.appendChild(errDiv);
     }
 
-    statusDot.className = 'dot';
     runBtn.disabled = false;
-    runBtn.textContent = '召开董事会';
+    runBtn.textContent = '分析决策';
     isRunning = false;
 }
 
-runBtn.addEventListener('click', runBoard);
-topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runBoard(); });
+// 绑定
+runBtn.addEventListener('click', runAnalysis);
+topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runAnalysis(); });
 
-console.log('🏛️ AI Decision Board V3.5 已加载');
-console.log('🧠 核心模式：结构化冲突 → CEO收敛');
-console.log('❌ 无Graph · 无卡片堆叠 · 无聊天流');
+console.log('🧠 AI Decision Trace V3.5 已加载');
+console.log('核心模式：冲突矩阵 → 推理链 → 加权决策');
 </script>
 
 </body>
 </html>
-"""
-
-# ════════════════════════════════════════════════════════════
+"""# ════════════════════════════════════════════════════════════
 
 # ── 主题关键词库（用于语义级冲突聚类） ──
 
