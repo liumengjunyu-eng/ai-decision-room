@@ -304,6 +304,33 @@ body {
 }
 .scenario-btn:hover { border-color: #6366f1; color: #e5e7eb; background: rgba(99,102,241,0.06); }
 
+/* ─── 品牌折叠选择器 ─── */
+.brand-chip {
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 10px 4px 12px; border-radius:6px;
+  font-size:11px; font-weight:500; cursor:pointer; transition:all .12s;
+  border:1px solid #1f2937; background:#0f172a; color:#9ca3af;
+  user-select:none;
+}
+.brand-chip:hover{border-color:#6366f1;color:#d1d5db;}
+.brand-chip.active{background:rgba(99,102,241,0.1);border-color:#6366f1;color:#6366f1;}
+.brand-chip .chip-x{margin-left:2px;font-size:10px;opacity:0.5;}
+.brand-chip .chip-x:hover{opacity:1;color:#ef4444;}
+.expanded-brand{margin-bottom:6px;}
+.expanded-brand .eb-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 8px;cursor:pointer;border-radius:6px;
+  font-size:12px;font-weight:500;color:#cbd5e1;
+}
+.expanded-brand .eb-header:hover{background:rgba(99,102,241,0.04);}
+.expanded-brand .eb-models{display:flex;flex-wrap:wrap;gap:4px;padding:2px 8px 8px;}
+.expanded-brand .eb-models .model-opt{
+  padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer;
+  border:1px solid #1f2937;color:#6b7280;transition:all .1s;
+}
+.expanded-brand .eb-models .model-opt:hover{border-color:#374151;color:#9ca3af;}
+.expanded-brand .eb-models .model-opt.active{background:rgba(99,102,241,0.08);border-color:#6366f1;color:#6366f1;}
+
 /* ─── 董事会执行面板 ─── */
 .board-grid {
   display: flex; flex-direction: column; gap: 8px;
@@ -478,9 +505,17 @@ body {
       <button class="scenario-btn" data-scenario="手上有50万闲钱，应该提前还房贷还是投资指数基金？">💰 财务决策</button>
       <button class="scenario-btn" data-scenario="公司要不要全面转向AI技术栈？现有业务稳定但增长缓慢。">🏭 战略转型</button>
     </div>
+    
+    <!-- 品牌折叠模型选择器 -->
+    <div id="brandSelector" style="margin-bottom:12px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="brandChips"></div>
+      <div id="brandExpanded" style="display:none;margin-top:8px;background:#0f172a;border:1px solid #1f2937;border-radius:10px;padding:12px;"></div>
+    </div>
+    
     <textarea id="topicInput" placeholder="在此输入你的决策问题，AI 董事会将为你分析…&#10;&#10;例如：&#10;• 是否要进入五官灸健康赛道？&#10;• 新产品应该先做小红书还是抖音？&#10;• 第三季度预算应该投品牌还是效果？"></textarea>
     <div class="actions">
       <button id="runBtn">▶ 执行分析</button>
+      <button id="advancedReportBtn" style="background:#5b21b6;display:none;">🧠 生成深度报告</button>
     </div>
   </div>
 
@@ -745,9 +780,25 @@ function showFinal(decision) {
     `;
   }
   
-  // 显示升级入口
+  // 显示升级入口 + 深度报告按钮
   const up = document.getElementById('upgradePrompt');
   if (up) up.style.display = 'block';
+  const advBtn = document.getElementById('advancedReportBtn');
+  if (advBtn && decision) {
+    advBtn.style.display = 'inline-block';
+    advBtn.onclick = () => {
+      const report = {
+        question: topic,
+        type: 'advanced',
+        modelCount: (agentResults||[]).length,
+        consensus: document.querySelector('#consensusList')?.innerText?.slice(0,500) || '',
+        divergence: document.querySelector('#dissentList')?.innerText?.slice(0,500) || '',
+        advanced: (decision.rationale||'') + '\n\n执行步骤：\n' + (decision.steps||[]).join('\n'),
+        raw: (agentResults||[]).map(a => '【'+a.role+'】'+a.reason).join('\n\n').slice(0,3000)
+      };
+      window.open('/report?d=' + encodeURIComponent(JSON.stringify(report)), '_blank');
+    };
+  }
 }
 
 // ─── 核心：运行董事会 ───
@@ -872,6 +923,94 @@ document.querySelectorAll('.scenario-btn').forEach(btn => {
     setTimeout(() => { if (topicInput.value.trim()) runBoard(); }, 300);
   });
 });
+
+// ─── 品牌折叠模型选择器 ───
+const BRANDS = {
+  'OpenAI': { models: ['GPT-4o','o1','o3-mini','GPT-4o-mini'], default: 'GPT-4o' },
+  'Claude': { models: ['Claude 3.5 Sonnet','Claude 4','Claude 3.5 Haiku','Claude 3 Opus'], default: 'Claude 3.5 Sonnet' },
+  'Gemini': { models: ['Gemini 2.5 Pro','Gemini 2.0 Flash','Gemini 1.5 Pro'], default: 'Gemini 2.5 Pro' },
+  'DeepSeek': { models: ['DeepSeek-V3','DeepSeek-R1','DeepSeek-Coder'], default: 'DeepSeek-V3' },
+  'Qwen': { models: ['Qwen2.5-72B','Qwen2-7B','Qwen-Max'], default: 'Qwen2.5-72B' },
+  'Llama': { models: ['Llama-4','Llama-3.1-405B','Llama-3.1-70B'], default: 'Llama-4' },
+  'Mistral': { models: ['Mistral-Large','Mistral-Small','Mixtral'], default: 'Mistral-Large' },
+  'Grok': { models: ['Grok-3','Grok-2'], default: 'Grok-3' },
+};
+let selectedBrands = new Set(['OpenAI','Claude','DeepSeek','Qwen']);
+let chosenModels = {};
+Object.keys(BRANDS).forEach(b => { chosenModels[b] = BRANDS[b].default; });
+
+function renderBrandSelector(){
+  const chips = document.getElementById('brandChips');
+  const expanded = document.getElementById('brandExpanded');
+  if(!chips || !expanded) return;
+  chips.innerHTML = '';
+  Object.keys(BRANDS).forEach(brand => {
+    const active = selectedBrands.has(brand);
+    const chip = document.createElement('span');
+    chip.className = 'brand-chip' + (active ? ' active' : '');
+    chip.innerHTML = `<span>${brand}</span><span class="chip-x">✕</span>`;
+    chip.addEventListener('click', e => {
+      if(e.target.classList.contains('chip-x')){
+        selectedBrands.delete(brand);
+        renderBrandSelector();
+        return;
+      }
+      if(active) selectedBrands.delete(brand);
+      else selectedBrands.add(brand);
+      renderBrandSelector();
+    });
+    chips.appendChild(chip);
+  });
+  expanded.innerHTML = '';
+  if(selectedBrands.size > 0){
+    expanded.style.display = 'block';
+    selectedBrands.forEach(brand => {
+      const data = BRANDS[brand];
+      if(!data) return;
+      const div = document.createElement('div');
+      div.className = 'expanded-brand';
+      div.innerHTML = `
+        <div class="eb-header">
+          <span>${brand}</span>
+          <span style="font-size:10px;color:#6b7280;">${chosenModels[brand]||data.default}</span>
+        </div>
+        <div class="eb-models">
+          ${data.models.map(m => `<span class="model-opt${(chosenModels[brand]||data.default)===m?' active':''}" data-brand="${brand}" data-model="${m}">${m}</span>`).join('')}
+        </div>`;
+      expanded.appendChild(div);
+    });
+    expanded.querySelectorAll('.model-opt').forEach(el => {
+      el.addEventListener('click', () => {
+        chosenModels[el.dataset.brand] = el.dataset.model;
+        renderBrandSelector();
+      });
+    });
+  } else {
+    expanded.style.display = 'none';
+  }
+}
+renderBrandSelector();
+
+// 深度报告按钮
+const advBtn = document.getElementById('advancedReportBtn');
+if(advBtn && decisionResult){
+  advBtn.style.display = 'inline-block';
+  advBtn.addEventListener('click', () => {
+    const reportData = {
+      question: topicInput.value,
+      type: 'advanced',
+      modelCount: agentResults.length,
+      report: {
+        consensus: document.querySelector('#consensusList')?.innerText || '',
+        divergence: document.querySelector('#dissentList')?.innerText || '',
+        advanced: decisionResult.rationale + '\n\n执行步骤：\n' + (decisionResult.steps||[]).join('\n')
+      },
+      rawResponses: agentResults.map(a => `【${a.role}】${a.reason}`).join('\n\n')
+    };
+    const encoded = encodeURIComponent(JSON.stringify(reportData));
+    window.open('/report?d=' + encoded, '_blank');
+  });
+}
 
 console.log('🧠 Decision OS V5 已加载');
 console.log('5层架构：输入 → 执行 → 时间线 → 账本 → 裁决');
@@ -2633,6 +2772,60 @@ _decision_engine = DecisionEngine()
 
 
 # ============================================================
+# REPORT PAGE HTML
+# ============================================================
+REPORT_HTML = r"""<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>决策报告 · Decision Report</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0b0f17;color:#e5e7eb;padding:2rem;}
+.container{max-width:900px;margin:0 auto;}
+h1{font-size:1.8rem;margin-bottom:1.5rem;font-weight:700;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.section{background:#111827;border:1px solid #1e293b;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;}
+.section h2{font-size:1.1rem;margin-bottom:1rem;color:#a78bfa;}
+.badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:12px;margin-right:6px;}
+.free-badge{background:#1e3a5f;color:#60a5fa;}
+.advanced-badge{background:#4c1d95;color:#c4b5fd;}
+.back-btn{background:none;border:1px solid #334155;color:#9ca3af;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;margin-bottom:1rem;}
+.back-btn:hover{background:#1f2937;}
+.content{font-size:14px;line-height:1.7;color:#cbd5e1;white-space:pre-wrap;}
+.raw-text{font-size:13px;color:#6b7280;white-space:pre-wrap;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="container">
+<button class="back-btn" onclick="history.back()">← 返回</button>
+<h1>🧠 决策报告</h1>
+<div id="loading" style="text-align:center;padding:40px;color:#6b7280;">加载中...</div>
+<div id="reportContent" style="display:none;"></div>
+</div>
+<script>
+const p=new URLSearchParams(window.location.search);
+const d=p.get('d');
+try{
+  const data=JSON.parse(decodeURIComponent(d));
+  document.getElementById('loading').style.display='none';
+  const rc=document.getElementById('reportContent');rc.style.display='block';
+  const isAdv=data.type==='advanced';
+  rc.innerHTML=`
+    <div class="section"><h2>📌 问题</h2><div class="content">${data.question||''}</div>
+      <div style="margin-top:8px;"><span class="badge ${isAdv?'advanced-badge':'free-badge'}">${isAdv?'高级决策':'免费决策'}</span>
+      <span style="font-size:12px;color:#6b7280;">基于 ${data.modelCount||0} 个模型</span></div></div>
+    <div class="section"><h2>✅ 共识观点</h2><div class="content">${data.consensus||'分析中...'}</div></div>
+    <div class="section"><h2>⚠️ 关键分歧</h2><div class="content">${data.divergence||'分析中...'}</div></div>
+    ${data.advanced?`<div class="section" style="background:linear-gradient(135deg,#064e3b,#0f172a);border-color:#22c55e;"><h2 style="color:#22c55e;">🧠 综合建议</h2><div class="content">${data.advanced}</div></div>`:''}
+    <div class="section"><h2>📄 原始回复</h2><div class="raw-text">${data.raw||'无'}</div></div>`;
+}catch(e){document.getElementById('loading').innerHTML='<p style="color:#ef4444;">数据加载失败</p><br><a href="/room" style="color:#6366f1;">返回</a>';}
+</script>
+</body>
+</html>
+"""
+
+
+# ============================================================
 # ROUTES
 
 # ============================================================
@@ -2749,6 +2942,10 @@ def room():
 
 def compare():
     return COMPARE_HTML
+
+@app.get("/report", response_class=HTMLResponse)
+def report():
+    return REPORT_HTML
 
 # ============================================================
 
