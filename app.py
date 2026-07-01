@@ -14,13 +14,61 @@ app = FastAPI()
 SILICONFLOW_API_KEY = os.environ.get("SILICONFLOW_API_KEY", "")
 SILICONFLOW_BASE = "https://api.siliconflow.cn/v1/chat/completions"
 
-# 模型列表（按角色）
-MODELS = {
-    "东方战略官": "Qwen/Qwen2.5-72B-Instruct",
-    "批判分析官": "deepseek-ai/DeepSeek-V3",
-    "风险控制官": "THUDM/glm-4-9b-chat",
-    "增长策略官": "Qwen/Qwen2.5-72B-Instruct"
+# AI 董事会 7 角色
+BOARD_MEMBERS = {
+    "首席战略官": {
+        "model": "Qwen/Qwen2.5-72B-Instruct",
+        "emoji": "🧙",
+        "color": "#7CC4FF",
+        "weight": 1.3,
+        "prompt": "你是一位资深的首席战略官，擅长从宏观视角判断商业机会和战略方向。请针对以下决策问题，给出明确判断（支持/反对/中立），并说明你的战略理由。"
+    },
+    "批判分析官": {
+        "model": "deepseek-ai/DeepSeek-V3",
+        "emoji": "⚔️",
+        "color": "#FF7C7C",
+        "weight": 1.2,
+        "prompt": "你是一位严苛的批判分析官，你的职责是质疑一切、找出漏洞。请针对以下决策问题，给出明确判断（支持/反对/中立），并指出方案中的逻辑缺陷和风险。"
+    },
+    "风险控制官": {
+        "model": "THUDM/glm-4-9b-chat",
+        "emoji": "🛡️",
+        "color": "#FBBF24",
+        "weight": 1.1,
+        "prompt": "你是一位风险控制官，擅长评估风险、计算代价。请针对以下决策问题，给出明确判断（支持/反对/中立），并评估主要风险点和可承受程度。"
+    },
+    "增长策略官": {
+        "model": "Qwen/Qwen2.5-72B-Instruct",
+        "emoji": "📈",
+        "color": "#4ADE80",
+        "weight": 1.2,
+        "prompt": "你是一位增长策略官，擅长找到增长路径、设计实验。请针对以下决策问题，给出明确判断（支持/反对/中立），并设计增长验证路径和ROI判断。"
+    },
+    "洞察官": {
+        "model": "internlm/internlm2_5-7b-chat",
+        "emoji": "🔍",
+        "color": "#38BDF8",
+        "weight": 1.0,
+        "prompt": "你是一位洞察官，擅长从非主流视角发现深层逻辑。请针对以下决策问题，给出明确判断（支持/反对/中立），并提出被主流视角忽略的关键洞察。"
+    },
+    "创新官": {
+        "model": "mistralai/Mistral-7B-Instruct-v0.2",
+        "emoji": "💡",
+        "color": "#F472B6",
+        "weight": 1.1,
+        "prompt": "你是一位创新官，擅长破框思维、提出突破性方案。请针对以下决策问题，给出明确判断（支持/反对/中立），并提出超越常规的创新思路。"
+    },
+    "CEO裁决官": {
+        "model": "Qwen/Qwen2-7B-Instruct",
+        "emoji": "👑",
+        "color": "#A78BFA",
+        "weight": 1.5,
+        "prompt": ""  # CEO 使用特殊合成 prompt
+    }
 }
+
+# 非 CEO 角色列表（用于并行调用）
+DEBATE_ROLES = [k for k in BOARD_MEMBERS if k != "CEO裁决官"]
 
 # ============================================================
 # LANDING PAGE
@@ -581,10 +629,13 @@ body {
  <!-- AI 意见 -->
  <div class="section-title">AI 意见</div>
  <div class="ai-stream" id="agentGrid">
- <div class="ai-card"><div class="icon">🧙</div><div class="name">东方战略官</div><div class="model">Qwen</div><div class="stance neutral">等待分析…</div></div>
- <div class="ai-card"><div class="icon">⚔️</div><div class="name">批判分析官</div><div class="model">DeepSeek</div><div class="stance neutral">等待分析…</div></div>
- <div class="ai-card"><div class="icon">🛡️</div><div class="name">风险控制官</div><div class="model">GLM</div><div class="stance neutral">等待分析…</div></div>
- <div class="ai-card"><div class="icon">📈</div><div class="name">增长策略官</div><div class="model">GPT-4o</div><div class="stance neutral">等待分析…</div></div>
+ <div class="ai-card"><div class="icon">🧙</div><div class="name">首席战略官</div><div class="model">Qwen 72B</div><div class="stance neutral">等待分析…</div></div>
+ <div class="ai-card"><div class="icon">⚔️</div><div class="name">批判分析官</div><div class="model">DeepSeek V3</div><div class="stance neutral">等待分析…</div></div>
+ <div class="ai-card"><div class="icon">🛡️</div><div class="name">风险控制官</div><div class="model">GLM-4 9B</div><div class="stance neutral">等待分析…</div></div>
+ <div class="ai-card"><div class="icon">📈</div><div class="name">增长策略官</div><div class="model">Qwen 72B</div><div class="stance neutral">等待分析…</div></div>
+ <div class="ai-card"><div class="icon">🔍</div><div class="name">洞察官</div><div class="model">InternLM2 7B</div><div class="stance neutral">等待分析…</div></div>
+ <div class="ai-card"><div class="icon">💡</div><div class="name">创新官</div><div class="model">Mistral 7B</div><div class="stance neutral">等待分析…</div></div>
+ <div class="ai-card"><div class="icon">👑</div><div class="name">CEO裁决官</div><div class="model">Qwen 7B</div><div class="stance neutral">等待分析…</div></div>
  </div>
 
  <!-- 核心冲突 -->
@@ -634,17 +685,23 @@ var adBanner = document.getElementById('adBanner');
 var adBtn = document.getElementById('adBtn');
 
 var DEBATE_AGENTS = [
- { icon: '🧙', name: '东方战略官', model: 'Qwen', role: '东方战略官' },
- { icon: '⚔️', name: '批判分析官', model: 'DeepSeek', role: '批判分析官' },
- { icon: '🛡️', name: '风险控制官', model: 'GLM', role: '风险控制官' },
- { icon: '📈', name: '增长策略官', model: 'GPT-4o', role: '增长策略官' }
+ { icon: '🧙', name: '首席战略官', model: 'Qwen 72B', role: '首席战略官' },
+ { icon: '⚔️', name: '批判分析官', model: 'DeepSeek V3', role: '批判分析官' },
+ { icon: '🛡️', name: '风险控制官', model: 'GLM-4 9B', role: '风险控制官' },
+ { icon: '📈', name: '增长策略官', model: 'Qwen 72B', role: '增长策略官' },
+ { icon: '🔍', name: '洞察官', model: 'InternLM2 7B', role: '洞察官' },
+ { icon: '💡', name: '创新官', model: 'Mistral 7B', role: '创新官' },
+ { icon: '👑', name: 'CEO裁决官', model: 'Qwen 7B', role: 'CEO裁决官' }
 ];
 
 var AGENTS = [
- { icon: '🧙', name: '东方战略官', model: 'Qwen' },
- { icon: '⚔️', name: '批判分析官', model: 'DeepSeek' },
- { icon: '🛡️', name: '风险控制官', model: 'GLM' },
- { icon: '📈', name: '增长策略官', model: 'GPT-4o' }
+ { icon: '🧙', name: '首席战略官', model: 'Qwen 72B' },
+ { icon: '⚔️', name: '批判分析官', model: 'DeepSeek V3' },
+ { icon: '🛡️', name: '风险控制官', model: 'GLM-4 9B' },
+ { icon: '📈', name: '增长策略官', model: 'Qwen 72B' },
+ { icon: '🔍', name: '洞察官', model: 'InternLM2 7B' },
+ { icon: '💡', name: '创新官', model: 'Mistral 7B' },
+ { icon: '👑', name: 'CEO裁决官', model: 'Qwen 7B' }
 ];
 
 // ============================================================
@@ -1001,23 +1058,27 @@ function runCompareDecision() {
 // ============================================================
 function renderMockData() {
  var mockAgents = [
- { role: '东方战略官', model: 'Qwen', stance: '支持', reason: '三伏天是养生心智最强时期，建议小步快跑抢占窗口。' },
- { role: '批判分析官', model: 'DeepSeek', stance: '反对', reason: '3万预算在小红书测试门槛不足，建议暂缓投入。' },
- { role: '风险控制官', model: 'GLM', stance: '中立', reason: '风险可控，但需设置明确止损线，建议小规模测试。' },
- { role: '增长策略官', model: 'GPT-4o', stance: '支持', reason: '市场窗口期正在打开，竞品已验证路径，建议快速跟进。' }
+ { role: '首席战略官', model: 'Qwen 72B', stance: '支持', reason: '三伏天是养生心智最强时期，建议小步快跑抢占窗口。' },
+ { role: '批判分析官', model: 'DeepSeek V3', stance: '反对', reason: '3万预算在小红书测试门槛不足，建议暂缓投入。' },
+ { role: '风险控制官', model: 'GLM-4 9B', stance: '中立', reason: '风险可控，但需设置明确止损线，建议小规模测试。' },
+ { role: '增长策略官', model: 'Qwen 72B', stance: '支持', reason: '市场窗口期正在打开，竞品已验证路径，建议快速跟进。' },
+ { role: '洞察官', model: 'InternLM2 7B', stance: '支持', reason: '小红书养生人群增长43%，内容测试成本低于3千元即可验证。' },
+ { role: '创新官', model: 'Mistral 7B', stance: '支持', reason: '可结合AI生成测评内容+UGC裂变，以极低成本完成冷启动。' },
+ { role: 'CEO裁决官', model: 'Qwen 7B', stance: '支持', reason: '综合6位董事意见，多数支持。建议投入8000元做2周内容测试，ROI>1.5则追加。' }
  ];
  window._pendingAPIData = {
  agents: mockAgents,
  conflicts: [
- { title: '预算判断分歧', left: '东方战略官 3万足够测试', right: '批判分析官 3万远远不足', level: '高' },
- { title: '时间窗口判断', left: '增长策略官 7月15日前必须决策', right: '风险控制官 养生心智全年可打', level: '中' }
+ { title: '预算判断分歧', left: '首席战略官 3万足够测试', right: '批判分析官 3万远远不足', level: '高' },
+ { title: '时间窗口判断', left: '增长策略官 7月15日前必须决策', right: '风险控制官 养生心智全年可打', level: '中' },
+ { title: '渠道策略分歧', left: '洞察官 小红书内容测试成本低', right: '批判分析官 竞争激烈ROI不确定', level: '中' }
  ],
  decision: {
- decision: '小规模测试',
- confidence: 78,
- rationale: '市场存在真实需求信号，风险可控，ROI不确定但可验证。',
- steps: ['筛选3个KOC账号询价', '投入5000元测试2条内容', '48小时后复盘决定是否追加'],
- risk: '初期转化波动较大，内容质量决定ROI上限'
+ decision: '小规模测试（建议8000元预算）',
+ confidence: 82,
+ rationale: '6位董事投票：4位支持、1位反对、1位中立。市场存在真实需求信号，风险可控，创新官提出了低成本冷启动方案。',
+ steps: ['筛选3个KOC账号报价', '制作2条AI测评+真人体验内容', '投入8000元跑2周小红书投放', '第7天复盘，ROI>1.0则追加至2万', '第14天终审决定是否正式推广'],
+ risk: '初期转化波动较大，内容质量决定ROI上限。需预留2万元止损线。'
  }
  };
  renderDebate(mockAgents);
@@ -1044,20 +1105,19 @@ topicInput.addEventListener('keydown', function(e) {
 # ============================================================
 # API 调用多模型
 # ============================================================
-async def call_siliconflow(model_id: str, prompt: str, role_name: str) -> dict:
+async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_prompt: str) -> dict:
     """调用硅基流动 API"""
     if not SILICONFLOW_API_KEY:
         return {"role": role_name, "model": model_id, "stance": "—", "reason": "API Key 未配置"}
 
-    system_prompt = "你是一个决策顾问。你的角色是【" + role_name + "】。请针对用户的问题，给出你的判断（支持/反对/中立），并说明理由。只输出两行：第一行是判断（支持/反对/中立），第二行是理由。"
     payload = {
         "model": model_id,
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": f"决策问题：{prompt}\n\n请给出你的判断（支持/反对/中立），并详细说明理由。"}
         ],
         "temperature": 0.7,
-        "max_tokens": 200
+        "max_tokens": 300
     }
 
     try:
@@ -1071,31 +1131,101 @@ async def call_siliconflow(model_id: str, prompt: str, role_name: str) -> dict:
                 if resp.status != 200:
                     return {"role": role_name, "model": model_id, "stance": "—", "reason": "API 错误: " + str(resp.status)}
                 data = await resp.json()
-                content = data["choices"][0]["message"]["content"].strip().split("\n")
-                stance = content[0].replace("判断：", "").replace("判断:", "").strip() if len(content) > 0 else "—"
-                reason = content[1] if len(content) > 1 else ""
+                raw = data["choices"][0]["message"]["content"].strip()
+                lines = raw.split("\n")
+                stance = lines[0].replace("判断：", "").replace("判断:", "").replace("支持", "支持").replace("反对", "反对").replace("中立", "中立").strip() if len(lines) > 0 else "—"
+                # 标准化 stance
+                if "支持" in stance:
+                    stance = "支持"
+                elif "反对" in stance:
+                    stance = "反对"
+                elif "中立" in stance:
+                    stance = "中立"
+                else:
+                    stance = "中立"
+                # Reason = 去除第一行后的全部
+                reason_lines = lines[1:] if len(lines) > 1 else []
+                reason = "\n".join(reason_lines).strip() if reason_lines else ""
+                if not reason:
+                    reason = raw[:200]
                 return {"role": role_name, "model": model_id, "stance": stance, "reason": reason}
     except Exception as e:
         return {"role": role_name, "model": model_id, "stance": "—", "reason": "请求失败: " + str(e)}
+
+
+async def call_ceo(debate_results: list, prompt: str) -> dict:
+    """CEO裁决官：基于6位董事的辩论结果做出综合决策"""
+    if not SILICONFLOW_API_KEY:
+        return {"role": "CEO裁决官", "model": BOARD_MEMBERS["CEO裁决官"]["model"], "stance": "—", "reason": "API Key 未配置"}
+
+    # 构建辩论摘要
+    debate_lines = []
+    for r in debate_results:
+        debate_lines.append(f"- {r['role']}（{r['stance']}）：{r['reason'][:150]}")
+    debate_summary = "\n".join(debate_lines)
+
+    system_prompt = "你是一位CEO裁决官，负责综合董事会的不同意见做出最终决策。请分析以下各位董事的立场和理由，给出你的最终裁决（支持/反对/中立），并说明你的决策逻辑。"
+
+    payload = {
+        "model": BOARD_MEMBERS["CEO裁决官"]["model"],
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"决策问题：{prompt}\n\n董事投票结果：\n{debate_summary}\n\n请给出你的最终裁决（支持/反对/中立），并详细说明决策理由。"}
+        ],
+        "temperature": 0.5,
+        "max_tokens": 400
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                SILICONFLOW_BASE,
+                headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY, "Content-Type": "application/json"},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=60)
+            ) as resp:
+                if resp.status != 200:
+                    return {"role": "CEO裁决官", "model": BOARD_MEMBERS["CEO裁决官"]["model"], "stance": "—", "reason": "API 错误"}
+                data = await resp.json()
+                raw = data["choices"][0]["message"]["content"].strip()
+                lines = raw.split("\n")
+                stance = lines[0] if len(lines) > 0 else "中立"
+                if "支持" in stance:
+                    stance = "支持"
+                elif "反对" in stance:
+                    stance = "反对"
+                else:
+                    stance = "中立"
+                reason_lines = lines[1:] if len(lines) > 1 else []
+                reason = "\n".join(reason_lines).strip() if reason_lines else raw[:300]
+                return {"role": "CEO裁决官", "model": BOARD_MEMBERS["CEO裁决官"]["model"], "stance": stance, "reason": reason}
+    except Exception as e:
+        return {"role": "CEO裁决官", "model": BOARD_MEMBERS["CEO裁决官"]["model"], "stance": "—", "reason": "请求失败: " + str(e)}
+
 
 @app.post("/api/run")
 async def api_run(request: Request):
     body = await request.json()
     topic = body.get("topic", "")
 
-    # 并行调用所有模型
+    # 并行调用所有非CEO角色
     tasks = []
-    for role_name, model_id in MODELS.items():
-        tasks.append(call_siliconflow(model_id, topic, role_name))
+    for role_name in DEBATE_ROLES:
+        member = BOARD_MEMBERS[role_name]
+        tasks.append(call_siliconflow(member["model"], topic, role_name, member["prompt"]))
 
     results = await asyncio.gather(*tasks)
 
-    # 提取 agents
-    agents = results
+    # 调用CEO裁决官（基于前6位结果）
+    ceo_result = await call_ceo(results, topic)
+
+    # 全部 agents = 6位董事 + CEO（CEO最后发言）
+    all_agents = results + [ceo_result]
 
     # 冲突检测（基于 stance 对立）
     conflicts = []
-    stances = {r["role"]: r["stance"] for r in results}
+    non_ceo_results = results  # 冲突只在6位董事之间检测
+    stances = {r["role"]: r["stance"] for r in non_ceo_results}
     roles = list(stances.keys())
 
     for i in range(len(roles)):
@@ -1115,29 +1245,45 @@ async def api_run(request: Request):
                     "level": "高"
                 })
 
-    # 简单决策（基于投票）
-    support_count = sum(1 for r in results if r["stance"] == "支持")
-    oppose_count = sum(1 for r in results if r["stance"] == "反对")
+    # 加权投票决策
+    support_weight = sum(BOARD_MEMBERS[r["role"]]["weight"] for r in non_ceo_results if r["stance"] == "支持")
+    oppose_weight = sum(BOARD_MEMBERS[r["role"]]["weight"] for r in non_ceo_results if r["stance"] == "反对")
+    total_weight = sum(BOARD_MEMBERS[r["role"]]["weight"] for r in non_ceo_results)
 
-    if support_count > oppose_count:
-        decision_text = "建议执行"
-        confidence = 60 + support_count * 8
-    elif oppose_count > support_count:
-        decision_text = "建议暂缓"
-        confidence = 60 + oppose_count * 8
+    if support_weight > oppose_weight:
+        # CEO 裁决
+        if ceo_result["stance"] == "反对":
+            decision_text = "建议审慎推进"
+            confidence = int(60 + (support_weight / total_weight) * 20 - 10)
+        elif ceo_result["stance"] == "中立":
+            decision_text = "建议小规模测试"
+            confidence = int(60 + (support_weight / total_weight) * 15)
+        else:
+            decision_text = "建议执行"
+            confidence = int(70 + (support_weight / total_weight) * 20)
+    elif oppose_weight > support_weight:
+        if ceo_result["stance"] == "支持":
+            decision_text = "建议审慎推进"
+            confidence = int(50 + (support_weight / total_weight) * 15)
+        else:
+            decision_text = "建议暂缓"
+            confidence = int(65 + (oppose_weight / total_weight) * 20)
     else:
         decision_text = "建议小规模测试"
         confidence = 70
 
+    support_count = sum(1 for r in non_ceo_results if r["stance"] == "支持")
+    oppose_count = sum(1 for r in non_ceo_results if r["stance"] == "反对")
+
     decision = {
         "decision": decision_text,
         "confidence": min(confidence, 95),
-        "rationale": "在 " + str(len(results)) + " 个模型中，" + str(support_count) + " 个支持，" + str(oppose_count) + " 个反对，存在 " + str(len(conflicts)) + " 个核心冲突。",
-        "steps": ["明确核心目标", "识别关键风险点", "制定验证方案", "设定成败标准"],
-        "risk": "建议进一步分析关键冲突点"
+        "rationale": f"AI董事会7位成员经过辩论，{support_count}位支持（加权{support_weight:.1f}），{oppose_count}位反对（加权{oppose_weight:.1f}），其余中立。\nCEO裁决官{ceo_result['stance']}。存在{len(conflicts)}个核心冲突。",
+        "steps": ["明确核心目标", "识别关键风险点", "制定验证方案", "设定成败标准", "两周复盘迭代"],
+        "risk": "建议重点关注反对方的核心顾虑，设置明确止损线"
     }
 
-    return {"agents": agents, "conflicts": conflicts, "decision": decision}
+    return {"agents": all_agents, "conflicts": conflicts, "decision": decision}
 
 # ============================================================
 # ROUTES
