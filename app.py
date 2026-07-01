@@ -1100,7 +1100,20 @@ async def call_ceo(debate_results: list, prompt: str) -> dict:
 
 async def api_run(request: Request):
     try:
-        body = await request.json()
+        # 处理中文编码问题：尝试 JSON 解析，失败则手动解码
+        try:
+            body = await request.json()
+        except UnicodeDecodeError:
+            raw = await request.body()
+            import json
+            for enc in ['gbk', 'gb2312', 'utf-8']:
+                try:
+                    body = json.loads(raw.decode(enc))
+                    break
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    continue
+            else:
+                body = {"topic": raw.decode('utf-8', errors='replace')}
         topic = body.get("topic", "")
 
         # 并行调用所有非CEO角色
