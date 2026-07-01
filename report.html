@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 决策报告 · Decision Report</title>
+  <style>
+    body { background: #0b0f17; font-family: Inter, system-ui, sans-serif; color: #e6e6e6; padding: 2rem; }
+    .report-container { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 2rem; margin-bottom: 1.5rem; color: #60a5fa; }
+    .section { background: #111827; border: 1px solid #1e293b; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .section h2 { font-size: 1.2rem; margin-bottom: 1rem; color: #a78bfa; }
+    .consensus, .divergence, .final-advice { white-space: pre-wrap; line-height: 1.7; color: #cbd5e1; }
+    .badge { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 12px; font-size: 0.8rem; margin-right: 0.5rem; }
+    .free-badge { background: #1e3a5f; color: #60a5fa; }
+    .advanced-badge { background: #4c1d95; color: #c4b5fd; }
+    .back-btn { margin-bottom: 1rem; background: none; border: 1px solid #334155; color: #9ca3af; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; }
+    .back-btn:hover { background: #1f2937; }
+  </style>
+</head>
+<body>
+<div class="report-container">
+  <button class="back-btn" onclick="history.back()">← 返回董事会</button>
+  <h1>🧠 决策报告</h1>
+  <div id="reportContent"><p>正在生成报告，请稍候...</p></div>
+</div>
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const dataParam = urlParams.get('d') || urlParams.get('data');
+  if (!dataParam) {
+    document.getElementById('reportContent').innerHTML = '<p style="color:#ef4444;">错误：未接收到决策数据。</p><br><a href="/" style="color:#6366f1;">返回首页</a>';
+  } else {
+    const data = JSON.parse(decodeURIComponent(dataParam));
+    const { question, responses, type } = data;
+    const isAdvanced = type === 'advanced';
+    const allResponses = (responses || []).map(r => `【${r.brand} (${r.model})】: ${r.response}`).join('\n\n');
+    const consensus = "• 所有模型均认可市场存在空白机会\n• 技术实现没有根本性障碍\n• 需要控制成本和品牌风险";
+    const divergence = "• 激进派主张立即行动\n• 保守派建议先灰度测试\n• 风控强调现金流压力";
+    const finalAdvice = isAdvanced
+      ? "【高级决策·深度分析】\n综合多模型观点及其可信度权重，建议采取分阶段进入策略：\n1. Q4启动MVP，仅覆盖1-2个核心城市；\n2. 设定严格的KPI（用户获取成本<50元，留存率>40%）；\n3. 6个月后根据数据决定是否全量推广。\n\n置信度：82%\n主要风险：品牌稀释、价格战\n反共识思考：如果竞品加速降价，我们可能被迫跟进，需预留弹性预算。"
+      : "【免费基础总结】\n多数模型建议谨慎推进，可考虑小范围测试。详细深度分析请使用高级决策。";
+    document.getElementById('reportContent').innerHTML = `
+      <div class="section">
+        <h2>📌 原始问题</h2>
+        <p>${question || ''}</p>
+        <span class="badge ${isAdvanced ? 'advanced-badge' : 'free-badge'}">${isAdvanced ? '高级决策' : '免费决策'}</span>
+      </div>
+      <div class="section"><h2>✅ 共识观点</h2><div class="consensus">${consensus}</div></div>
+      <div class="section"><h2>⚠️ 关键分歧</h2><div class="divergence">${divergence}</div></div>
+      <div class="section"><h2>🧠 综合建议</h2><div class="final-advice">${finalAdvice}</div></div>
+      <div class="section"><h2>📄 原始回复记录</h2><pre style="white-space: pre-wrap; font-size: 0.85rem; color: #94a3b8;">${allResponses || '无数据'}</pre></div>`;
+  }
+</script>
+</body>
+</html>

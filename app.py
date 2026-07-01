@@ -927,7 +927,7 @@ document.querySelectorAll('.scenario-btn').forEach(btn => {
 // ─── 品牌折叠模型选择器 ───
 const BRANDS = {
   'OpenAI': { models: ['GPT-4o','o1','o3-mini','GPT-4o-mini'], default: 'GPT-4o' },
-  'Claude': { models: ['Claude 3.5 Sonnet','Claude 4','Claude 3.5 Haiku','Claude 3 Opus'], default: 'Claude 3.5 Sonnet' },
+  'Claude': { models: ['Claude 3.7 Sonnet (Sonnet 5)','Claude 3.5 Haiku (Haiku 4.5)','Claude 3 Opus (Opus 4.8)','Claude 4 (Fable 5)'], default: 'Claude 3.7 Sonnet (Sonnet 5)' },
   'Gemini': { models: ['Gemini 2.5 Pro','Gemini 2.0 Flash','Gemini 1.5 Pro'], default: 'Gemini 2.5 Pro' },
   'DeepSeek': { models: ['DeepSeek-V3','DeepSeek-R1','DeepSeek-Coder'], default: 'DeepSeek-V3' },
   'Qwen': { models: ['Qwen2.5-72B','Qwen2-7B','Qwen-Max'], default: 'Qwen2.5-72B' },

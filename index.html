@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Decision Room · 董事会操作系统</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0b0f17;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      color: #e6e6e6;
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+    }
+    .app-container { max-width: 1400px; margin: 0 auto; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .add-model-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .add-model-btn:hover { background: #253349; }
+    .question-area {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .question-input {
+      width: 100%;
+      background: #0b1120;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1rem;
+      color: #fff;
+      font-size: 1rem;
+      resize: vertical;
+      min-height: 80px;
+      margin-bottom: 1rem;
+    }
+    .action-row { display: flex; justify-content: flex-end; gap: 1rem; flex-wrap: wrap; }
+    .btn-primary { background: #2563eb; border: none; color: #fff; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .model-selection { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+    .brand-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; min-width: 140px; }
+    .brand-header { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 1rem; cursor: pointer; user-select: none; font-weight: 600; color: #cbd5e1; }
+    .brand-header input[type="checkbox"] { margin-right: 0.5rem; transform: scale(1.1); accent-color: #2563eb; }
+    .brand-name { flex: 1; }
+    .brand-arrow { font-size: 0.8rem; color: #64748b; transition: transform 0.2s; }
+    .brand-card.open .brand-arrow { transform: rotate(180deg); }
+    .brand-models { display: none; padding: 0 1rem 0.8rem; border-top: 1px solid #1e293b; }
+    .brand-card.open .brand-models { display: block; }
+    .model-option { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0; font-size: 0.85rem; color: #94a3b8; cursor: pointer; }
+    .model-option input[type="radio"] { accent-color: #2563eb; }
+    .responses-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    @media (max-width: 768px) { .responses-grid { grid-template-columns: 1fr; } }
+    .model-response-card { background: #111827; border: 1px solid #1e293b; border-radius: 16px; padding: 1.2rem; min-height: 200px; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-weight: 600; color: #60a5fa; }
+    .card-body { font-size: 0.9rem; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; }
+    .decision-footer { display: flex; justify-content: center; gap: 2rem; margin-top: 2rem; flex-wrap: wrap; }
+    .btn-decision { background: #065f46; color: #6ee7b7; border: none; padding: 1rem 2rem; border-radius: 12px; font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s; }
+    .btn-decision:hover { background: #047857; }
+    .btn-advanced { background: #5b21b6; color: #c4b5fd; }
+    .btn-advanced:hover { background: #6d28d9; }
+    .note { text-align: center; font-size: 0.8rem; color: #64748b; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="header">
+    <h1>🧠 AI Decision Room</h1>
+    <button class="add-model-btn" id="addOtherModel">+ 添加其他模型</button>
+  </div>
+
+  <div class="question-area">
+    <textarea class="question-input" id="questionInput" placeholder="输入你的问题，例如：是否应该在Q4推出低端产品线？"></textarea>
+    <div class="action-row">
+      <button class="btn-primary" id="askBtn">向董事会提问</button>
+    </div>
+  </div>
+
+  <div class="model-selection" id="modelSelection"></div>
+
+  <div class="responses-grid" id="responsesGrid">
+    <div class="model-response-card">
+      <div class="card-header">🤖 等待提问...</div>
+      <div class="card-body">选择模型并输入问题后，这里会展示各模型的回复。</div>
+    </div>
+  </div>
+
+  <div class="decision-footer">
+    <button class="btn-decision" id="freeDecisionBtn">📋 免费决策 · 基础总结</button>
+    <button class="btn-decision btn-advanced" id="advancedDecisionBtn">🧠 高级决策 · 深度长文报告</button>
+  </div>
+  <div class="note">免费版使用轻量模型总结 · 高级版调用最强推理模型生成完整报告</div>
+</div>
+
+<script>
+  const brandModels = {
+    "GPT-4o / o1": { default: "gpt-4o", options: ["gpt-4o", "o1", "o3-mini", "gpt-4o-mini"] },
+    "Claude": { default: "claude-3.7-sonnet", options: ["claude-3.7-sonnet (Sonnet 5)", "claude-3.5-haiku (Haiku 4.5)", "claude-3-opus (Opus 4.8)", "claude-4 (Fable 5)"] },
+    "Gemini": { default: "gemini-2.5-pro", options: ["gemini-2.5-pro", "gemini-2.0-flash", "gemini-1.5-pro"] },
+    "DeepSeek": { default: "deepseek-v3", options: ["deepseek-v3", "deepseek-r1", "deepseek-coder"] },
+    "Qwen（通义千问）": { default: "qwen-max", options: ["qwen-max", "qwen-plus", "qwen-long"] },
+    "Kimi": { default: "kimi", options: ["kimi", "kimi-long"] },
+    "GLM（智谱）": { default: "glm-4-plus", options: ["glm-4-plus", "glm-4-flash", "glm-4-long", "glm-4v"] },
+    "豆包": { default: "doubao", options: ["doubao", "skylark"] },
+    "文心一言": { default: "ernie-4.0", options: ["ernie-4.0", "ernie-3.5"] },
+    "混元": { default: "hunyuan-turbo", options: ["hunyuan-turbo", "hunyuan"] },
+    "Grok": { default: "grok-3", options: ["grok-3", "grok-2"] },
+    "Mistral": { default: "mistral-large", options: ["mistral-large", "mistral-small", "mixtral"] },
+    "Llama": { default: "llama-4", options: ["llama-4", "llama-3.1-405b", "llama-3.1-70b", "code-llama"] },
+    "MiniMax": { default: "abab6.5", options: ["abab6.5", "abab5.5", "hailuo"] },
+    "讯飞星火": { default: "spark-v4", options: ["spark-v4", "spark-v3.5"] },
+    "其他": { default: "other", options: ["perplexity", "cohere", "yi", "baichuan", "senseNova", "phi", "gemma", "internlm"] }
+  };
+
+  let selectedBrands = new Set(["GPT-4o / o1", "Claude", "DeepSeek", "Kimi"]);
+  let selectedModels = {};
+  Object.keys(brandModels).forEach(b => { selectedModels[b] = brandModels[b].default; });
+
+  function renderModelSelection() {
+    const container = document.getElementById('modelSelection');
+    container.innerHTML = '';
+    Object.entries(brandModels).forEach(([brand, data]) => {
+      const card = document.createElement('div');
+      card.className = `brand-card ${selectedBrands.has(brand) ? 'open' : ''}`;
+      card.innerHTML = `
+        <div class="brand-header">
+          <input type="checkbox" class="brand-checkbox" data-brand="${brand}" ${selectedBrands.has(brand) ? 'checked' : ''}>
+          <span class="brand-name">${brand}</span>
+          <span class="brand-arrow">▼</span>
+        </div>
+        <div class="brand-models">
+          ${data.options.map(model => `
+            <label class="model-option">
+              <input type="radio" name="model-${brand}" value="${model}" ${selectedModels[brand] === model ? 'checked' : ''} data-brand="${brand}">
+              ${model}
+            </label>
+          `).join('')}
+        </div>`;
+      container.appendChild(card);
+    });
+
+    document.querySelectorAll('.brand-header').forEach(header => {
+      header.addEventListener('click', function(e) {
+        if (e.target.tagName === 'INPUT') return;
+        this.parentElement.classList.toggle('open');
+      });
+    });
+    document.querySelectorAll('.brand-checkbox').forEach(cb => {
+      cb.addEventListener('change', function(e) {
+        e.stopPropagation();
+        const brand = this.dataset.brand;
+        this.checked ? selectedBrands.add(brand) : selectedBrands.delete(brand);
+        if (!this.checked) this.closest('.brand-card').classList.remove('open');
+      });
+    });
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+      radio.addEventListener('change', function(e) {
+        e.stopPropagation();
+        selectedModels[this.dataset.brand] = this.value;
+      });
+    });
+  }
+
+  function generateMockResponse(model, question) {
+    const responses = [
+      "基于市场数据和竞品分析，我强烈建议启动。窗口期有限，先发优势至关重要。",
+      "我持谨慎态度。低端市场毛利率低，会稀释品牌价值。建议先小规模灰度测试。",
+      "技术栈完全复用，研发成本可控。但需注意功能裁剪可能影响用户体验。",
+      "从用户需求看，价格敏感型用户占比34%，确实存在空白市场。建议捆绑服务而非纯降价。",
+      "风险层面：现金流可能承压，需准备至少12个月的亏损预算。但长期战略价值大于财务风险。"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  document.getElementById('askBtn').addEventListener('click', function() {
+    const question = document.getElementById('questionInput').value.trim();
+    if (!question) { alert('请输入问题'); return; }
+    const activeBrands = [...selectedBrands];
+    if (activeBrands.length === 0) { alert('请至少选择一个模型品牌'); return; }
+    const grid = document.getElementById('responsesGrid');
+    grid.innerHTML = '';
+    activeBrands.forEach(brand => {
+      const model = selectedModels[brand];
+      const card = document.createElement('div');
+      card.className = 'model-response-card';
+      card.innerHTML = `<div class="card-header">🤖 ${brand} (${model})</div><div class="card-body">${generateMockResponse(model, question)}</div>`;
+      grid.appendChild(card);
+    });
+    window.currentQuestion = question;
+    window.currentResponses = activeBrands.map((brand, i) => ({
+      brand, model: selectedModels[brand], response: grid.children[i]?.querySelector('.card-body')?.innerText || ''
+    }));
+  });
+
+  function goToReport(type) {
+    if (!window.currentQuestion || !window.currentResponses) { alert('请先提问并获取模型回复'); return; }
+    const data = { question: window.currentQuestion, responses: window.currentResponses, type };
+    window.open(`/report?d=${encodeURIComponent(JSON.stringify(data))}`, '_blank');
+  }
+
+  document.getElementById('freeDecisionBtn').addEventListener('click', () => goToReport('free'));
+  document.getElementById('advancedDecisionBtn').addEventListener('click', () => goToReport('advanced'));
+  document.getElementById('addOtherModel').addEventListener('click', () => {
+    alert('其他模型功能：可手动输入模型名称，我们将在后续版本支持自定义模型接入。');
+  });
+
+  renderModelSelection();
+</script>
+</body>
+</html>
