@@ -845,7 +845,7 @@ async def call_siliconflow(model_id: str, prompt: str, role_name: str) -> dict:
                 SILICONFLOW_BASE,
                 headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY, "Content-Type": "application/json"},
                 json=payload,
-                timeout=aiohttp.ClientTimeout(total=30)
+                timeout=aiohttp.ClientTimeout(total=60)
             ) as resp:
                 if resp.status != 200:
                     return {"role": role_name, "model": model_id, "stance": "—", "reason": "API 错误: " + str(resp.status)}
