@@ -927,7 +927,7 @@ async function runBoard() {
   // 重置
   agentResults = [];
   decisionResult = null;
-  timelineContainer.innerHTML = '';
+  chatContainer.querySelector('#chatBubbles')?.remove();
   ledgerContainer.innerHTML = '';
   finalContainer.classList.remove('open');
   document.getElementById('trustScoreBar').style.display = 'none';
@@ -998,8 +998,8 @@ async function runBoard() {
   } catch (err) {
     showError(err.message || '请求失败');
     setStatus('❌ error', '');
-    // 标记所有成员为错误
-    BOARD.forEach(m => setMemberStatus(m.id, 'error'));
+    // 显示一条系统气泡
+    addChatBubble('ceo', '⚠️', '系统提示', 'error', '请求失败: ' + (err.message || '未知错误'), '—', false, '');
   }
 
   runBtn.disabled = false;
