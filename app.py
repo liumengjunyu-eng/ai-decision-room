@@ -1215,6 +1215,20 @@ async def api_run(request: Request):
 
 # ============================================================
 
+@app.get("/debug/ping")
+async def debug_ping():
+    import sys, aiohttp
+    result = {"python": sys.version[:30]}
+    try:
+        async with aiohttp.ClientSession() as s:
+            async with s.get("https://api.siliconflow.cn/v1/models",
+                           headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY},
+                           timeout=aiohttp.ClientTimeout(total=10)) as r:
+                result["siliconflow"] = r.status
+    except Exception as e:
+        result["siliconflow"] = str(e)[:60]
+    return result
+
 @app.get("/health")
 
 def health():
