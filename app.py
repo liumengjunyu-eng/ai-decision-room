@@ -33,6 +33,7 @@ BOARD_MEMBERS = {
     "首席战略官": {
 
         "model": "Qwen/Qwen2.5-72B-Instruct",
+        "fallback": "deepseek-ai/DeepSeek-V3",
 
         "emoji": "🧙",
 
@@ -47,6 +48,7 @@ BOARD_MEMBERS = {
     "批判分析官": {
 
         "model": "deepseek-ai/DeepSeek-V3",
+        "fallback": "Qwen/Qwen2.5-72B-Instruct",
 
         "emoji": "⚔️",
 
@@ -61,6 +63,7 @@ BOARD_MEMBERS = {
     "风险控制官": {
 
         "model": "Qwen/Qwen2-7B-Instruct",
+        "fallback": "deepseek-ai/DeepSeek-V2.5",
 
         "emoji": "🛡️",
 
@@ -75,12 +78,7 @@ BOARD_MEMBERS = {
     "增长策略官": {
 
         "model": "Qwen/Qwen2.5-72B-Instruct",
-
-        "emoji": "📈",
-
-        "color": "#4ADE80",
-
-        "weight": 1.2,
+        "fallback": "deepseek-ai/DeepSeek-V3",
 
         "prompt": "你是一位增长策略官，擅长找到增长路径、设计实验。请针对以下决策问题，给出明确判断（支持/反对/中立），并设计增长验证路径和ROI判断。"
 
@@ -89,6 +87,7 @@ BOARD_MEMBERS = {
     "洞察官": {
 
         "model": "deepseek-ai/DeepSeek-V2.5",
+        "fallback": "Qwen/Qwen2.5-72B-Instruct",
 
         "emoji": "🔍",
 
@@ -103,6 +102,7 @@ BOARD_MEMBERS = {
     "创新官": {
 
         "model": "Qwen/Qwen2.5-72B-Instruct",
+        "fallback": "deepseek-ai/DeepSeek-V2.5",
 
         "emoji": "💡",
 
@@ -296,6 +296,14 @@ body {
 .input-card .actions button:hover { background: #5558e6; }
 .input-card .actions button:disabled { opacity: 0.35; cursor: not-allowed; }
 
+/* ─── 场景按钮 ─── */
+.scenario-btn {
+  padding: 6px 14px; font-size: 11px; border: 1px solid #1f2937;
+  border-radius: 8px; background: #0f172a; color: #9ca3af;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.scenario-btn:hover { border-color: #6366f1; color: #e5e7eb; background: rgba(99,102,241,0.06); }
+
 /* ─── 董事会执行面板 ─── */
 .board-grid {
   display: flex; flex-direction: column; gap: 8px;
@@ -464,6 +472,12 @@ body {
   <!-- ═══ 1. 决策输入 ═══ -->
   <div class="section"><span>1</span> 决策输入 <span class="sec-line"></span></div>
   <div class="card input-card">
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <button class="scenario-btn" data-scenario="是否应该辞去稳定工作去创业？当前行业下行，手上有一个初步验证过的项目方向。">🏢 创业决策</button>
+      <button class="scenario-btn" data-scenario="预算10万元，应该在抖音、小红书、知乎三个平台中选择哪个做产品冷启动？">📢 营销选择</button>
+      <button class="scenario-btn" data-scenario="手上有50万闲钱，应该提前还房贷还是投资指数基金？">💰 财务决策</button>
+      <button class="scenario-btn" data-scenario="公司要不要全面转向AI技术栈？现有业务稳定但增长缓慢。">🏭 战略转型</button>
+    </div>
     <textarea id="topicInput" placeholder="在此输入你的决策问题，AI 董事会将为你分析…&#10;&#10;例如：&#10;• 是否要进入五官灸健康赛道？&#10;• 新产品应该先做小红书还是抖音？&#10;• 第三季度预算应该投品牌还是效果？"></textarea>
     <div class="actions">
       <button id="runBtn">▶ 执行分析</button>
@@ -523,6 +537,13 @@ body {
     <div class="f-meta">
       <span id="finalConfidence">置信度 —</span>
       <span id="finalRisk">风险 —</span>
+    </div>
+    <!-- V4 升级入口 -->
+    <div id="upgradePrompt" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.15);border-radius:10px;text-align:center;">
+      <div style="font-size:12px;color:#9ca3af;margin-bottom:8px;">需要更完整的深度战略报告？</div>
+      <a href="/compare" style="display:inline-block;padding:8px 20px;background:#6366f1;color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;">
+        使用编译器 · 多模型手动贴入 →
+      </a>
     </div>
   </div>
 
@@ -723,6 +744,10 @@ function showFinal(decision) {
       <span>可靠性 +${b.reliability_bonus||0}</span>
     `;
   }
+  
+  // 显示升级入口
+  const up = document.getElementById('upgradePrompt');
+  if (up) up.style.display = 'block';
 }
 
 // ─── 核心：运行董事会 ───
@@ -836,6 +861,16 @@ runBtn.addEventListener('click', runBoard);
 // Enter to submit
 topicInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runBoard(); }
+});
+
+// ─── 场景按钮 ───
+document.querySelectorAll('.scenario-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    topicInput.value = btn.dataset.scenario;
+    topicInput.focus();
+    // 自动触发分析
+    setTimeout(() => { if (topicInput.value.trim()) runBoard(); }, 300);
+  });
 });
 
 console.log('🧠 Decision OS V5 已加载');
@@ -1309,81 +1344,93 @@ async def _parse_json_resp(resp):
         return {}
 
 
-async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_prompt: str) -> dict:
+async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_prompt: str, fallback_id: str = None) -> dict:
 
-    """调用硅基流动 API"""
+    """调用硅基流动 API，含自动重试和备用模型切换"""
 
     if not SILICONFLOW_API_KEY:
 
         return {"role": role_name, "model": model_id, "stance": "—", "reason": "API Key 未配置"}
+    
+    async def _do_call(mid: str) -> tuple:
+        """单次调用，返回 (status, data_or_error)"""
+        payload = {
 
-    payload = {
+            "model": mid,
 
-        "model": model_id,
+            "messages": [
 
-        "messages": [
+                {"role": "system", "content": system_prompt},
 
-            {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"决策问题：{prompt}\n\n请给出你的判断（支持/反对/中立），并详细说明理由。"}
 
-            {"role": "user", "content": f"决策问题：{prompt}\n\n请给出你的判断（支持/反对/中立），并详细说明理由。"}
+            ],
 
-        ],
+            "temperature": 0.7,
 
-        "temperature": 0.7,
+            "max_tokens": 300
 
-        "max_tokens": 300
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    SILICONFLOW_BASE,
+                    headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY, "Content-Type": "application/json"},
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=60)
+                ) as resp:
+                    if resp.status == 403:
+                        return ("fallback", "API 403")
+                    if resp.status != 200:
+                        return ("error", "API 错误: " + str(resp.status))
+                    data = await _parse_json_resp(resp)
+                    raw = data["choices"][0]["message"]["content"].strip()
+                    return ("ok", raw)
+        except asyncio.TimeoutError:
+            return ("fallback", "超时")
+        except Exception as e:
+            return ("error", "请求失败: " + str(e))
+    
+    # 第一次调用
+    status, result = await _do_call(model_id)
+    
+    # 如果失败且有备用模型，自动重试
+    if status != "ok" and fallback_id:
+        # 记录重试（日志用）
+        retry_info = f"({model_id}→{fallback_id}: {result})"
+        status2, result2 = await _do_call(fallback_id)
+        if status2 == "ok":
+            status, result = "ok", result2
+            fallback_used = True
+        # 即使备用也失败，继续用原错误信息
+    
+    if status != "ok":
+        return {"role": role_name, "model": model_id, "stance": "—", "reason": result[:100]}
 
-    }
+    raw = result
 
-    try:
+    lines = raw.split("\n")
 
-        async with aiohttp.ClientSession() as session:
+    stance = lines[0].strip() if len(lines) > 0 else "—"
 
-            async with session.post(
+    if "支持" in stance:
 
-                SILICONFLOW_BASE,
+        stance = "支持"
 
-                headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY, "Content-Type": "application/json"},
+    elif "反对" in stance:
 
-                json=payload,
+        stance = "反对"
 
-                timeout=aiohttp.ClientTimeout(total=60)
+    else:
 
-            ) as resp:
+        stance = "中立"
 
-                if resp.status != 200:
+    reason_lines = lines[1:] if len(lines) > 1 else []
 
-                    return {"role": role_name, "model": model_id, "stance": "—", "reason": "API 错误: " + str(resp.status)}
+    reason = "\n".join(reason_lines).strip() if reason_lines else raw[:200]
 
-                data = await _parse_json_resp(resp)
+    return {"role": role_name, "model": model_id, "stance": stance, "reason": reason}
 
-                raw = data["choices"][0]["message"]["content"].strip()
-
-                lines = raw.split("\n")
-
-                stance = lines[0].strip() if len(lines) > 0 else "—"
-
-                if "支持" in stance:
-
-                    stance = "支持"
-
-                elif "反对" in stance:
-
-                    stance = "反对"
-
-                else:
-
-                    stance = "中立"
-
-                reason_lines = lines[1:] if len(lines) > 1 else []
-
-                reason = "\n".join(reason_lines).strip() if reason_lines else raw[:200]
-
-                return {"role": role_name, "model": model_id, "stance": stance, "reason": reason}
-
-    except Exception as e:
-
-        return {"role": role_name, "model": model_id, "stance": "—", "reason": "请求失败: " + str(e)}
 
 async def call_ceo(debate_results: list, prompt: str) -> dict:
 
@@ -1495,7 +1542,7 @@ async def api_run(request: Request):
         tasks = []
         for role_name in DEBATE_ROLES:
             member = BOARD_MEMBERS[role_name]
-            tasks.append(call_siliconflow(member["model"], topic, role_name, member["prompt"]))
+            tasks.append(call_siliconflow(member["model"], topic, role_name, member["prompt"], member.get("fallback")))
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
