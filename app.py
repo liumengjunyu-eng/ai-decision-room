@@ -183,7 +183,8 @@ p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
 # ============================================================
 # ============================================================
 # ============================================================
-# ROOM PAGE — V3 Single-Thread Meeting Room
+# ============================================================
+# ROOM PAGE — V5 Decision OS
 # ============================================================
 ROOM_HTML = r"""
 <!DOCTYPE html>
@@ -191,430 +192,602 @@ ROOM_HTML = r"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Decision Meeting Room</title>
+<title>Decision OS V5</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
-    background: #0B0F1A;
-    color: #E6EAF2;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #0b0f19;
+  color: #e5e7eb;
 }
 
 /* ─── 顶部 ─── */
 .header {
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    border-bottom: 1px solid #1F2430;
-    background: rgba(11,15,26,0.95);
-    flex-shrink: 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid #1f2937;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(11,15,25,0.95);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-.header .logo { font-weight: 600; font-size: 14px; color: #A8B3CF; }
-.header .logo span { color: #7C5CFF; }
-.header .status { font-size: 12px; color: #6B7280; display: flex; align-items: center; gap: 8px; }
+.header .brand {
+  font-size: 18px; font-weight: 700;
+  background: linear-gradient(135deg,#a78bfa,#6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header .sub {
+  font-size: 12px; color: #6b7280;
+}
+.header .status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: #6b7280;
+}
 .header .status .dot {
-    width: 7px; height: 7px; border-radius: 50%; background: #4A5268;
+  width: 8px; height: 8px; border-radius: 50%; background: #4a5268;
 }
-.header .status .dot.active { background: #4ADE80; animation: pulse-dot 1.2s ease-in-out infinite; }
-.header .status .dot.speaking { background: #F59E0B; animation: pulse-dot 0.8s ease-in-out infinite; }
+.header .status .dot.running { background: #f59e0b; animation: pulse-dot 0.8s ease-in-out infinite; }
+.header .status .dot.done { background: #22c55e; }
 @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
 
-/* ─── 主区域 ─── */
-.main {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0;
-}
-.main::-webkit-scrollbar { width: 4px; }
-.main::-webkit-scrollbar-track { background: transparent; }
-.main::-webkit-scrollbar-thumb { background: #2A3142; border-radius: 4px; }
-
 /* ─── 容器 ─── */
-.container {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 24px 20px 100px;
+.container { max-width: 900px; margin: 0 auto; padding: 24px; }
+.section {
+  margin: 24px 0 10px;
+  font-size: 11px; font-weight: 600;
+  color: #9ca3af; text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section .sec-line {
+  flex: 1; height: 1px; background: #1f2937;
 }
 
-/* ─── 议题卡 ─── */
-.topic-card {
-    background: #111625;
-    border: 1px solid #232838;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 24px;
-}
-.topic-card .tlabel {
-    font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.06em; color: #7AA2FF; margin-bottom: 8px;
-}
-.topic-card .tinput {
-    display: flex; gap: 10px;
-}
-.topic-card input {
-    flex: 1; padding: 12px 16px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid #2A3142; border-radius: 10px;
-    color: #E6EAF2; font-size: 14px; outline: none;
-    font-family: inherit;
-}
-.topic-card input:focus { border-color: #7C5CFF; }
-.topic-card input::placeholder { color: #4A5268; }
-.topic-card button {
-    padding: 12px 24px; background: #6D5EF7; border: none;
-    border-radius: 10px; color: #fff; font-weight: 600;
-    font-size: 13px; cursor: pointer; white-space: nowrap;
-}
-.topic-card button:hover { background: #5C4EE0; }
-.topic-card button:disabled { opacity: 0.35; cursor: not-allowed; }
-
-/* ─── 会议阶段标签 ─── */
-.stage-label {
-    font-size: 12px; color: #8B93A7;
-    padding: 6px 0; margin-bottom: 4px;
-    display: flex; align-items: center; gap: 8px;
-}
-.stage-label .stage-dot {
-    width: 6px; height: 6px; border-radius: 50%; background: #7C5CFF;
+/* ─── 卡片 ─── */
+.card {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
 }
 
-/* ─── 发言消息 ─── */
-.msg {
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid #222838;
-    background: #0F1422;
-    line-height: 1.7;
-    margin-bottom: 8px;
-    opacity: 0;
-    transform: translateY(6px);
-    animation: msgIn 0.35s ease forwards;
+/* ─── 输入 ─── */
+.input-card textarea {
+  width: 100%; padding: 12px 14px;
+  border-radius: 10px; background: #0f172a;
+  border: 1px solid #1f2937; color: #e5e7eb;
+  font-size: 14px; font-family: inherit;
+  resize: vertical; min-height: 60px; outline: none;
 }
-@keyframes msgIn { to { opacity:1; transform:translateY(0); } }
-.msg .role {
-    font-size: 13px; color: #7AA2FF; margin-bottom: 4px;
-    display: flex; align-items: center; gap: 8px;
+.input-card textarea:focus { border-color: #6366f1; }
+.input-card textarea::placeholder { color: #4a5268; }
+.input-card .actions {
+  display: flex; gap: 10px; margin-top: 10px;
 }
-.msg .role .tag {
-    font-size: 10px; font-weight: 600; padding: 1px 8px;
-    border-radius: 8px;
+.input-card .actions button {
+  padding: 10px 24px; border: none; border-radius: 10px;
+  font-weight: 600; font-size: 13px; cursor: pointer;
+  background: #6366f1; color: white;
 }
-.msg .role .tag.support { background: rgba(34,197,94,0.12); color: #22C55E; }
-.msg .role .tag.oppose { background: rgba(239,68,68,0.12); color: #EF4444; }
-.msg .role .tag.neutral { background: rgba(251,191,36,0.12); color: #FBBF24; }
+.input-card .actions button:hover { background: #5558e6; }
+.input-card .actions button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* 发起人 */
-.msg.user { background: #1A1F33; border-left: 3px solid #7C5CFF; }
-.msg.user .role { color: #A8B3CF; }
+/* ─── 董事会执行面板 ─── */
+.board-grid {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.member {
+  display: flex; justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0f172a;
+  transition: background 0.3s;
+}
+.member.running { background: rgba(99,102,241,0.08); }
+.member.done { background: rgba(34,197,94,0.04); }
+.member.error { background: rgba(239,68,68,0.04); }
 
-/* AI发言 */
-.msg.ai { border-left: 3px solid #2DD4BF; }
-.msg.ai.oppose { border-left: 3px solid #EF4444; }
-.msg.ai.neutral { border-left: 3px solid #FBBF24; }
+.member .left {
+  display: flex; align-items: center; gap: 8px;
+}
+.member .left .icon { font-size: 16px; }
+.member .left .name { font-weight: 600; font-size: 13px; }
+.member .left .title { font-size: 11px; color: #6b7280; }
 
-/* CEO */
-.msg.ceo {
-    background: #15122A;
-    border: 1px solid rgba(109,94,247,0.3);
-    border-left: 3px solid #7C5CFF;
-    margin-top: 16px;
+.member .right {
+  display: flex; align-items: center; gap: 8px;
 }
-.msg.ceo .role { color: #7C5CFF; }
-.msg.ceo .verdict { font-size: 18px; font-weight: 700; margin: 4px 0; }
-.msg.ceo .conf { font-size: 12px; color: #8B93A7; margin-bottom: 8px; }
-.msg.ceo .steps { margin-top: 8px; }
-.msg.ceo .steps .step {
-    font-size: 13px; color: #B0C0D8; padding: 2px 0 2px 14px; position: relative;
+.member .right .status-text {
+  font-size: 12px; color: #6b7280;
 }
-.msg.ceo .steps .step::before {
-    content: ""; position: absolute; left: 0; top: 8px;
-    width: 5px; height: 5px; border-radius: 50%; background: #7C5CFF;
+.member .right .status-text.waiting { color: #6b7280; }
+.member .right .status-text.thinking { color: #f59e0b; }
+.member .right .status-text.done { color: #22c55e; }
+.member .right .status-text.error { color: #ef4444; }
+
+.member .right .tag {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 8px;
+}
+.tag.support { background: rgba(34,197,94,0.12); color: #22c55e; }
+.tag.oppose { background: rgba(239,68,68,0.12); color: #ef4444; }
+.tag.neutral { background: rgba(251,191,36,0.12); color: #fbbf24; }
+
+/* ─── 时间线 ─── */
+.timeline {
+  border-left: 2px solid #312e81;
+  padding-left: 16px;
+  margin-left: 4px;
+  min-height: 60px;
+}
+.event {
+  margin-bottom: 16px;
+  opacity: 0;
+  transform: translateX(-4px);
+  animation: eventIn 0.35s ease forwards;
+}
+@keyframes eventIn { to { opacity:1; transform:translateX(0); } }
+.event .dot {
+  width: 10px; height: 10px;
+  background: #6366f1; border-radius: 50%;
+  display: inline-block; margin-right: 8px;
+  position: relative; left: -22px;
+  top: -1px; vertical-align: middle;
+}
+.event .dot.support { background: #22c55e; }
+.event .dot.oppose { background: #ef4444; }
+.event .dot.neutral { background: #fbbf24; }
+
+.event .ev-header {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 3px; margin-top: -14px;
+}
+.event .ev-header b { font-size: 14px; }
+.event .ev-reason {
+  font-size: 13px; color: #9ca3af;
+  line-height: 1.6; padding-left: 18px;
+  margin-top: 2px;
 }
 
-/* 当前发言人高亮 */
-.msg.speaking {
-    border-color: #7C5CFF;
-    box-shadow: 0 0 0 1px rgba(124,92,255,0.15);
+/* ─── 决策账本 ─── */
+.ledger-grid {
+  display: flex; flex-direction: column; gap: 4px;
 }
+.ledger-row {
+  display: flex; justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.ledger-row .lname { color: #d1d5db; }
+.ledger-row .lscore { font-weight: 600; font-family: monospace; }
+.ledger-row .lscore.pos { color: #22c55e; }
+.ledger-row .lscore.neg { color: #ef4444; }
+.ledger-row .lscore.zero { color: #9ca3af; }
+.ledger-divider {
+  height: 1px; background: #1f2937; margin: 4px 0;
+}
+.ledger-total {
+  display: flex; justify-content: space-between;
+  padding: 6px 8px; font-size: 13px;
+  font-weight: 700;
+}
+.ledger-total .total-val { font-family: monospace; }
+.ledger-total .total-val.pos { color: #22c55e; }
+.ledger-total .total-val.neg { color: #ef4444; }
 
-/* 打字光标 */
-.msg .content .cursor {
-    display: inline-block; width: 2px; height: 15px;
-    background: #7C5CFF; animation: blink 0.8s step-end infinite;
-    vertical-align: text-bottom; margin-left: 1px;
+/* ─── 最终裁决 ─── */
+.final {
+  background: linear-gradient(135deg, #1e1b4b, #0f172a);
+  border: 1px solid #3730a3;
+  border-radius: 14px;
+  padding: 18px;
+  display: none;
 }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.final.open { display: block; }
+.final .f-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.final .f-header .f-title { font-weight: 700; font-size: 15px; }
+.final .f-header .badge {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 8px; font-size: 11px; font-weight: 700;
+}
+.badge.support { background: #22c55e; color: #000; }
+.badge.oppose { background: #ef4444; color: #fff; }
+.badge.neutral { background: #fbbf24; color: #000; }
 
-/* 错误 */
-.msg.error { border-left: 3px solid #F59E0B; }
-.msg.error .role { color: #F59E0B; }
-.msg .err-text { font-size: 13px; color: #F59E0B; font-style: italic; }
-
-/* ─── 输入栏 ─── */
-.input-bar {
-    flex-shrink: 0;
-    border-top: 1px solid #1F2430;
-    padding: 12px 20px;
-    background: #0B0F1A;
-    display: flex;
-    justify-content: center;
-}
-.input-inner {
-    max-width: 720px;
-    width: 100%;
-    display: flex;
-    gap: 10px;
-}
-.input-inner input {
-    flex: 1; padding: 12px 16px;
-    border-radius: 10px; border: 1px solid #2A3142;
-    background: #111625; color: white; font-size: 14px;
-    outline: none; font-family: inherit;
-}
-.input-inner input:focus { border-color: #7C5CFF; }
-.input-inner input::placeholder { color: #4A5268; }
-.input-inner button {
-    padding: 12px 20px; background: #6D5EF7; border: none;
-    border-radius: 10px; color: white; font-weight: 600;
-    font-size: 13px; cursor: pointer;
-}
-.input-inner button:hover { background: #5C4EE0; }
-.input-inner button:disabled { opacity: 0.35; cursor: not-allowed; }
+.final .f-body { font-size: 14px; color: #d1d5db; line-height: 1.7; margin: 10px 0; }
+.final .f-meta { font-size: 12px; color: #6b7280; display: flex; gap: 16px; }
 
 /* ─── 空状态 ─── */
 .empty-state {
-    text-align: center; color: #4A5268; padding: 60px 0;
+  text-align: center; color: #4a5268; padding: 40px 0;
 }
-.empty-state .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.4; }
-.empty-state .hint { font-size: 13px; margin-top: 6px; color: #3A4268; }
+.empty-state .icon { font-size: 32px; margin-bottom: 8px; opacity: 0.4; }
+
+/* ─── 错误 ─── */
+.error-card {
+  background: rgba(239,68,68,0.04); border: 1px solid rgba(239,68,68,0.15);
+  border-radius: 10px; padding: 12px; font-size: 13px; color: #ef4444;
+  display: none; margin-bottom: 12px;
+}
+.error-card.open { display: block; }
+
+/* ─── 响应式 ─── */
+@media (max-width: 640px) {
+  .container { padding: 16px 12px; }
+}
 </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="logo">🧠 AI <span>Decision Meeting Room</span></div>
-    <div class="status">
-        <span class="dot" id="statusDot"></span>
-        <span id="statusText">就绪</span>
-    </div>
+  <div>
+    <span class="brand">Decision OS</span>
+    <span class="sub" style="margin-left:8px;">Board Operating System v5</span>
+  </div>
+  <div class="status">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">idle</span>
+  </div>
 </div>
 
-<div class="main" id="mainArea">
-    <div class="container">
+<div class="container">
 
-        <!-- 议题 -->
-        <div class="topic-card">
-            <div class="tlabel">📋 当前议题</div>
-            <div class="tinput">
-                <input id="topicInput" placeholder="例如：是否要进入五官灸健康赛道？" />
-                <button id="runBtn">发起会议</button>
-            </div>
-        </div>
-
-        <!-- 发言区 -->
-        <div id="threadContainer">
-            <div class="empty-state" id="emptyState">
-                <div class="icon">🏛️</div>
-                <div>输入议题，AI 董事会将依次发言</div>
-                <div class="hint">发起人 → 6位董事 → CEO 裁决</div>
-            </div>
-        </div>
-
+  <!-- ═══ 1. 输入 ═══ -->
+  <div class="section"><span>1</span> Decision Input <span class="sec-line"></span></div>
+  <div class="card input-card">
+    <textarea id="topicInput" placeholder="输入决策问题…&#10;例如：是否要进入五官灸健康赛道？"></textarea>
+    <div class="actions">
+      <button id="runBtn">▶ 执行董事会分析</button>
     </div>
-</div>
+  </div>
 
-<!-- 输入栏 -->
-<div class="input-bar">
-    <div class="input-inner">
-        <input id="bottomInput" placeholder="输入新的议题..." />
-        <button id="bottomBtn">发起会议</button>
+  <!-- 错误 -->
+  <div class="error-card" id="errorCard"></div>
+
+  <!-- ═══ 2. 董事会执行 ═══ -->
+  <div class="section"><span>2</span> Board Execution <span class="sec-line"></span></div>
+  <div class="card" id="boardCard">
+    <div class="board-grid" id="boardGrid"></div>
+  </div>
+
+  <!-- ═══ 3. 冲突时间线 ═══ -->
+  <div class="section"><span>3</span> Conflict Timeline <span class="sec-line"></span></div>
+  <div class="card">
+    <div id="timelineContainer">
+      <div class="empty-state" id="timelineEmpty">
+        <div class="icon">🧠</div>
+        <div>等待董事会分析完成后生成</div>
+      </div>
     </div>
+  </div>
+
+  <!-- ═══ 4. 决策账本 ═══ -->
+  <div class="section"><span>4</span> Decision Ledger <span class="sec-line"></span></div>
+  <div class="card">
+    <div id="ledgerContainer">
+      <div class="empty-state" id="ledgerEmpty">
+        <div class="icon">📊</div>
+        <div>等待权重计算完成</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 5. 最终裁决 ═══ -->
+  <div class="section"><span>5</span> Final Resolution <span class="sec-line"></span></div>
+  <div class="final" id="finalContainer">
+    <div class="f-header">
+      <span class="f-title">Final Decision</span>
+      <span class="badge" id="finalBadge">PENDING</span>
+    </div>
+    <div class="f-body" id="finalBody"></div>
+    <div class="f-meta">
+      <span id="finalConfidence">置信度 —</span>
+      <span id="finalRisk">风险 —</span>
+    </div>
+  </div>
+
 </div>
 
 <script>
+// ─── 董事会配置 ───
 const BOARD = [
-    { id: 'strategy',  name: '战略官', icon: '🧙', title: '战略部' },
-    { id: 'critic',    name: '批判官', icon: '⚔️', title: '风控部' },
-    { id: 'risk',      name: '风控官', icon: '🛡️', title: '风控部' },
-    { id: 'growth',    name: '增长官', icon: '📈', title: '增长部' },
-    { id: 'insight',   name: '洞察官', icon: '🔍', title: '洞察部' },
-    { id: 'innovation',name: '创新官', icon: '💡', title: '创新部' }
+  { id: 'strategy',   name: '战略官', icon: '🧙', title: 'CSO', weight: 1.3 },
+  { id: 'critic',     name: '批判官', icon: '⚔️', title: 'CRO', weight: 1.2 },
+  { id: 'risk',       name: '风控官', icon: '🛡️', title: 'CTO', weight: 1.1 },
+  { id: 'growth',     name: '增长官', icon: '📈', title: 'CGO', weight: 1.2 },
+  { id: 'insight',    name: '洞察官', icon: '🔍', title: 'CIO', weight: 1.0 },
+  { id: 'innovation', name: '创新官', icon: '💡', title: 'CTI', weight: 1.1 },
+  { id: 'ceo',        name: 'CEO裁决官', icon: '👑', title: 'CEO', weight: 1.5 }
 ];
-const CEO = { name: 'CEO 裁决官', icon: '👑', title: '最终裁决' };
 
-const container = document.getElementById('threadContainer');
-const emptyState = document.getElementById('emptyState');
-const topicInput = document.getElementById('topicInput');
-const bottomInput = document.getElementById('bottomInput');
-const runBtn = document.getElementById('runBtn');
-const bottomBtn = document.getElementById('bottomBtn');
-const mainArea = document.getElementById('mainArea');
-const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
+const statusDot = document.getElementById('statusDot');
+const topicInput = document.getElementById('topicInput');
+const runBtn = document.getElementById('runBtn');
+const boardGrid = document.getElementById('boardGrid');
+const errorCard = document.getElementById('errorCard');
+const timelineContainer = document.getElementById('timelineContainer');
+const timelineEmpty = document.getElementById('timelineEmpty');
+const ledgerContainer = document.getElementById('ledgerContainer');
+const ledgerEmpty = document.getElementById('ledgerEmpty');
+const finalContainer = document.getElementById('finalContainer');
+const finalBadge = document.getElementById('finalBadge');
+const finalBody = document.getElementById('finalBody');
+const finalConfidence = document.getElementById('finalConfidence');
+const finalRisk = document.getElementById('finalRisk');
 
 let isRunning = false;
-let meetingPhase = 'idle';
+let agentResults = [];
+let decisionResult = null;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// 添加阶段标签
-function addStage(text) {
-    emptyState.style.display = 'none';
-    const div = document.createElement('div');
-    div.className = 'stage-label';
-    div.innerHTML = '<span class="stage-dot"></span> ' + text;
-    container.appendChild(div);
+function setStatus(text, cls) {
+  statusText.textContent = text;
+  statusDot.className = 'dot' + (cls ? ' ' + cls : '');
 }
 
-// 添加消息
-function addMessage(type, icon, name, roleHtml, content, extraClass) {
-    emptyState.style.display = 'none';
+function showError(msg) {
+  errorCard.textContent = '⚠️ ' + msg;
+  errorCard.classList.add('open');
+}
+
+// ─── 初始化董事会面板 ───
+function initBoard() {
+  boardGrid.innerHTML = '';
+  BOARD.forEach((m, i) => {
     const div = document.createElement('div');
-    div.className = 'msg ' + type + (extraClass ? ' ' + extraClass : '');
+    div.className = 'member';
+    div.id = 'member-' + m.id;
     div.innerHTML = `
-        <div class="role">${icon} ${name}${roleHtml}</div>
-        <div class="content">${content}</div>
+      <div class="left">
+        <span class="icon">${m.icon}</span>
+        <span class="name">${m.name}</span>
+        <span class="title">${m.title}</span>
+      </div>
+      <div class="right">
+        <span class="status-text waiting" id="status-${m.id}">⏳ waiting</span>
+      </div>
     `;
-    container.appendChild(div);
-    div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    return div.querySelector('.content');
+    boardGrid.appendChild(div);
+  });
 }
 
-// 获取立场标签
-function stanceTag(stance) {
-    if (stance === '支持') return '<span class="tag support">支持</span>';
-    if (stance === '反对') return '<span class="tag oppose">反对</span>';
-    if (stance === '中立') return '<span class="tag neutral">中立</span>';
-    return '';
+// 设置成员状态
+function setMemberStatus(id, status, tagText, tagCls) {
+  const el = document.getElementById('member-' + id);
+  if (!el) return;
+  el.className = 'member ' + (status === 'running' ? 'running' : status === 'done' ? 'done' : status === 'error' ? 'error' : '');
+  const st = document.getElementById('status-' + id);
+  if (!st) return;
+  const statusMap = {
+    waiting: '⏳ waiting',
+    thinking: '⏳ thinking…',
+    done: '✅ done',
+    error: '❌ error'
+  };
+  st.textContent = statusMap[status] || status;
+  st.className = 'status-text ' + status;
+  if (tagText && tagCls) {
+    st.innerHTML = '<span class="tag ' + tagCls + '">' + tagText + '</span>';
+  }
 }
 
-// 打字效果
-async function typeText(el, text, speed = 16) {
-    el.textContent = '';
-    for (let i = 0; i < text.length; i++) {
-        el.textContent += text[i];
-        await sleep(speed);
+// ─── 添加时间线事件 ───
+function addTimelineEvent(icon, name, stance, reason, weight) {
+  timelineEmpty.style.display = 'none';
+  const div = document.createElement('div');
+  div.className = 'event';
+  const st = stance === '支持' ? 'support' : stance === '反对' ? 'oppose' : 'neutral';
+  div.innerHTML = `
+    <div class="ev-header">
+      <span class="dot ${st}"></span>
+      <b>${icon} ${name}</b>
+      <span class="tag ${st}" style="font-size:10px;padding:1px 6px;border-radius:6px;display:inline-block;font-weight:600;">${stance || '中立'}</span>
+      ${weight ? '<span style="font-size:11px;color:#6b7280;">weight ×' + weight + '</span>' : ''}
+    </div>
+    <div class="ev-reason">${reason}</div>
+  `;
+  timelineContainer.appendChild(div);
+}
+
+// ─── 决策账本 ───
+function buildLedger(agents, decision) {
+  ledgerEmpty.style.display = 'none';
+  
+  // 计算每位成员的得分
+  let html = '<div class="ledger-grid">';
+  let totalSupport = 0, totalOppose = 0;
+  
+  agents.forEach((a, i) => {
+    const member = BOARD[i];
+    if (!member) return;
+    const weight = member.weight;
+    let score = 0;
+    if (a.stance === '支持') { score = weight; totalSupport += weight; }
+    else if (a.stance === '反对') { score = -weight; totalOppose += weight; }
+    // else 0
+    
+    const scoreStr = (score > 0 ? '+' : '') + score.toFixed(1);
+    const scoreCls = score > 0 ? 'pos' : score < 0 ? 'neg' : 'zero';
+    html += '<div class="ledger-row">';
+    html += '<span class="lname">' + member.icon + ' ' + member.name + '  权重×' + weight + '</span>';
+    html += '<span class="lscore ' + scoreCls + '">' + scoreStr + '</span>';
+    html += '</div>';
+  });
+  
+  html += '<div class="ledger-divider"></div>';
+  
+  // 净值
+  const netScore = totalSupport - totalOppose;
+  // 风险惩罚
+  const riskPenalty = decision && decision.risk ? (decision.risk.includes('高') ? 0.3 : decision.risk.includes('中') ? 0.15 : 0) : 0;
+  const adjustedScore = netScore - riskPenalty;
+  const netCls = adjustedScore > 0 ? 'pos' : adjustedScore < 0 ? 'neg' : 'zero';
+  
+  html += '<div class="ledger-row">';
+  html += '<span class="lname">风险惩罚</span>';
+  html += '<span class="lscore neg">-' + riskPenalty.toFixed(2) + '</span>';
+  html += '</div>';
+  
+  html += '<div class="ledger-divider"></div>';
+  
+  html += '<div class="ledger-total">';
+  html += '<span>NET SCORE</span>';
+  html += '<span class="total-val ' + netCls + '">' + (adjustedScore > 0 ? '+' : '') + adjustedScore.toFixed(2) + '</span>';
+  html += '</div>';
+  html += '</div>';
+  
+  ledgerContainer.innerHTML = html;
+}
+
+// ─── 显示最终裁决 ───
+function showFinal(decision) {
+  if (!decision) return;
+  finalContainer.classList.add('open');
+  
+  const dec = decision.decision || '—';
+  let badgeCls = 'neutral';
+  let badgeText = dec;
+  if (dec.includes('执行') || dec.includes('建议')) {
+    badgeCls = 'support';
+    if (dec.includes('暂缓') || dec.includes('暂停') || dec.includes('小规模')) badgeCls = 'neutral';
+    if (dec.includes('反对') || dec.includes('不')) badgeCls = 'oppose';
+  }
+  finalBadge.textContent = badgeText;
+  finalBadge.className = 'badge ' + badgeCls;
+  
+  const rationale = decision.rationale || decision.reasoning || '';
+  finalBody.textContent = rationale || '决策理由未提供';
+  
+  finalConfidence.textContent = '置信度：' + (decision.confidence || 0) + '%';
+  finalRisk.textContent = '风险评级：' + (decision.risk || '—');
+}
+
+// ─── 核心：运行董事会 ───
+async function runBoard() {
+  if (isRunning) return;
+  const topic = topicInput.value.trim();
+  if (!topic) { showError('请输入决策问题'); return; }
+
+  isRunning = true;
+  runBtn.disabled = true;
+  runBtn.textContent = '⏳ 执行中…';
+  setStatus('board running', 'running');
+  errorCard.classList.remove('open');
+
+  // 重置
+  agentResults = [];
+  decisionResult = null;
+  timelineContainer.innerHTML = '';
+  ledgerContainer.innerHTML = '';
+  finalContainer.classList.remove('open');
+  timelineEmpty.style.display = 'block';
+  ledgerEmpty.style.display = 'block';
+  initBoard();
+
+  try {
+    const resp = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: topic })
+    });
+    if (!resp.ok) throw new Error('API 请求失败 (' + resp.status + ')');
+    const data = await resp.json();
+    const agents = data.agents || [];
+    const decision = data.decision || null;
+    agentResults = agents;
+    decisionResult = decision;
+
+    if (agents.length === 0) throw new Error('未收到 AI 董事会回应');
+
+    // 执行阶段动画
+    for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
+      const agent = agents[i];
+      const member = BOARD[i];
+      const isError = !agent.stance || agent.stance === '—' ||
+        (agent.reason && (agent.reason.startsWith('API 错误') || agent.reason.startsWith('请求失败')));
+
+      setMemberStatus(member.id, 'thinking');
+      setStatus(member.name + ' 分析中…', 'running');
+      await sleep(800);
+
+      if (isError) {
+        setMemberStatus(member.id, 'error');
+      } else {
+        setMemberStatus(member.id, 'done', agent.stance, agent.stance === '支持' ? 'support' : agent.stance === '反对' ? 'oppose' : 'neutral');
+      }
     }
-}
 
-async function runMeeting() {
-    if (isRunning) return;
-    const topic = topicInput.value.trim() || bottomInput.value.trim();
-    if (!topic) {
-        statusText.textContent = '⚠️ 请输入议题';
-        return;
-    }
-
-    isRunning = true;
-    meetingPhase = 'running';
-    runBtn.disabled = bottomBtn.disabled = true;
-    runBtn.textContent = bottomBtn.textContent = '⏳ 会议中…';
-    statusDot.className = 'dot speaking';
-    statusText.textContent = '会议进行中';
-
-    // 清空并重置
-    document.querySelectorAll('.msg, .stage-label').forEach(el => el.remove());
-    emptyState.style.display = 'none';
-
-    // 阶段1: 主持人提出议题
-    addStage('📌 主持人提出议题');
-    const userEl = addMessage('user', '👤', '发起人', '', topic);
-    userEl.innerHTML = topic;
+    // 构建时间线
+    setStatus('building conflict timeline', 'running');
     await sleep(400);
-
-    // 阶段2: 董事依次发言
-    addStage('💬 董事发言');
-    await sleep(200);
-
-    try {
-        const resp = await fetch('/api/run', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic: topic })
-        });
-        if (!resp.ok) throw new Error('API 请求失败');
-        const data = await resp.json();
-        const agents = data.agents || [];
-        const decision = data.decision || null;
-
-        // 依次发言
-        for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
-            const agent = agents[i];
-            const member = BOARD[i];
-            const isError = !agent.stance || agent.stance === '—' ||
-                (agent.reason && (agent.reason.startsWith('API 错误') || agent.reason.startsWith('请求失败')));
-            const text = agent.reason || '分析中…';
-            
-            const roleHtml = ' <span style="font-size:11px;color:#6B7280;">' + member.title + '</span> ' + stanceTag(agent.stance || '');
-            const msgCls = isError ? 'error' : (agent.stance === '反对' ? 'oppose' : agent.stance === '中立' ? 'neutral' : '');
-            const displayText = isError ? (text.includes('403') ? '模型暂不可用，正在切换…' : text) : text;
-            
-            const contentEl = addMessage('ai ' + msgCls, member.icon, member.name, roleHtml, '', msgCls);
-            statusText.textContent = member.name + ' 发言中…';
-            
-            if (!isError) {
-                await typeText(contentEl, text, 14);
-            } else {
-                contentEl.innerHTML = '<span class="err-text">' + displayText + '</span>';
-            }
-            await sleep(150);
-        }
-
-        // 阶段3: CEO裁决
-        if (decision) {
-            addStage('👑 CEO 裁决');
-            statusText.textContent = 'CEO 正在裁决…';
-            await sleep(300);
-
-            const stepsHtml = (decision.steps || []).map(s => '<div class="step">' + s + '</div>').join('');
-            const div = document.createElement('div');
-            div.className = 'msg ceo';
-            div.innerHTML = `
-                <div class="role">${CEO.icon} ${CEO.name} <span style="font-size:11px;color:#6B7280;">${CEO.title}</span></div>
-                <div class="verdict">${decision.decision || '—'}</div>
-                <div class="conf">置信度 ${decision.confidence || 0}%</div>
-                <div style="font-size:13px;color:#9AA8C0;line-height:1.6;">${decision.rationale || decision.reasoning || ''}</div>
-                <div class="steps">${stepsHtml}</div>
-            `;
-            container.appendChild(div);
-            div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        meetingPhase = 'done';
-        statusText.textContent = '✅ 会议结束';
-        statusDot.className = 'dot active';
-
-    } catch (err) {
-        meetingPhase = 'error';
-        statusText.textContent = '❌ 会议出错';
-        const contentEl = addMessage('error', '⚠️', '系统', '', '');
-        contentEl.innerHTML = '<span class="err-text">' + (err.message || '请求失败') + '</span>';
+    
+    for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
+      const agent = agents[i];
+      const member = BOARD[i];
+      const isError = !agent.stance || agent.stance === '—' ||
+        (agent.reason && (agent.reason.startsWith('API 错误') || agent.reason.startsWith('请求失败')));
+      const text = agent.reason || '';
+      const displayText = isError ? (text.includes('403') ? '模型暂不可用' : text) : text.slice(0, 200);
+      addTimelineEvent(member.icon, member.name, agent.stance || '—', displayText, member.weight);
+      await sleep(100);
     }
 
-    statusDot.className = 'dot';
-    runBtn.disabled = bottomBtn.disabled = false;
-    runBtn.textContent = bottomBtn.textContent = '发起会议';
-    isRunning = false;
+    // 构建决策账本
+    setStatus('calculating weighted ledger', 'running');
+    await sleep(300);
+    buildLedger(agents, decision);
+
+    // CEO裁决
+    if (decision) {
+      setStatus('CEO synthesizing', 'running');
+      await sleep(500);
+      showFinal(decision);
+      
+      // 更新CEO状态
+      const ceoMember = BOARD[BOARD.length - 1];
+      if (ceoMember) {
+        const ceoAgent = agents.length > BOARD.length - 1 ? agents[BOARD.length - 1] : null;
+        const ceoStance = ceoAgent ? ceoAgent.stance : null;
+        setMemberStatus(ceoMember.id, 'done', decision.decision || 'done', 'support');
+      }
+    }
+
+    setStatus('✅ complete', 'done');
+
+  } catch (err) {
+    showError(err.message || '请求失败');
+    setStatus('❌ error', '');
+    // 标记所有成员为错误
+    BOARD.forEach(m => setMemberStatus(m.id, 'error'));
+  }
+
+  runBtn.disabled = false;
+  runBtn.textContent = '▶ 执行董事会分析';
+  isRunning = false;
 }
 
-function triggerRun() {
-    bottomInput.value = topicInput.value;
-    topicInput.value = bottomInput.value;
-    runMeeting();
-}
+// ─── 初始化 ───
+initBoard();
+runBtn.addEventListener('click', runBoard);
+// Enter to submit
+topicInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runBoard(); }
+});
 
-runBtn.addEventListener('click', triggerRun);
-bottomBtn.addEventListener('click', triggerRun);
-topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerRun(); });
-bottomInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerRun(); });
-
-console.log('🏛️ AI Decision Meeting Room V3 加载完成');
-console.log('单线程会议流 · 6董事 → 冲突 → CEO裁决');
+console.log('🧠 Decision OS V5 loaded');
+console.log('5层架构：输入 → 执行 → 时间线 → 账本 → 裁决');
 </script>
 
 </body>
