@@ -498,8 +498,8 @@ body {
 // ============================================================
 var STATE = {
  mode: 'free',
- remaining: 10,
- maxFree: 10,
+ remaining: 20,
+ maxFree: 20,
  isAdLocked: false,
  isAdPlaying: false,
  userId: localStorage.getItem('decision_room_user_id') || 'default'
@@ -704,7 +704,11 @@ function runFreeDecision() {
  };
 
  runBtn.disabled = true;
- runBtn.textContent = '分析中…';
+ runBtn.textContent = '⏳ 分析中…';
+ var loadingEl = document.createElement('div');
+ loadingEl.id = 'loadingHint';
+ loadingEl.style.cssText = 'text-align:center;padding:16px;color:#7C5CFF;font-size:14px;';
+ loadingEl.textContent = '正在调用Qwen/DeepSeek/GLM/GPT-4o进行多模型辩论…';
 
  fetch('/api/run', {
  method: 'POST',
@@ -722,10 +726,16 @@ function runFreeDecision() {
  if (data.agents) renderAgents(data.agents);
  if (data.conflicts) renderConflicts(data.conflicts);
  if (data.decision) renderDecision(data.decision);
+ var hint = document.getElementById('loadingHint');
+ if (hint) hint.textContent = '正在分析冲突，生成CEO决策…';
  }).catch(function(err) {
+ var hint = document.getElementById('loadingHint');
+ if (hint) hint.remove();
  renderMockData();
  decisionContainer.innerHTML = '<div class="verdict">接口错误</div><div class="reason" style="color:#FF6B6B;margin-top:8px;">' + err.message + '</div>';
  }).finally(function() {
+ var hint = document.getElementById('loadingHint');
+ if (hint) hint.remove();
  runBtn.disabled = false;
  runBtn.textContent = '生成分析';
  updateUI();
