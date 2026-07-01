@@ -142,7 +142,7 @@ DEBATE_ROLES = [k for k in BOARD_MEMBERS if k != "CEO裁决官"]
 
 LANDING_HTML = """<!DOCTYPE html>
 
-<html><head><meta charset="utf-8"><title>AI Decision Room</title>
+<html><head><meta charset="utf-8"><title>MindTrust OS · AI 智囊局</title>
 
 <style>
 
@@ -150,17 +150,43 @@ LANDING_HTML = """<!DOCTYPE html>
 
 body{background:#0B0F1A;color:#E6E8FF;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
 
-.container{text-align:center;max-width:560px;padding:40px;}
+.container{text-align:center;max-width:640px;padding:40px;}
 
-h1{font-size:42px;font-weight:700;margin-bottom:12px;}
+h1{font-size:48px;font-weight:700;margin-bottom:6px;}
 
-h1 span{color:#7C5CFF;}
+h1 span{background:linear-gradient(135deg,#7C5CFF,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
-p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
+.tagline{font-size:14px;color:#4a5268;margin-bottom:24px;letter-spacing:2px;text-transform:uppercase;}
 
-.btn{display:inline-block;padding:16px 40px;background:#7C5CFF;color:#fff;font-size:18px;font-weight:600;border:none;border-radius:12px;cursor:pointer;text-decoration:none;transition:background .2s;}
+p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:16px;}
+
+.glow-input{width:100%;background:#111827;border:1px solid #1f2937;border-radius:16px;padding:20px 24px;color:#fff;font-size:18px;font-family:inherit;outline:none;margin-bottom:20px;transition:all .2s;}
+
+.glow-input:focus{border-color:#7C5CFF;box-shadow:0 0 0 4px rgba(124,92,255,0.1);}
+
+.glow-input::placeholder{color:#4a5268;}
+
+.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+.btn{display:inline-block;padding:16px 40px;background:#7C5CFF;color:#fff;font-size:16px;font-weight:600;border:none;border-radius:12px;cursor:pointer;text-decoration:none;transition:background .2s;}
 
 .btn:hover{background:#6B4DE0;}
+
+.btn-green{background:#22c55e;color:#000;}
+
+.btn-green:hover{background:#16a34a;}
+
+.btn-outline{background:transparent;border:1px solid #1f2937;color:#9ca3af;}
+
+.btn-outline:hover{background:#1f2937;color:#e5e7eb;}
+
+.links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:28px;padding-top:20px;border-top:1px solid #1f2937;}
+
+.links a{font-size:12px;color:#4a5268;text-decoration:none;padding:4px 10px;border-radius:6px;border:1px solid #1f2937;transition:all .1s;}
+
+.links a:hover{color:#9ca3af;border-color:#374151;}
+
+.pricing-note{font-size:12px;color:#4a5268;margin-top:20px;}
 
 </style>
 
@@ -168,14 +194,55 @@ p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
 
 <div class="container">
 
-<h1>🧠 AI <span>Decision Room</span></h1>
+<div style="margin-bottom:8px;"><span style="font-size:14px;color:#7C5CFF;font-weight:600;">🧠 MindTrust OS</span><span style="font-size:12px;color:#4a5268;margin-left:8px;">v5 · AI 智囊局</span></div>
 
-<p>输入你正在纠结的真实决策<br>让多个 AI 帮你拆解冲突，得到可执行结论</p>
+<h1>不要一个人<br>做艰难的<span>决定</span></h1>
 
-<a class="btn" href="/room">AI 董事会 →</a>
-<a class="btn" href="/compare" style="background:#22c55e;margin-left:12px;">手动编译器 →</a>
+<div class="tagline">汇聚全球顶尖大模型 · 为你提供确定性决策</div>
+
+<p style="font-size:15px;color:#6b7280;">输入你的困境，让最聪明的 AI 大脑为你开会。</p>
+
+<textarea class="glow-input" id="landingQuestion" rows="2" placeholder="你正在纠结什么决策？&#10;例如：是否该离职做自媒体？五官灸加盟能不能做？"></textarea>
+
+<div class="actions">
+
+<a class="btn" href="/room" id="landingGoBtn">开始智囊会议 →</a>
+
+<a class="btn btn-outline" href="/compare">手动粘贴 · 多模型对比</a>
 
 </div>
+
+<div class="links">
+
+<a href="https://claude.ai" target="_blank">Claude</a>
+
+<a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>
+
+<a href="https://kimi.moonshot.cn" target="_blank">Kimi</a>
+
+<a href="https://chatgpt.com" target="_blank">ChatGPT</a>
+
+<a href="https://gemini.google.com" target="_blank">Gemini</a>
+
+<a href="https://tongyi.aliyun.com" target="_blank">通义千问</a>
+
+<a href="https://chatglm.cn" target="_blank">智谱GLM</a>
+
+<a href="https://www.doubao.com" target="_blank">豆包</a>
+
+</div>
+
+<div class="pricing-note">免费版 · 每日3次智囊会议 · <span style="color:#22c55e;">高级版 9.9元解锁深度决策报告</span></div>
+
+</div>
+
+<script>
+
+document.getElementById('landingQuestion').addEventListener('keydown', function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();var v=this.value.trim();if(v){sessionStorage.setItem('mindtrust_question',v);window.location.href='/room';}}});
+
+document.getElementById('landingGoBtn').addEventListener('click',function(e){var v=document.getElementById('landingQuestion').value.trim();if(v){e.preventDefault();sessionStorage.setItem('mindtrust_question',v);window.location.href='/room';}});
+
+</script>
 
 </body></html>
 
@@ -483,18 +550,34 @@ body {
 </head>
 <body>
 
-<div class="header">
+  <div class="header">
   <div>
-    <span class="brand">Decision OS</span>
-    <span class="sub" style="margin-left:8px;">董事会操作系统 v5</span>
+    <span class="brand">MindTrust OS</span>
+    <span class="sub" style="margin-left:8px;">AI 智囊局 v5</span>
   </div>
-  <div class="status">
-    <span class="dot" id="statusDot"></span>
-    <span id="statusText">空闲</span>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span id="dailyCount" style="font-size:11px;color:#4a5268;">今日免费：3/3</span>
+    <a href="/compare" style="font-size:11px;color:#6366f1;text-decoration:none;padding:4px 10px;border:1px solid #1f2937;border-radius:6px;">手动粘贴</a>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">空闲</span>
+    </div>
   </div>
 </div>
 
 <div class="container">
+
+  <!-- 模型快捷导航栏 -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:#0f172a;border-radius:10px;border:1px solid #1f2937;">
+    <span style="font-size:11px;color:#4a5268;margin-right:4px;line-height:28px;">直达模型 →</span>
+    <a href="https://claude.ai" target="_blank" style="font-size:11px;color:#9ca3af;text-decoration:none;padding:4px 10px;border-radius:5px;border:1px solid #1f2937;">Claude</a>
+    <a href="https://chat.deepseek.com" target="_blank" style="font-size:11px;color:#9ca3af;text-decoration:none;padding:4px 10px;border-radius:5px;border:1px solid #1f2937;">DeepSeek</a>
+    <a href="https://kimi.moonshot.cn" target="_blank" style="font-size:11px;color:#9ca3af;text-decoration:none;padding:4px 10px;border-radius:5px;border:1px solid #1f2937;">Kimi</a>
+    <a href="https://chatgpt.com" target="_blank" style="font-size:11px;color:#9ca3af;text-decoration:none;padding:4px 10px;border-radius:5px;border:1px solid #1f2937;">ChatGPT</a>
+    <a href="https://gemini.google.com" target="_blank" style="font-size:11px;color:#9ca3af;text-decoration:none;padding:4px 10px;border-radius:5px;border:1px solid #1f2937;">Gemini</a>
+    <a href="https://tongyi.aliyun.com" target="_blank" style="font-size:11px;color:#9ca3af;text-decoration:none;padding:4px 10px;border-radius:5px;border:1px solid #1f2937;">通义千问</a>
+    <a href="https://chatglm.cn" target="_blank" style="font-size:11px;color:#9ca3af;text-decoration:none;padding:4px 10px;border-radius:5px;border:1px solid #1f2937;">智谱GLM</a>
+  </div>
 
   <!-- ═══ 1. 决策输入 ═══ -->
   <div class="section"><span>1</span> 决策输入 <span class="sec-line"></span></div>
@@ -579,6 +662,14 @@ body {
       <a href="/compare" style="display:inline-block;padding:8px 20px;background:#6366f1;color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;">
         使用编译器 · 多模型手动贴入 →
       </a>
+    </div>
+    <!-- 付费深度报告入口 -->
+    <div id="premiumPrompt" style="display:none;margin-top:12px;padding:16px;background:linear-gradient(135deg,#064e3b,#0f172a);border:1px solid #22c55e;border-radius:12px;text-align:center;">
+      <div style="font-size:13px;font-weight:600;color:#22c55e;margin-bottom:4px;">🧠 解锁麦肯锡级深度裁决报告</div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:10px;">含商业逻辑解构 · 可行性路径 · 财务模型推演 · 生死红线 · 反共识推演</div>
+      <button id="premiumBtn" style="padding:10px 28px;background:#22c55e;color:#000;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;">
+        9.9元 生成深度报告
+      </button>
     </div>
   </div>
 
@@ -799,6 +890,15 @@ function showFinal(decision) {
       window.open('/report?d=' + encodeURIComponent(JSON.stringify(report)), '_blank');
     };
   }
+  // 付费深度报告入口
+  const prem = document.getElementById('premiumPrompt');
+  if (prem) prem.style.display = 'block';
+  const premBtn = document.getElementById('premiumBtn');
+  if (premBtn) {
+    premBtn.onclick = () => {
+      alert('🧠 支付系统即将上线\n\n9.9元/次 生成麦肯锡级深度决策报告\n包含：商业逻辑解构 · 财务模型推演 · 生死红线 · 反共识推演\n\n当前版本：深度报告功能已开发完成，支付对接中。');
+    };
+  }
 }
 
 // ─── 核心：运行董事会 ───
@@ -820,6 +920,8 @@ async function runBoard() {
   ledgerContainer.innerHTML = '';
   finalContainer.classList.remove('open');
   document.getElementById('trustScoreBar').style.display = 'none';
+  const prem = document.getElementById('premiumPrompt');
+  if (prem) prem.style.display = 'none';
   timelineEmpty.style.display = 'block';
   ledgerEmpty.style.display = 'block';
   initBoard();
@@ -893,6 +995,13 @@ async function runBoard() {
     }
 
     setStatus('✅ 分析完成', 'done');
+    
+    // 更新每日使用计数
+    let dailyCount = parseInt(localStorage.getItem('mindtrust_daily') || '0');
+    dailyCount = Math.min(dailyCount + 1, 3);
+    localStorage.setItem('mindtrust_daily', dailyCount.toString());
+    const dc = document.getElementById('dailyCount');
+    if (dc) dc.textContent = `今日免费：${3 - dailyCount}/3`;
 
   } catch (err) {
     showError(err.message || '请求失败');
@@ -1011,9 +1120,16 @@ if(advBtn && decisionResult){
     window.open('/report?d=' + encoded, '_blank');
   });
 }
+// 从首页读取传入的问题
+const storedQuestion = sessionStorage.getItem('mindtrust_question');
+if (storedQuestion) {
+  topicInput.value = storedQuestion;
+  sessionStorage.removeItem('mindtrust_question');
+  setTimeout(() => { if (topicInput.value.trim()) runBoard(); }, 500);
+}
 
-console.log('🧠 Decision OS V5 已加载');
-console.log('5层架构：输入 → 执行 → 时间线 → 账本 → 裁决');
+console.log('🧠 MindTrust OS · AI 智囊局 v5 已加载');
+console.log('免费版 · 每日3次 · 9.9元解锁深度报告');
 </script>
 
 </body>
