@@ -203,7 +203,7 @@ body {
 
 /* ─── 顶部 ─── */
 .header {
-  padding: 16px 24px;
+  padding: 18px 24px;
   border-bottom: 1px solid #1f2937;
   display: flex;
   justify-content: space-between;
@@ -235,10 +235,10 @@ body {
 @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
 
 /* ─── 容器 ─── */
-.container { max-width: 900px; margin: 0 auto; padding: 24px; }
+.container { max-width: 960px; margin: 0 auto; padding: 32px 28px; }
 .section {
-  margin: 24px 0 10px;
-  font-size: 11px; font-weight: 600;
+  margin: 32px 0 14px;
+  font-size: 12px; font-weight: 600;
   color: #9ca3af; text-transform: uppercase;
   letter-spacing: 1px;
   display: flex; align-items: center; gap: 8px;
@@ -252,26 +252,42 @@ body {
   background: #111827;
   border: 1px solid #1f2937;
   border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
 }
 
 /* ─── 输入 ─── */
 .input-card textarea {
-  width: 100%; padding: 12px 14px;
-  border-radius: 10px; background: #0f172a;
+  width: 100%; padding: 18px 20px;
+  border-radius: 12px; background: #0f172a;
   border: 1px solid #1f2937; color: #e5e7eb;
-  font-size: 14px; font-family: inherit;
-  resize: vertical; min-height: 60px; outline: none;
+  font-size: 15px; font-family: inherit;
+  resize: vertical; min-height: 140px; outline: none;
+  line-height: 1.8;
+  transition: min-height 0.2s ease, border-color 0.2s, box-shadow 0.2s;
 }
-.input-card textarea:focus { border-color: #6366f1; }
+.input-card textarea:focus {
+  min-height: 180px;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+.input-card textarea:not(:placeholder-shown) {
+  min-height: 160px;
+}
+.input-card textarea::-webkit-scrollbar {
+  width: 6px;
+}
+.input-card textarea::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 3px;
+}
 .input-card textarea::placeholder { color: #4a5268; }
 .input-card .actions {
-  display: flex; gap: 10px; margin-top: 10px;
+  display: flex; gap: 12px; margin-top: 12px;
 }
 .input-card .actions button {
-  padding: 10px 24px; border: none; border-radius: 10px;
-  font-weight: 600; font-size: 13px; cursor: pointer;
+  padding: 12px 28px; border: none; border-radius: 12px;
+  font-weight: 600; font-size: 14px; cursor: pointer;
   background: #6366f1; color: white;
 }
 .input-card .actions button:hover { background: #5558e6; }
@@ -279,12 +295,12 @@ body {
 
 /* ─── 董事会执行面板 ─── */
 .board-grid {
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 8px;
 }
 .member {
   display: flex; justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 10px;
   background: #0f172a;
   transition: background 0.3s;
@@ -432,22 +448,22 @@ body {
 <div class="header">
   <div>
     <span class="brand">Decision OS</span>
-    <span class="sub" style="margin-left:8px;">Board Operating System v5</span>
+    <span class="sub" style="margin-left:8px;">董事会操作系统 v5</span>
   </div>
   <div class="status">
     <span class="dot" id="statusDot"></span>
-    <span id="statusText">idle</span>
+    <span id="statusText">空闲</span>
   </div>
 </div>
 
 <div class="container">
 
-  <!-- ═══ 1. 输入 ═══ -->
-  <div class="section"><span>1</span> Decision Input <span class="sec-line"></span></div>
+  <!-- ═══ 1. 决策输入 ═══ -->
+  <div class="section"><span>1</span> 决策输入 <span class="sec-line"></span></div>
   <div class="card input-card">
-    <textarea id="topicInput" placeholder="输入决策问题…&#10;例如：是否要进入五官灸健康赛道？"></textarea>
+    <textarea id="topicInput" placeholder="在此输入你的决策问题，AI 董事会将为你分析…&#10;&#10;例如：&#10;• 是否要进入五官灸健康赛道？&#10;• 新产品应该先做小红书还是抖音？&#10;• 第三季度预算应该投品牌还是效果？"></textarea>
     <div class="actions">
-      <button id="runBtn">▶ 执行董事会分析</button>
+      <button id="runBtn">▶ 执行分析</button>
     </div>
   </div>
 
@@ -455,13 +471,13 @@ body {
   <div class="error-card" id="errorCard"></div>
 
   <!-- ═══ 2. 董事会执行 ═══ -->
-  <div class="section"><span>2</span> Board Execution <span class="sec-line"></span></div>
+  <div class="section"><span>2</span> 董事会执行 <span class="sec-line"></span></div>
   <div class="card" id="boardCard">
     <div class="board-grid" id="boardGrid"></div>
   </div>
 
   <!-- ═══ 3. 冲突时间线 ═══ -->
-  <div class="section"><span>3</span> Conflict Timeline <span class="sec-line"></span></div>
+  <div class="section"><span>3</span> 冲突时间线 <span class="sec-line"></span></div>
   <div class="card">
     <div id="timelineContainer">
       <div class="empty-state" id="timelineEmpty">
@@ -472,7 +488,7 @@ body {
   </div>
 
   <!-- ═══ 4. 决策账本 ═══ -->
-  <div class="section"><span>4</span> Decision Ledger <span class="sec-line"></span></div>
+  <div class="section"><span>4</span> 决策账本 <span class="sec-line"></span></div>
   <div class="card">
     <div id="ledgerContainer">
       <div class="empty-state" id="ledgerEmpty">
@@ -483,11 +499,11 @@ body {
   </div>
 
   <!-- ═══ 5. 最终裁决 ═══ -->
-  <div class="section"><span>5</span> Final Resolution <span class="sec-line"></span></div>
+  <div class="section"><span>5</span> 最终裁决 <span class="sec-line"></span></div>
   <div class="final" id="finalContainer">
     <div class="f-header">
-      <span class="f-title">Final Decision</span>
-      <span class="badge" id="finalBadge">PENDING</span>
+      <span class="f-title">最终决策</span>
+      <span class="badge" id="finalBadge">待定</span>
     </div>
     <div class="f-body" id="finalBody"></div>
     <div class="f-meta">
@@ -571,10 +587,10 @@ function setMemberStatus(id, status, tagText, tagCls) {
   const st = document.getElementById('status-' + id);
   if (!st) return;
   const statusMap = {
-    waiting: '⏳ waiting',
-    thinking: '⏳ thinking…',
-    done: '✅ done',
-    error: '❌ error'
+    waiting: '⏳ 等待中',
+    thinking: '⏳ 思考中…',
+    done: '✅ 完成',
+    error: '❌ 出错'
   };
   st.textContent = statusMap[status] || status;
   st.className = 'status-text ' + status;
@@ -643,7 +659,7 @@ function buildLedger(agents, decision) {
   html += '<div class="ledger-divider"></div>';
   
   html += '<div class="ledger-total">';
-  html += '<span>NET SCORE</span>';
+  html += '<span>加权总分</span>';
   html += '<span class="total-val ' + netCls + '">' + (adjustedScore > 0 ? '+' : '') + adjustedScore.toFixed(2) + '</span>';
   html += '</div>';
   html += '</div>';
@@ -683,7 +699,7 @@ async function runBoard() {
   isRunning = true;
   runBtn.disabled = true;
   runBtn.textContent = '⏳ 执行中…';
-  setStatus('board running', 'running');
+  setStatus('董事会执行中', 'running');
   errorCard.classList.remove('open');
 
   // 重置
@@ -730,7 +746,7 @@ async function runBoard() {
     }
 
     // 构建时间线
-    setStatus('building conflict timeline', 'running');
+    setStatus('构建冲突时间线', 'running');
     await sleep(400);
     
     for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
@@ -745,13 +761,13 @@ async function runBoard() {
     }
 
     // 构建决策账本
-    setStatus('calculating weighted ledger', 'running');
+    setStatus('计算加权账本', 'running');
     await sleep(300);
     buildLedger(agents, decision);
 
     // CEO裁决
     if (decision) {
-      setStatus('CEO synthesizing', 'running');
+      setStatus('CEO 综合裁决中', 'running');
       await sleep(500);
       showFinal(decision);
       
@@ -764,7 +780,7 @@ async function runBoard() {
       }
     }
 
-    setStatus('✅ complete', 'done');
+    setStatus('✅ 分析完成', 'done');
 
   } catch (err) {
     showError(err.message || '请求失败');
@@ -786,7 +802,7 @@ topicInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runBoard(); }
 });
 
-console.log('🧠 Decision OS V5 loaded');
+console.log('🧠 Decision OS V5 已加载');
 console.log('5层架构：输入 → 执行 → 时间线 → 账本 → 裁决');
 </script>
 
