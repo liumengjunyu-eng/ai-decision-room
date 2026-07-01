@@ -925,11 +925,11 @@ function renderConflicts(conflicts) {
  var html = '';
  for (var i = 0; i < conflicts.length; i++) {
  var c = conflicts[i];
- var width = levelMap[c.level] || '50%';
+ var width = c.severity_pct ? c.severity_pct + '%' : (levelMap[c.level] || '50%');
  html += '<div class="conflict-item">' +
  '<div class="title">' + (c.title || '冲突') + '</div>' +
  '<div class="sides"><span class="left">' + (c.left || '—') + '</span><span class="right">' + (c.right || '—') + '</span></div>' +
- '<div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:' + width + ';"></div></div><span class="level">强度 ' + (c.level || '中') + '</span></div>' +
+ '<div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:' + width + ';"></div></div><span class="level">强度 ' + (c.severity_pct || c.level || '中') + '%</span></div>' +
  '</div>';
  }
  conflictContainer.innerHTML = html;
@@ -1069,16 +1069,16 @@ function renderMockData() {
  window._pendingAPIData = {
  agents: mockAgents,
  conflicts: [
- { title: '预算判断分歧', left: '首席战略官 3万足够测试', right: '批判分析官 3万远远不足', level: '高' },
- { title: '时间窗口判断', left: '增长策略官 7月15日前必须决策', right: '风险控制官 养生心智全年可打', level: '中' },
- { title: '渠道策略分歧', left: '洞察官 小红书内容测试成本低', right: '批判分析官 竞争激烈ROI不确定', level: '中' }
+ { topic: '预算', title: '预算判断分歧', left: '首席战略官：3万足够测试', right: '批判分析官：3万远远不足', level: '高', severity_pct: 82 },
+ { topic: '时间窗口', title: '时间窗口判断分歧', left: '增长策略官：7月15日前必须决策', right: '风险控制官：养生心智全年可打', level: '中', severity_pct: 65 },
+ { topic: '渠道策略', title: '渠道策略分歧', left: '洞察官：小红书内容测试成本低', right: '批判分析官：竞争激烈ROI不确定', level: '中', severity_pct: 48 }
  ],
  decision: {
  decision: '小规模测试（建议8000元预算）',
  confidence: 82,
  rationale: '6位董事投票：4位支持、1位反对、1位中立。市场存在真实需求信号，风险可控，创新官提出了低成本冷启动方案。',
  steps: ['筛选3个KOC账号报价', '制作2条AI测评+真人体验内容', '投入8000元跑2周小红书投放', '第7天复盘，ROI>1.0则追加至2万', '第14天终审决定是否正式推广'],
- risk: '初期转化波动较大，内容质量决定ROI上限。需预留2万元止损线。'
+ risk: '风险等级中。初期转化波动较大，内容质量决定ROI上限。需预留2万元止损线。'
  }
  };
  renderDebate(mockAgents);
@@ -1102,8 +1102,224 @@ topicInput.addEventListener('keydown', function(e) {
 </html>
 """
 
+# ════════════════════════════════════════════════════════════
+# V1.2 冲突决策引擎
+# ════════════════════════════════════════════════════════════
+
+# ── 主题关键词库（用于语义级冲突聚类） ──
+TOPIC_KEYWORDS = {
+    "预算": ["预算", "资金", "投入", "成本", "价格", "花费", "费用", "报价", "ROI"],
+    "时间窗口": ["窗口", "时机", "趁早", "紧迫", "赶紧", "赶时间", "逾期", "季节", "周期性", "时效"],
+    "风险": ["风险", "损失", "亏损", "危机", "不可控", "负面", "风险点", "代价", "失败"],
+    "竞争": ["竞争", "对手", "竞品", "拥挤", "玩家多", "红海", "饱和", "内卷"],
+    "市场/需求": ["市场", "需求", "用户", "人群", "客户", "消费者", "受众", "流量"],
+    "团队/能力": ["团队", "能力", "资源", "经验", "人手", "人才", "技能", "认知"],
+    "产品/技术": ["产品", "功能", "质量", "体验", "设计", "研发", "技术", "开发"],
+    "增长/营销": ["增长", "扩张", "放大", "规模", "复制", "起量", "冷启动", "裂变", "营销"],
+    "合规/资质": ["合规", "法规", "政策", "法律", "资质", "许可", "监管", "审核"],
+    "品牌/心智": ["品牌", "心智", "定位", "口碑", "知名度", "认知", "调性"],
+}
+
+
+def _extract_topics(text: str) -> list:
+    """从文本中提取涉及的主题（多主题匹配）"""
+    matched = []
+    for topic, keywords in TOPIC_KEYWORDS.items():
+        for kw in keywords:
+            if kw in text:
+                matched.append(topic)
+                break
+    return matched if matched else ["其他"]
+
+
+def _extract_stance_score(text: str) -> int:
+    """
+    从文本中提取立场倾向分数
+    支持关键词 +1，反对关键词 -1，累计加权
+    """
+    support_kw = ["支持", "建议", "推荐", "推进", "快速", "应该", "必须", "可行",
+                  "看好", "机会", "优势", "值得", "合理", "乐观", "积极"]
+    oppose_kw = ["反对", "不建议", "暂缓", "谨慎", "风险", "质疑", "不可",
+                 "不够", "困难", "问题", "代价", "损失", "悲观", "消极", "不确定"]
+    score = 0
+    for w in support_kw:
+        score += text.count(w) * 1
+    for w in oppose_kw:
+        score -= text.count(w) * 1
+    return score
+
+
+def _cluster_conflicts(debate_results: list) -> list:
+    """
+    V1.2 语义级冲突聚类（无需 sklearn）
+
+    流程：
+    1. 提取每个角色的文本主题和立场分数
+    2. 按主题聚类分组
+    3. 同主题内立场最强支持 vs 最强反对 => 生成冲突
+    4. 计算严重度（权重 + 立场差距 + 角色权重）
+    """
+    # 第1步：提取每个角色的主题和立场分数
+    role_topics = {}
+    role_stance_scores = {}
+    for r in debate_results:
+        text = r.get("reason", "") + " " + r.get("role", "")
+        role_topics[r["role"]] = _extract_topics(text)
+        role_stance_scores[r["role"]] = _extract_stance_score(text)
+
+    # 第2步：按主题聚类 —— topic => [{role, text, stance, score, weight}]
+    topic_buckets = {}
+    for r in debate_results:
+        role = r["role"]
+        for topic in role_topics.get(role, ["其他"]):
+            topic_buckets.setdefault(topic, []).append({
+                "role": role,
+                "text": r.get("reason", "")[:120],
+                "stance": r.get("stance", "中立"),
+                "score": role_stance_scores.get(role, 0),
+                "weight": BOARD_MEMBERS.get(role, {}).get("weight", 1.0)
+            })
+
+    # 第3步：每个桶内检查立场对立
+    conflicts = []
+    for topic, items in topic_buckets.items():
+        if len(items) < 2:
+            continue
+
+        supporters = [i for i in items if i["stance"] == "支持" or i["score"] > 0]
+        opposers = [i for i in items if i["stance"] == "反对" or i["score"] < 0]
+
+        if not supporters or not opposers:
+            continue
+
+        top_sup = max(supporters, key=lambda x: x["score"])
+        top_opp = max(opposers, key=lambda x: -x["score"])
+
+        # 严重度计算
+        weight_factor = (top_sup["weight"] + top_opp["weight"]) / 2.0
+        score_gap = abs(top_sup["score"] - top_opp["score"]) / 12.0
+        severity = min(1.0, 0.3 + weight_factor * 0.15 + score_gap * 0.25)
+
+        if severity < 0.3:
+            continue
+
+        sev_label = "高" if severity >= 0.65 else "中" if severity >= 0.45 else "低"
+
+        conflicts.append({
+            "id": len(conflicts) + 1,
+            "topic": topic,
+            "title": f"{topic}：{top_sup['role']} vs {top_opp['role']}",
+            "left": f"{top_sup['role']}：{top_sup['text'][:80]}",
+            "right": f"{top_opp['role']}：{top_opp['text'][:80]}",
+            "level": sev_label,
+            "severity": round(severity, 2),
+            "severity_pct": int(severity * 100)
+        })
+
+    conflicts.sort(key=lambda x: x["severity"], reverse=True)
+    return conflicts[:5]
+
+
+# ── 决策评分系统 ──
+def _calculate_decision_score(debate_results: list, conflicts: list) -> dict:
+    """
+    综合评分 = 支持加权分 - 反对加权分 - 风险惩罚
+    """
+    support_score = 0.0
+    oppose_score = 0.0
+
+    for r in debate_results:
+        role = r["role"]
+        weight = BOARD_MEMBERS.get(role, {}).get("weight", 1.0)
+        stance = r.get("stance", "中立")
+        if stance == "支持":
+            support_score += weight
+        elif stance == "反对":
+            oppose_score += weight
+
+    # 风险惩罚
+    risk_penalty = 0.0
+    if conflicts:
+        avg_severity = sum(c.get("severity", 0.5) for c in conflicts) / len(conflicts)
+        risk_penalty = avg_severity * 0.25 * len(conflicts)
+
+    net_score = support_score - oppose_score - risk_penalty
+
+    total_weight = sum(BOARD_MEMBERS.get(r["role"], {}).get("weight", 1.0) for r in debate_results)
+    if total_weight == 0:
+        confidence = 50.0
+    else:
+        raw_confidence = (net_score / total_weight + 1) / 2 * 100
+        confidence = max(5, min(99, raw_confidence))
+
+    return {
+        "score": round(net_score, 2),
+        "confidence": round(confidence, 1),
+        "support_weight": round(support_score, 2),
+        "oppose_weight": round(oppose_score, 2),
+        "risk_penalty": round(risk_penalty, 2),
+        "total_weight": round(total_weight, 2)
+    }
+
+
+# ── 结构化CEO裁决器 ──
+def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_score: dict) -> dict:
+    """
+    结构化CEO最终裁决（纯规则引擎，不依赖外部API）
+
+    产出：决策判断 + 置信度 + 理由 + 执行路径 + 风险等级
+    """
+    score = decision_score["score"]
+    confidence = decision_score["confidence"]
+
+    if score > 0.5 and confidence >= 65:
+        decision = "建议执行"
+    elif score > 0 and confidence >= 50:
+        decision = "建议调整后执行"
+    elif score < -0.5:
+        decision = "建议暂缓"
+    else:
+        decision = "建议小规模测试"
+
+    if conflicts:
+        top = max(conflicts, key=lambda x: x.get("severity", 0))
+        reasoning = f"核心冲突在「{top['topic']}」，{top['left'][:30]} vs {top['right'][:30]}"
+    else:
+        reasoning = "各角色意见趋于一致，无明显立场对立"
+
+    supporters = [r for r in debate_results if r.get("stance") == "支持"]
+    if supporters:
+        steps = ["小规模验证：预算控制在总预算的 30% 以内",
+                 "设置 2 周数据回收期，明确成败指标",
+                 "设定明确止损线（ROI < 1.0 则暂停）",
+                 "重点验证冲突核心假设",
+                 "2 周后复盘决定是否放大"]
+    else:
+        steps = ["明确核心目标", "识别关键风险点",
+                 "制定最小验证方案", "2 周数据回收", "迭代决策"]
+
+    risk_penalty = decision_score.get("risk_penalty", 0)
+    if risk_penalty > 0.6:
+        risk_level = "高"
+        risk_text = f"风险等级高（惩罚分 {risk_penalty}），重点关注反对方核心顾虑，切勿重仓"
+    elif risk_penalty > 0.25:
+        risk_level = "中"
+        risk_text = f"风险等级中（惩罚分 {risk_penalty}），建议控制试错成本"
+    else:
+        risk_level = "低"
+        risk_text = f"风险等级低（惩罚分 {risk_penalty}），可按计划推进"
+
+    return {
+        "decision": decision,
+        "confidence": round(confidence, 1),
+        "reasoning": reasoning,
+        "steps": steps,
+        "risk_level": risk_level,
+        "risk": risk_text
+    }
+
 # ============================================================
-# API 调用多模型
+# API 调用函数
 # ============================================================
 async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_prompt: str) -> dict:
     """调用硅基流动 API"""
@@ -1133,21 +1349,15 @@ async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_pr
                 data = await resp.json()
                 raw = data["choices"][0]["message"]["content"].strip()
                 lines = raw.split("\n")
-                stance = lines[0].replace("判断：", "").replace("判断:", "").replace("支持", "支持").replace("反对", "反对").replace("中立", "中立").strip() if len(lines) > 0 else "—"
-                # 标准化 stance
+                stance = lines[0].strip() if len(lines) > 0 else "—"
                 if "支持" in stance:
                     stance = "支持"
                 elif "反对" in stance:
                     stance = "反对"
-                elif "中立" in stance:
-                    stance = "中立"
                 else:
                     stance = "中立"
-                # Reason = 去除第一行后的全部
                 reason_lines = lines[1:] if len(lines) > 1 else []
-                reason = "\n".join(reason_lines).strip() if reason_lines else ""
-                if not reason:
-                    reason = raw[:200]
+                reason = "\n".join(reason_lines).strip() if reason_lines else raw[:200]
                 return {"role": role_name, "model": model_id, "stance": stance, "reason": reason}
     except Exception as e:
         return {"role": role_name, "model": model_id, "stance": "—", "reason": "请求失败: " + str(e)}
@@ -1158,7 +1368,6 @@ async def call_ceo(debate_results: list, prompt: str) -> dict:
     if not SILICONFLOW_API_KEY:
         return {"role": "CEO裁决官", "model": BOARD_MEMBERS["CEO裁决官"]["model"], "stance": "—", "reason": "API Key 未配置"}
 
-    # 构建辩论摘要
     debate_lines = []
     for r in debate_results:
         debate_lines.append(f"- {r['role']}（{r['stance']}）：{r['reason'][:150]}")
@@ -1219,71 +1428,38 @@ async def api_run(request: Request):
     # 调用CEO裁决官（基于前6位结果）
     ceo_result = await call_ceo(results, topic)
 
-    # 全部 agents = 6位董事 + CEO（CEO最后发言）
+    # 全部 agents = 6位董事 + CEO
     all_agents = results + [ceo_result]
 
-    # 冲突检测（基于 stance 对立）
-    conflicts = []
-    non_ceo_results = results  # 冲突只在6位董事之间检测
-    stances = {r["role"]: r["stance"] for r in non_ceo_results}
-    roles = list(stances.keys())
+    # ════════════════════════════════════════════════
+    # V1.2 冲突决策引擎
+    # ════════════════════════════════════════════════
+    # Step 1: 语义级冲突聚类
+    conflicts = _cluster_conflicts(results)
 
-    for i in range(len(roles)):
-        for j in range(i + 1, len(roles)):
-            if stances[roles[i]] == "支持" and stances[roles[j]] == "反对":
-                conflicts.append({
-                    "title": roles[i] + " vs " + roles[j] + " 立场冲突",
-                    "left": roles[i] + " 支持",
-                    "right": roles[j] + " 反对",
-                    "level": "高"
-                })
-            elif stances[roles[i]] == "反对" and stances[roles[j]] == "支持":
-                conflicts.append({
-                    "title": roles[j] + " vs " + roles[i] + " 立场冲突",
-                    "left": roles[j] + " 支持",
-                    "right": roles[i] + " 反对",
-                    "level": "高"
-                })
+    # Step 2: 决策评分系统
+    decision_score = _calculate_decision_score(results, conflicts)
 
-    # 加权投票决策
-    support_weight = sum(BOARD_MEMBERS[r["role"]]["weight"] for r in non_ceo_results if r["stance"] == "支持")
-    oppose_weight = sum(BOARD_MEMBERS[r["role"]]["weight"] for r in non_ceo_results if r["stance"] == "反对")
-    total_weight = sum(BOARD_MEMBERS[r["role"]]["weight"] for r in non_ceo_results)
+    # Step 3: 结构化CEO裁决
+    ceo_verdict = _ceo_structured_verdict(results, conflicts, decision_score)
 
-    if support_weight > oppose_weight:
-        # CEO 裁决
-        if ceo_result["stance"] == "反对":
-            decision_text = "建议审慎推进"
-            confidence = int(60 + (support_weight / total_weight) * 20 - 10)
-        elif ceo_result["stance"] == "中立":
-            decision_text = "建议小规模测试"
-            confidence = int(60 + (support_weight / total_weight) * 15)
-        else:
-            decision_text = "建议执行"
-            confidence = int(70 + (support_weight / total_weight) * 20)
-    elif oppose_weight > support_weight:
-        if ceo_result["stance"] == "支持":
-            decision_text = "建议审慎推进"
-            confidence = int(50 + (support_weight / total_weight) * 15)
-        else:
-            decision_text = "建议暂缓"
-            confidence = int(65 + (oppose_weight / total_weight) * 20)
-    else:
-        decision_text = "建议小规模测试"
-        confidence = 70
-
-    support_count = sum(1 for r in non_ceo_results if r["stance"] == "支持")
-    oppose_count = sum(1 for r in non_ceo_results if r["stance"] == "反对")
+    # Step 4: 整合返回
+    support_count = sum(1 for r in results if r["stance"] == "支持")
+    oppose_count = sum(1 for r in results if r["stance"] == "反对")
 
     decision = {
-        "decision": decision_text,
-        "confidence": min(confidence, 95),
-        "rationale": f"AI董事会7位成员经过辩论，{support_count}位支持（加权{support_weight:.1f}），{oppose_count}位反对（加权{oppose_weight:.1f}），其余中立。\nCEO裁决官{ceo_result['stance']}。存在{len(conflicts)}个核心冲突。",
-        "steps": ["明确核心目标", "识别关键风险点", "制定验证方案", "设定成败标准", "两周复盘迭代"],
-        "risk": "建议重点关注反对方的核心顾虑，设置明确止损线"
+        "decision": ceo_verdict["decision"],
+        "confidence": ceo_verdict["confidence"],
+        "rationale": f"AI董事会7位董事辩论：{support_count}位支持（加权{decision_score['support_weight']}），{oppose_count}位反对（加权{decision_score['oppose_weight']}）。\n{ceo_verdict['reasoning']}",
+        "steps": ceo_verdict["steps"],
+        "risk": ceo_verdict["risk"]
     }
 
-    return {"agents": all_agents, "conflicts": conflicts, "decision": decision}
+    return {
+        "agents": all_agents,
+        "conflicts": conflicts,
+        "decision": decision
+    }
 
 # ============================================================
 # ROUTES
