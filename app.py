@@ -506,6 +506,17 @@ body {
       <span class="f-title">最终决策</span>
       <span class="badge" id="finalBadge">待定</span>
     </div>
+    <!-- V4 Trust Score -->
+    <div id="trustScoreBar" style="display:none;margin-bottom:10px;padding:10px 12px;background:#0f172a;border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:600;color:#9ca3af;">🧠 可信度评分</span>
+        <span id="trustScoreValue" style="font-size:20px;font-weight:700;"></span>
+      </div>
+      <div style="height:6px;background:#1f2937;border-radius:3px;overflow:hidden;">
+        <div id="trustScoreFill" style="height:100%;border-radius:3px;width:0%;transition:width 0.6s ease;"></div>
+      </div>
+      <div id="trustScoreBreakdown" style="display:flex;gap:12px;margin-top:6px;font-size:10px;color:#4a5268;"></div>
+    </div>
     <div class="f-body" id="finalBody"></div>
     <div class="f-meta">
       <span id="finalConfidence">置信度 —</span>
@@ -689,6 +700,27 @@ function showFinal(decision) {
   
   finalConfidence.textContent = '置信度：' + (decision.confidence || 0) + '%';
   finalRisk.textContent = '风险评级：' + (decision.risk || '—');
+  
+  // V4 Trust Score
+  const ts = decision.trust_score;
+  if (ts && ts.score) {
+    const bar = document.getElementById('trustScoreBar');
+    const val = document.getElementById('trustScoreValue');
+    const fill = document.getElementById('trustScoreFill');
+    const bd = document.getElementById('trustScoreBreakdown');
+    bar.style.display = 'block';
+    val.textContent = ts.score + ' · ' + ts.level;
+    val.style.color = ts.color || '#4ade80';
+    fill.style.width = ts.score + '%';
+    fill.style.background = ts.color || '#4ade80';
+    const b = ts.breakdown || {};
+    bd.innerHTML = `
+      <span>一致性 +${b.consensus||0}</span>
+      <span>权重 +${b.weight_bonus||0}</span>
+      <span>冲突 -${b.conflict_penalty||0}</span>
+      <span>可靠性 +${b.reliability_bonus||0}</span>
+    `;
+  }
 }
 
 // ─── 核心：运行董事会 ───
@@ -709,6 +741,7 @@ async function runBoard() {
   timelineContainer.innerHTML = '';
   ledgerContainer.innerHTML = '';
   finalContainer.classList.remove('open');
+  document.getElementById('trustScoreBar').style.display = 'none';
   timelineEmpty.style.display = 'block';
   ledgerEmpty.style.display = 'block';
   initBoard();
@@ -1071,6 +1104,88 @@ def _calculate_decision_score(debate_results: list, conflicts: list) -> dict:
 
     }
 
+# ── V4 决策可信度评分系统（Decision Trust Score）──
+
+def _calculate_trust_score(debate_results: list, conflicts: list, decision_score: dict) -> dict:
+    """
+    V4 Trust Score 引擎
+    
+    公式：Trust Score = (Consensus × 50) + Role Weight Bonus - Conflict Penalty + Model Reliability Bonus
+    """
+    total = len(debate_results)
+    if total == 0:
+        return {"score": 0, "level": "极低", "color": "#ef4444",
+                "breakdown": {"consensus": 0, "weight_bonus": 0, "conflict_penalty": 0, "reliability_bonus": 0}}
+    
+    # A. 一致性分数
+    support_count = sum(1 for r in debate_results if r.get("stance") == "支持")
+    neutral_count = sum(1 for r in debate_results if r.get("stance") == "中立")
+    consensus_ratio = (support_count + neutral_count * 0.5) / total
+    consensus_score = consensus_ratio * 50
+    
+    # B. 角色权重加分
+    weight_bonus = 0.0
+    for r in debate_results:
+        role = r["role"]
+        weight = BOARD_MEMBERS.get(role, {}).get("weight", 1.0)
+        stance = r.get("stance", "中立")
+        if stance == "支持":
+            weight_bonus += (weight - 1.0) * 8
+        elif stance == "反对":
+            weight_bonus -= (weight - 1.0) * 6
+    weight_bonus = max(-15, min(20, weight_bonus))
+    
+    # C. 冲突惩罚
+    conflict_penalty = 0.0
+    if conflicts:
+        for c in conflicts:
+            conflict_penalty += c.get("severity", 0.5) * 6
+        conflict_penalty = min(conflict_penalty, 25)
+    
+    # D. 模型可靠性加分
+    reliability_bonus = 0.0
+    for r in debate_results:
+        role = r["role"]
+        model_name = BOARD_MEMBERS.get(role, {}).get("model", "")
+        if "72B" in model_name:
+            reliability_bonus += 1.5
+        elif "V3" in model_name or "V2.5" in model_name:
+            reliability_bonus += 2.0
+        elif "7B" in model_name:
+            reliability_bonus += 0.5
+        else:
+            reliability_bonus += 1.0
+        for stored_name, data in CREDIBILITY_STORE.items():
+            if stored_name.lower() in role.lower() or role.lower() in stored_name.lower():
+                reliability_bonus += (data.get("correct", 0) / max(data.get("total", 1), 1) - 0.5) * 2
+    reliability_bonus = max(-5, min(10, reliability_bonus))
+    
+    raw_score = consensus_score + weight_bonus - conflict_penalty + reliability_bonus
+    trust_score = max(5, min(99, round(raw_score)))
+    
+    if trust_score >= 85:
+        level, color = "很高", "#22c55e"
+    elif trust_score >= 70:
+        level, color = "高", "#4ade80"
+    elif trust_score >= 55:
+        level, color = "中等", "#fbbf24"
+    elif trust_score >= 40:
+        level, color = "低", "#f97316"
+    else:
+        level, color = "极低", "#ef4444"
+    
+    return {
+        "score": trust_score,
+        "level": level,
+        "color": color,
+        "breakdown": {
+            "consensus": round(consensus_score, 1),
+            "weight_bonus": round(weight_bonus, 1),
+            "conflict_penalty": round(conflict_penalty, 1),
+            "reliability_bonus": round(reliability_bonus, 1)
+        }
+    }
+
 # ── 结构化CEO裁决器 ──
 
 def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_score: dict) -> dict:
@@ -1400,7 +1515,9 @@ async def api_run(request: Request):
         decision_score = _calculate_decision_score(results, conflicts)
         # Step 3: 结构化CEO裁决
         ceo_verdict = _ceo_structured_verdict(results, conflicts, decision_score)
-        # Step 4: 整合返回
+        # Step 4: V4 可信度评分
+        trust_score = _calculate_trust_score(results, conflicts, decision_score)
+        # Step 5: 整合返回
         support_count = sum(1 for r in results if r["stance"] == "支持")
         oppose_count = sum(1 for r in results if r["stance"] == "反对")
 
@@ -1409,13 +1526,15 @@ async def api_run(request: Request):
             "confidence": ceo_verdict["confidence"],
             "rationale": f"AI董事会7位董事辩论：{support_count}位支持（加权{decision_score['support_weight']}），{oppose_count}位反对（加权{decision_score['oppose_weight']}）。\n{ceo_verdict['reasoning']}",
             "steps": ceo_verdict["steps"],
-            "risk": ceo_verdict["risk"]
+            "risk": ceo_verdict["risk"],
+            "trust_score": trust_score
         }
 
         return {
             "agents": all_agents,
             "conflicts": conflicts,
-            "decision": decision
+            "decision": decision,
+            "trust_score": trust_score
         }
     except Exception as e:
         return {"error": str(e), "agents": [], "conflicts": [], "decision": {"decision": "无法裁决", "confidence": 0, "rationale": f"系统错误: {str(e)[:100]}", "steps": [], "risk": "高"}}
@@ -2194,6 +2313,53 @@ async function runAnalysis(){
   }catch(err){hideLoading();showError(err.message||'请求失败');}
 }
 
+// ─── V4 可信度评分（System 2 版） ───
+function calculateSystem2TrustScore(analysis, modelCount) {
+  if (!analysis || modelCount < 2) return null;
+  const consensus = analysis.consensus || [];
+  const dissent = analysis.dissent || [];
+  const hasRec = !!analysis.recommendation;
+  
+  // 一致性分数 (max 40)
+  const consensusRatio = consensus.length / Math.max(consensus.length + dissent.length, 1);
+  const consensusScore = consensusRatio * 40;
+  
+  // 模型覆盖面 (max 20)
+  const coverageScore = Math.min(modelCount / 5, 1) * 20;
+  
+  // 分歧惩罚 (max 25)
+  let dissentPenalty = 0;
+  dissent.forEach(d => {
+    if (d.severity === 'high') dissentPenalty += 8;
+    else if (d.severity === 'medium') dissentPenalty += 5;
+    else dissentPenalty += 2;
+  });
+  dissentPenalty = Math.min(dissentPenalty, 25);
+  
+  // 推荐加分 (max 15)
+  const recScore = hasRec ? 15 : 0;
+  
+  const raw = consensusScore + coverageScore - dissentPenalty + recScore;
+  const score = Math.max(5, Math.min(99, Math.round(raw)));
+  
+  let level, color;
+  if (score >= 85) { level = '很高'; color = '#22c55e'; }
+  else if (score >= 70) { level = '高'; color = '#4ade80'; }
+  else if (score >= 55) { level = '中等'; color = '#fbbf24'; }
+  else if (score >= 40) { level = '低'; color = '#f97316'; }
+  else { level = '极低'; color = '#ef4444'; }
+  
+  return {
+    score, level, color,
+    breakdown: {
+      consensus: consensusScore.toFixed(1),
+      coverage: coverageScore.toFixed(1),
+      dissent_penalty: dissentPenalty.toFixed(1),
+      recommendation: recScore.toFixed(1)
+    }
+  };
+}
+
 // ─── 渲染报告 ───
 function renderReport(analysis, validEntries){
   const rc = document.getElementById('reportContent');
@@ -2276,6 +2442,26 @@ function renderReport(analysis, validEntries){
       <span>基于 ${validEntries.length} 个模型</span>
       <span>${validEntries.map(e=>e.label).join(' · ')}</span>
     </div></div>`;
+  
+  // V4 Trust Score card (client-side calculated for System 2)
+  const ts = calculateSystem2TrustScore(analysis, validEntries.length);
+  if (ts) {
+    html = html.replace('<div class="rec-card">',
+      `<div class="report-card" style="border-color:${ts.color}40;"><div class="rc-title" style="color:${ts.color};">
+        🧠 可信度评分 <span style="font-size:18px;font-weight:700;">${ts.score}/100</span>
+        <span class="rc-badge" style="background:${ts.color}20;color:${ts.color};">${ts.level}</span>
+      </div>
+      <div style="height:5px;background:#1f2937;border-radius:3px;margin-bottom:8px;overflow:hidden;">
+        <div style="height:100%;border-radius:3px;width:${ts.score}%;background:${ts.color};transition:width 0.6s;"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;color:#6b7280;">
+        <span>一致性 +${ts.breakdown.consensus}</span>
+        <span>覆盖面 +${ts.breakdown.coverage}</span>
+        <span>分歧 -${ts.breakdown.dissent_penalty}</span>
+        <span>推荐 +${ts.breakdown.recommendation}</span>
+      </div></div>`
+    );
+  }
   
   rc.innerHTML = html;
   rc.scrollIntoView({behavior:'smooth',block:'start'});
