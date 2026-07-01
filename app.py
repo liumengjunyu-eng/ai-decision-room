@@ -13,9 +13,7 @@ import aiohttp
 import os
 
 
-
 app = FastAPI()
-
 
 
 # ============================================================
@@ -27,7 +25,6 @@ app = FastAPI()
 SILICONFLOW_API_KEY = os.environ.get("SILICONFLOW_API_KEY", "")
 
 SILICONFLOW_BASE = "https://api.siliconflow.cn/v1/chat/completions"
-
 
 
 # AI 董事会 7 角色
@@ -135,11 +132,9 @@ BOARD_MEMBERS = {
 }
 
 
-
 # 非 CEO 角色列表（用于并行调用）
 
 DEBATE_ROLES = [k for k in BOARD_MEMBERS if k != "CEO裁决官"]
-
 
 
 # ============================================================
@@ -187,7 +182,6 @@ p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
 </body></html>
 
 """
-
 
 
 # ============================================================
@@ -559,12 +553,11 @@ console.log('❌ 无Graph · 无卡片堆叠 · 无聊天流');
 
 </body>
 </html>
-"""# ════════════════════════════════════════════════════════════
+"""
 
 # V1.2 冲突决策引擎
 
 # ════════════════════════════════════════════════════════════
-
 
 
 # ── 主题关键词库（用于语义级冲突聚类） ──
@@ -594,9 +587,6 @@ TOPIC_KEYWORDS = {
 }
 
 
-
-
-
 def _extract_topics(text: str) -> list:
 
     """从文本中提取涉及的主题（多主题匹配）"""
@@ -614,9 +604,6 @@ def _extract_topics(text: str) -> list:
                 break
 
     return matched if matched else ["其他"]
-
-
-
 
 
 def _extract_stance_score(text: str) -> int:
@@ -650,15 +637,11 @@ def _extract_stance_score(text: str) -> int:
     return score
 
 
-
-
-
 def _cluster_conflicts(debate_results: list) -> list:
 
     """
 
     V1.2 语义级冲突聚类（无需 sklearn）
-
 
 
     流程：
@@ -688,7 +671,6 @@ def _cluster_conflicts(debate_results: list) -> list:
         role_stance_scores[r["role"]] = _extract_stance_score(text)
 
 
-
     # 第2步：按主题聚类 —— topic => [{role, text, stance, score, weight}]
 
     topic_buckets = {}
@@ -714,7 +696,6 @@ def _cluster_conflicts(debate_results: list) -> list:
             })
 
 
-
     # 第3步：每个桶内检查立场对立
 
     conflicts = []
@@ -726,11 +707,9 @@ def _cluster_conflicts(debate_results: list) -> list:
             continue
 
 
-
         supporters = [i for i in items if i["stance"] == "支持" or i["score"] > 0]
 
         opposers = [i for i in items if i["stance"] == "反对" or i["score"] < 0]
-
 
 
         if not supporters or not opposers:
@@ -738,11 +717,9 @@ def _cluster_conflicts(debate_results: list) -> list:
             continue
 
 
-
         top_sup = max(supporters, key=lambda x: x["score"])
 
         top_opp = max(opposers, key=lambda x: -x["score"])
-
 
 
         # 严重度计算
@@ -754,15 +731,12 @@ def _cluster_conflicts(debate_results: list) -> list:
         severity = min(1.0, 0.3 + weight_factor * 0.15 + score_gap * 0.25)
 
 
-
         if severity < 0.3:
 
             continue
 
 
-
         sev_label = "高" if severity >= 0.65 else "中" if severity >= 0.45 else "低"
-
 
 
         conflicts.append({
@@ -786,13 +760,9 @@ def _cluster_conflicts(debate_results: list) -> list:
         })
 
 
-
     conflicts.sort(key=lambda x: x["severity"], reverse=True)
 
     return conflicts[:5]
-
-
-
 
 
 # ── 决策评分系统 ──
@@ -808,7 +778,6 @@ def _calculate_decision_score(debate_results: list, conflicts: list) -> dict:
     support_score = 0.0
 
     oppose_score = 0.0
-
 
 
     for r in debate_results:
@@ -828,7 +797,6 @@ def _calculate_decision_score(debate_results: list, conflicts: list) -> dict:
             oppose_score += weight
 
 
-
     # 风险惩罚
 
     risk_penalty = 0.0
@@ -840,9 +808,7 @@ def _calculate_decision_score(debate_results: list, conflicts: list) -> dict:
         risk_penalty = avg_severity * 0.25 * len(conflicts)
 
 
-
     net_score = support_score - oppose_score - risk_penalty
-
 
 
     total_weight = sum(BOARD_MEMBERS.get(r["role"], {}).get("weight", 1.0) for r in debate_results)
@@ -856,7 +822,6 @@ def _calculate_decision_score(debate_results: list, conflicts: list) -> dict:
         raw_confidence = (net_score / total_weight + 1) / 2 * 100
 
         confidence = max(5, min(99, raw_confidence))
-
 
 
     return {
@@ -876,9 +841,6 @@ def _calculate_decision_score(debate_results: list, conflicts: list) -> dict:
     }
 
 
-
-
-
 # ── 结构化CEO裁决器 ──
 
 def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_score: dict) -> dict:
@@ -888,7 +850,6 @@ def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_scor
     结构化CEO最终裁决（纯规则引擎，不依赖外部API）
 
 
-
     产出：决策判断 + 置信度 + 理由 + 执行路径 + 风险等级
 
     """
@@ -896,7 +857,6 @@ def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_scor
     score = decision_score["score"]
 
     confidence = decision_score["confidence"]
-
 
 
     if score > 0.5 and confidence >= 65:
@@ -916,7 +876,6 @@ def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_scor
         decision = "建议小规模测试"
 
 
-
     if conflicts:
 
         top = max(conflicts, key=lambda x: x.get("severity", 0))
@@ -926,7 +885,6 @@ def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_scor
     else:
 
         reasoning = "各角色意见趋于一致，无明显立场对立"
-
 
 
     supporters = [r for r in debate_results if r.get("stance") == "支持"]
@@ -950,7 +908,6 @@ def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_scor
                  "制定最小验证方案", "2 周数据回收", "迭代决策"]
 
 
-
     risk_penalty = decision_score.get("risk_penalty", 0)
 
     if risk_penalty > 0.6:
@@ -972,7 +929,6 @@ def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_scor
         risk_text = f"风险等级低（惩罚分 {risk_penalty}），可按计划推进"
 
 
-
     return {
 
         "decision": decision,
@@ -990,7 +946,6 @@ def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_scor
     }
 
 
-
 # ============================================================
 
 # API 调用函数
@@ -1004,7 +959,6 @@ async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_pr
     if not SILICONFLOW_API_KEY:
 
         return {"role": role_name, "model": model_id, "stance": "—", "reason": "API Key 未配置"}
-
 
 
     payload = {
@@ -1024,7 +978,6 @@ async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_pr
         "max_tokens": 300
 
     }
-
 
 
     try:
@@ -1078,9 +1031,6 @@ async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_pr
         return {"role": role_name, "model": model_id, "stance": "—", "reason": "请求失败: " + str(e)}
 
 
-
-
-
 async def call_ceo(debate_results: list, prompt: str) -> dict:
 
     """CEO裁决官：基于6位董事的辩论结果做出综合决策"""
@@ -1088,7 +1038,6 @@ async def call_ceo(debate_results: list, prompt: str) -> dict:
     if not SILICONFLOW_API_KEY:
 
         return {"role": "CEO裁决官", "model": BOARD_MEMBERS["CEO裁决官"]["model"], "stance": "—", "reason": "API Key 未配置"}
-
 
 
     debate_lines = []
@@ -1100,9 +1049,7 @@ async def call_ceo(debate_results: list, prompt: str) -> dict:
     debate_summary = "\n".join(debate_lines)
 
 
-
     system_prompt = "你是一位CEO裁决官，负责综合董事会的不同意见做出最终决策。请分析以下各位董事的立场和理由，给出你的最终裁决（支持/反对/中立），并说明你的决策逻辑。"
-
 
 
     payload = {
@@ -1122,7 +1069,6 @@ async def call_ceo(debate_results: list, prompt: str) -> dict:
         "max_tokens": 400
 
     }
-
 
 
     try:
@@ -1176,9 +1122,6 @@ async def call_ceo(debate_results: list, prompt: str) -> dict:
         return {"role": "CEO裁决官", "model": BOARD_MEMBERS["CEO裁决官"]["model"], "stance": "—", "reason": "请求失败: " + str(e)}
 
 
-
-
-
 @app.post("/api/run")
 
 async def api_run(request: Request):
@@ -1186,7 +1129,6 @@ async def api_run(request: Request):
     body = await request.json()
 
     topic = body.get("topic", "")
-
 
 
     # 并行调用所有非CEO角色
@@ -1200,9 +1142,7 @@ async def api_run(request: Request):
         tasks.append(call_siliconflow(member["model"], topic, role_name, member["prompt"]))
 
 
-
     results = await asyncio.gather(*tasks)
-
 
 
     # 调用CEO裁决官（基于前6位结果）
@@ -1210,11 +1150,9 @@ async def api_run(request: Request):
     ceo_result = await call_ceo(results, topic)
 
 
-
     # 全部 agents = 6位董事 + CEO
 
     all_agents = results + [ceo_result]
-
 
 
     # ════════════════════════════════════════════════
@@ -1228,11 +1166,9 @@ async def api_run(request: Request):
     conflicts = _cluster_conflicts(results)
 
 
-
     # Step 2: 决策评分系统
 
     decision_score = _calculate_decision_score(results, conflicts)
-
 
 
     # Step 3: 结构化CEO裁决
@@ -1240,13 +1176,11 @@ async def api_run(request: Request):
     ceo_verdict = _ceo_structured_verdict(results, conflicts, decision_score)
 
 
-
     # Step 4: 整合返回
 
     support_count = sum(1 for r in results if r["stance"] == "支持")
 
     oppose_count = sum(1 for r in results if r["stance"] == "反对")
-
 
 
     decision = {
@@ -1264,7 +1198,6 @@ async def api_run(request: Request):
     }
 
 
-
     return {
 
         "agents": all_agents,
@@ -1274,7 +1207,6 @@ async def api_run(request: Request):
         "decision": decision
 
     }
-
 
 
 # ============================================================
@@ -1290,7 +1222,6 @@ def health():
     return {"status": "ok", "api_key_configured": bool(SILICONFLOW_API_KEY)}
 
 
-
 @app.get("/", response_class=HTMLResponse)
 
 def landing():
@@ -1298,13 +1229,11 @@ def landing():
     return LANDING_HTML
 
 
-
 @app.get("/room", response_class=HTMLResponse)
 
 def room():
 
     return ROOM_HTML
-
 
 
 # ============================================================
