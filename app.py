@@ -1601,6 +1601,169 @@ async def api_compare(request: Request):
 
 
 # ============================================================
+# V4 — Anti-Consensus Engine
+# ============================================================
+
+async def call_anti_consensus(consensus_points: list, topic: str) -> dict:
+    """生成反共识分析：当所有模型说一样时，挑战群体思维"""
+    if not SILICONFLOW_API_KEY or not consensus_points:
+        return {"error": "无法生成反共识"}
+    
+    consensus_text = "\n".join([f"- {p.get('point', '')}" for p in consensus_points])
+    
+    prompt = f"""你是反共识分析师。你的任务是在所有人都达成一致时，主动寻找被忽略的视角。
+
+当前议题：{topic}
+
+以下是被所有AI模型一致认同的观点：
+{consensus_text}
+
+请从以下角度挑战这个共识：
+1. 什么情况下这些共识是错误的？
+2. 哪个历史先例表明类似共识曾导致失败？
+3. 被忽略的替代假设是什么？
+4. 如果这些共识成立，最可能被低估的风险是什么？
+
+请输出JSON格式：
+{{
+  "challenge": "对共识的核心挑战（一句话）",
+  "blindspots": ["被忽略的视角1", "被忽略的视角2", "被忽略的视角3"],
+  "alternative": "如果共识错了，更可能正确的替代方案",
+  "warning": "决策者最需要注意的风险信号",
+  "strength": "这个挑战的有效性评估: strong|medium|weak"
+}}"""
+
+    payload = {
+        "model": "deepseek-ai/DeepSeek-V3",
+        "messages": [
+            {"role": "system", "content": "你是一个独立思考的反共识分析师。输出JSON。"},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.8,
+        "max_tokens": 1200,
+        "response_format": {"type": "json_object"}
+    }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                SILICONFLOW_BASE,
+                headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY, "Content-Type": "application/json"},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=60)
+            ) as resp:
+                if resp.status != 200:
+                    return {"error": f"API {resp.status}"}
+                data = await _parse_json_resp(resp)
+                raw = data["choices"][0]["message"]["content"].strip()
+                if raw.startswith("```"):
+                    raw = raw.split("\n", 1)[-1]
+                    if "```" in raw:
+                        raw = raw.rsplit("```", 1)[0]
+                return json.loads(raw)
+    except Exception as e:
+        return {"error": str(e)[:80]}
+
+@app.post("/api/challenge")
+async def api_challenge(request: Request):
+    """反共识 API：生成挑战群体思维的分析"""
+    try:
+        body = await request.json()
+        consensus_points = body.get("consensus_points", [])
+        topic = body.get("topic", "")
+        result = await call_anti_consensus(consensus_points, topic)
+        return result
+    except Exception as e:
+        return {"error": str(e)[:100]}
+
+
+# ============================================================
+# V4 — Credibility Tracking System
+# ============================================================
+
+CREDIBILITY_STORE = {}  # {model_name: {"correct": int, "total": int}}
+
+@app.post("/api/credibility/rate")
+async def rate_credibility(request: Request):
+    """用户评价某个模型的回答是否准确"""
+    body = await request.json()
+    model = body.get("model", "").strip()
+    accurate = body.get("accurate", True)
+    
+    if model not in CREDIBILITY_STORE:
+        CREDIBILITY_STORE[model] = {"correct": 0, "total": 0}
+    CREDIBILITY_STORE[model]["total"] += 1
+    if accurate:
+        CREDIBILITY_STORE[model]["correct"] += 1
+    return {"status": "ok", "model": model, "credibility": _get_credibility(model)}
+
+@app.get("/api/credibility")
+async def get_credibility():
+    """获取所有模型的可靠性评分"""
+    result = {}
+    for model, data in CREDIBILITY_STORE.items():
+        result[model] = _get_credibility(model)
+    return result
+
+def _get_credibility(model: str) -> dict:
+    """计算单个模型的可靠性分数"""
+    data = CREDIBILITY_STORE.get(model, {"correct": 0, "total": 0})
+    total = data["total"]
+    correct = data["correct"]
+    score = round(correct / total, 2) if total > 0 else 0.5
+    return {
+        "score": score,
+        "percent": int(score * 100),
+        "total_ratings": total,
+        "label": "高" if score >= 0.8 else "中" if score >= 0.5 else "低"
+    }
+
+
+# ============================================================
+# V4 — Decision Report Export
+# ============================================================
+
+@app.post("/api/export")
+async def export_report(request: Request):
+    """生成可打印的决策报告Markdown"""
+    try:
+        body = await request.json()
+        analysis = body.get("analysis", {})
+        topic = body.get("topic", "")
+        entries = body.get("entries", [])
+        
+        consensus = analysis.get("consensus", [])
+        dissent = analysis.get("dissent", [])
+        recommendation = analysis.get("recommendation", "")
+        uncertainty = analysis.get("uncertainty", "")
+        
+        md = f"# AI Decision Report\n\n"
+        md += f"**议题**: {topic or '未命名'}\n\n"
+        md += f"**参与模型**: {', '.join(e.get('label','') for e in entries)}\n\n"
+        md += "---\n\n"
+        md += "## 一致观点\n\n"
+        for c in consensus:
+            md += f"- ✅ **{c.get('point','')}** (置信度: {c.get('confidence','')})\n"
+        md += "\n## 分歧观点\n\n"
+        for d in dissent:
+            md += f"### {d.get('topic','')}\n"
+            for p in d.get('positions', []):
+                md += f"- {p.get('model','')}: {p.get('stance','')} — {p.get('summary','')}\n"
+            md += "\n"
+        md += "## 收敛建议\n\n"
+        md += f"{recommendation}\n\n"
+        if uncertainty:
+            md += "## 不确定性\n\n"
+            md += f"{uncertainty}\n\n"
+        md += "---\n"
+        md += f"*由 AI Decision OS 生成*\n"
+        
+        return {"markdown": md}
+    except Exception as e:
+        return {"error": str(e)[:100]}
+
+
+# ============================================================
 # SYSTEM 2 PAGE HTML
 # ============================================================
 COMPARE_HTML = r"""<!DOCTYPE html>
@@ -1608,621 +1771,616 @@ COMPARE_HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Decision Compiler · System 2</title>
+<title>Decision Compiler Pro · V4</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  background:#0b0f19;
-  color:#e5e7eb;
-}
-.header{
-  padding:16px 28px;
-  border-bottom:1px solid #1f2937;
-  display:flex;justify-content:space-between;align-items:center;
-  background:rgba(11,15,25,0.95);position:sticky;top:0;z-index:20;
-}
-.header .brand{
-  font-size:17px;font-weight:700;
-  background:linear-gradient(135deg,#34d399,#22c55e);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.header .sub{font-size:12px;color:#6b7280;margin-left:6px;}
-.header .nav{display:flex;gap:12px;align-items:center;}
-.header .nav a{color:#9ca3af;font-size:13px;text-decoration:none;padding:6px 14px;border-radius:8px;transition:all .15s;}
-.header .nav a:hover{color:#e5e7eb;background:#1f2937;}
-.header .nav a.active{color:#22c55e;background:rgba(34,197,94,0.08);}
-.container{max-width:960px;margin:0 auto;padding:28px 28px 60px;}
-
-/* ─── 页面标题 ─── */
-.page-title{margin-bottom:24px;}
-.page-title h1{font-size:22px;font-weight:600;color:#e5e7eb;}
-.page-title p{font-size:13px;color:#6b7280;margin-top:4px;line-height:1.6;}
-
-/* ─── 卡片 ─── */
-.card{
-  background:#111827;border:1px solid #1f2937;border-radius:14px;
-  padding:24px;margin-bottom:16px;
+  background:#0b0f17;color:#e6e6e6;
+  display:flex;height:100vh;overflow:hidden;
 }
 
-/* ─── 粘贴区 ─── */
-.paste-area{display:flex;flex-direction:column;gap:12px;}
-.paste-row{
-  display:flex;gap:12px;align-items:flex-start;
-  opacity:1;transition:opacity .3s;
+/* ─── 左侧 22% ─── */
+.left{
+  width:22%;min-width:220px;
+  border-right:1px solid #1f2937;
+  padding:20px;display:flex;flex-direction:column;
+  background:#0d111c;
 }
-.paste-row .model-tag{
-  flex-shrink:0;width:110px;
+.left .brand{
+  font-size:14px;font-weight:700;color:#e5e7eb;margin-bottom:4px;
 }
-.paste-row .model-tag select{
-  width:100%;padding:10px 10px;
-  background:#0f172a;border:1px solid #1f2937;border-radius:8px;
-  color:#e5e7eb;font-size:13px;outline:none;cursor:pointer;
-}
-.paste-row .model-tag select:focus{border-color:#22c55e;}
-.paste-row textarea{
-  flex:1;padding:12px 14px;
-  background:#0f172a;border:1px solid #1f2937;border-radius:8px;
+.left .brand span{color:#22c55e;}
+.left .sub{font-size:11px;color:#6b7280;margin-bottom:20px;}
+
+.left label{font-size:11px;color:#9ca3af;font-weight:600;margin-bottom:6px;display:block;}
+.left textarea{
+  width:100%;height:140px;padding:12px;
+  background:#111827;border:1px solid #1f2937;border-radius:8px;
   color:#e5e7eb;font-size:13px;font-family:inherit;
-  resize:vertical;min-height:80px;outline:none;line-height:1.7;
+  resize:none;outline:none;line-height:1.6;
 }
-.paste-row textarea:focus{border-color:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,0.08);}
-.paste-row textarea::placeholder{color:#4a5268;}
-.paste-row .remove-btn{
-  flex-shrink:0;width:32px;height:32px;margin-top:4px;
-  border:none;border-radius:8px;background:#1f2937;color:#6b7280;
-  font-size:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;
-}
-.paste-row .remove-btn:hover{background:#374151;color:#ef4444;}
+.left textarea:focus{border-color:#22c55e;}
+.left textarea::placeholder{color:#4a5268;}
 
-/* ─── 操作栏 ─── */
-.actions-bar{
-  display:flex;gap:12px;align-items:center;margin-top:8px;
-}
-.actions-bar .btn{
-  padding:10px 24px;border:none;border-radius:10px;
-  font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;
+.left .actions{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;margin-top:16px;}
+.left .btn{
+  width:100%;padding:10px;border:none;border-radius:8px;
+  font-weight:600;font-size:12px;cursor:pointer;transition:all .15s;
 }
 .btn-primary{background:#22c55e;color:#000;}
 .btn-primary:hover{background:#16a34a;}
 .btn-primary:disabled{opacity:0.3;cursor:not-allowed;}
 .btn-secondary{background:#1f2937;color:#e5e7eb;}
 .btn-secondary:hover{background:#374151;}
-.btn-ghost{background:transparent;color:#6b7280;border:1px dashed #374151;}
-.btn-ghost:hover{background:#1f2937;color:#9ca3af;}
-.actions-bar .hint{font-size:12px;color:#4a5268;margin-left:auto;}
-
-/* ─── 加载动画 ─── */
-.loading-section{display:none;text-align:center;padding:40px 0;}
-.loading-section.open{display:block;}
-.loading-spinner{
-  width:36px;height:36px;border:3px solid #1f2937;
-  border-top-color:#22c55e;border-radius:50%;
-  animation:spin 0.8s linear infinite;margin:0 auto 16px;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-section .msg{font-size:14px;color:#9ca3af;}
-.loading-section .sub-msg{font-size:12px;color:#4a5268;margin-top:4px;}
-
-/* ─── 结果区 ─── */
-.results-section{display:none;}
-.results-section.open{display:block;}
-
-.result-block{margin-bottom:20px;}
-.result-block .block-title{
-  font-size:13px;font-weight:600;color:#9ca3af;margin-bottom:10px;
-  display:flex;align-items:center;gap:8px;
-}
-.result-block .block-title .badge{
-  font-size:10px;padding:2px 8px;border-radius:6px;
-}
-.badge-green{background:rgba(34,197,94,0.12);color:#22c55e;}
-.badge-yellow{background:rgba(251,191,36,0.12);color:#fbbf24;}
-.badge-red{background:rgba(239,68,68,0.12);color:#ef4444;}
-.badge-blue{background:rgba(59,130,246,0.12);color:#3b82f6;}
-
-/* 共识点 */
-.consensus-item{
-  padding:12px 14px;background:rgba(34,197,94,0.04);
-  border:1px solid rgba(34,197,94,0.1);border-radius:10px;
-  margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;
-}
-.consensus-item .dot{
-  width:8px;height:8px;border-radius:50%;background:#22c55e;
-  margin-top:4px;flex-shrink:0;
-}
-.consensus-item .text{font-size:13px;line-height:1.6;color:#d1d5db;}
-.consensus-item .conf{
-  font-size:11px;color:#6b7280;margin-top:2px;
+.btn-danger{background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)!important;}
+.btn-danger:hover{background:rgba(239,68,68,0.2);}
+.btn-outline{background:transparent;color:#9ca3af;border:1px solid #1f2937;}
+.btn-outline:hover{background:#1f2937;color:#e5e7eb;}
+.left .mode-indicator{
+  font-size:10px;color:#4a5268;padding:6px 8px;
+  background:#0f172a;border-radius:6px;text-align:center;
 }
 
-/* 分歧点 */
-.dissent-item{
-  border:1px solid rgba(251,191,36,0.15);
-  background:rgba(251,191,36,0.03);
+/* ─── 中间 38% ─── */
+.center{
+  width:38%;min-width:320px;
+  border-right:1px solid #1f2937;
+  padding:20px;overflow-y:auto;background:#0b0f17;
+}
+.center .section-title{
+  font-size:11px;color:#9ca3af;font-weight:600;
+  margin-bottom:12px;display:flex;align-items:center;gap:6px;
+}
+.model-card{
+  background:#111827;border:1px solid #1f2937;
+  border-radius:10px;padding:12px;margin-bottom:10px;
+  transition:border-color .15s;
+}
+.model-card.filled{border-color:rgba(34,197,94,0.2);}
+.model-card .mc-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;
+}
+.model-card .mc-header .mc-label{
+  font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;
+}
+.mc-label-a{background:rgba(59,130,246,0.12);color:#3b82f6;}
+.mc-label-b{background:rgba(249,115,22,0.12);color:#f97316;}
+.mc-label-c{background:rgba(139,92,246,0.12);color:#8b5cf6;}
+.mc-label-d{background:rgba(236,72,153,0.12);color:#ec4899;}
+.mc-label-e{background:rgba(14,165,233,0.12);color:#0ea5e9;}
+.mc-label-f{background:rgba(34,197,94,0.12);color:#22c55e;}
+
+.model-card .mc-header .mc-actions{display:flex;gap:4px;}
+.model-card .mc-header .mc-actions button{
+  background:none;border:none;color:#4a5268;cursor:pointer;
+  font-size:12px;padding:2px 6px;border-radius:4px;
+}
+.model-card .mc-header .mc-actions button:hover{color:#ef4444;background:rgba(239,68,68,0.1);}
+.model-card .mc-header .mc-actions .cred-badge{
+  font-size:10px;padding:1px 6px;border-radius:4px;
+  background:rgba(34,197,94,0.08);color:#22c55e;
+}
+.model-card select{
+  width:100%;padding:6px 8px;margin-bottom:6px;
+  background:#0f172a;border:1px solid #1f2937;border-radius:6px;
+  color:#e5e7eb;font-size:11px;outline:none;cursor:pointer;
+}
+.model-card select:focus{border-color:#22c55e;}
+.model-card textarea{
+  width:100%;min-height:80px;padding:8px 10px;
+  background:#0f172a;border:1px solid #1f2937;border-radius:6px;
+  color:#e5e7eb;font-size:12px;font-family:inherit;
+  resize:vertical;outline:none;line-height:1.6;
+}
+.model-card textarea:focus{border-color:#22c55e;}
+.model-card textarea::placeholder{color:#4a5268;}
+
+.center .add-row-btn{
+  width:100%;padding:10px;border:1px dashed #1f2937;border-radius:8px;
+  background:transparent;color:#6b7280;font-size:12px;cursor:pointer;transition:all .15s;
+}
+.center .add-row-btn:hover{border-color:#374151;color:#9ca3af;background:#0f172a;}
+
+/* ─── 右侧 ─── */
+.right{
+  flex:1;padding:20px;overflow-y:auto;min-width:300px;
+  background:#0b0f17;
+}
+.right .section-title{
+  font-size:11px;color:#9ca3af;font-weight:600;
+  margin-bottom:12px;display:flex;align-items:center;gap:6px;
+}
+.report-card{
+  background:#111827;border:1px solid #1f2937;
   border-radius:10px;padding:14px;margin-bottom:10px;
 }
-.dissent-item .d-header{
-  display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;
+.report-card .rc-title{
+  font-size:11px;font-weight:600;color:#6b7280;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between;
 }
-.dissent-item .d-header .topic{
-  font-size:13px;font-weight:600;color:#e5e7eb;
+.report-card .rc-title .rc-badge{
+  font-size:10px;padding:1px 6px;border-radius:4px;
 }
-.dissent-item .d-body{
-  display:flex;flex-direction:column;gap:6px;
-}
-.dissent-item .position{
-  display:flex;gap:8px;align-items:flex-start;
-  padding:6px 8px;background:#0f172a;border-radius:6px;
-}
-.dissent-item .position .plabel{
-  font-size:11px;font-weight:600;padding:2px 8px;
-  border-radius:4px;flex-shrink:0;margin-top:1px;
-}
-.plabel-a{background:rgba(59,130,246,0.12);color:#3b82f6;}
-.plabel-b{background:rgba(249,115,22,0.12);color:#f97316;}
-.plabel-c{background:rgba(139,92,246,0.12);color:#8b5cf6;}
-.plabel-d{background:rgba(236,72,153,0.12);color:#ec4899;}
-.plabel-e{background:rgba(14,165,233,0.12);color:#0ea5e9;}
-.dissent-item .position .pstance{font-size:12px;color:#9ca3af;flex-shrink:0;}
-.dissent-item .position .psummary{font-size:12px;color:#6b7280;}
+.rc-badge-green{background:rgba(34,197,94,0.1);color:#22c55e;}
+.rc-badge-yellow{background:rgba(251,191,36,0.1);color:#fbbf24;}
+.rc-badge-red{background:rgba(239,68,68,0.1);color:#ef4444;}
 
-/* 冲突来源 */
-.source-item{
-  padding:10px 12px;background:#0f172a;
-  border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;
-  margin-bottom:8px;
+.consensus-item{
+  display:flex;gap:8px;align-items:flex-start;padding:6px 0;
+  border-bottom:1px solid rgba(31,41,55,0.5);
 }
-.source-item .s-title{font-size:13px;font-weight:500;color:#e5e7eb;}
-.source-item .s-detail{font-size:12px;color:#6b7280;margin-top:3px;line-height:1.5;}
+.consensus-item:last-child{border-bottom:none;}
+.consensus-item .dot{
+  width:6px;height:6px;border-radius:50%;background:#22c55e;
+  margin-top:4px;flex-shrink:0;
+}
+.consensus-item .text{font-size:12px;color:#d1d5db;line-height:1.5;}
+.consensus-item .conf-bar{
+  height:3px;border-radius:2px;margin-top:4px;
+  background:#1f2937;position:relative;
+}
+.consensus-item .conf-bar .fill{
+  height:100%;border-radius:2px;position:absolute;left:0;top:0;
+}
+.fill-high{background:#22c55e;width:90%;}
+.fill-medium{background:#fbbf24;width:60%;}
+.fill-low{background:#ef4444;width:30%;}
 
-/* 最终建议 */
-.recommendation-card{
+.dissent-item{
+  padding:8px 0;border-bottom:1px solid rgba(31,41,55,0.5);
+}
+.dissent-item:last-child{border-bottom:none;}
+.dissent-item .d-topic{
+  font-size:12px;font-weight:600;color:#fbbf24;margin-bottom:4px;
+}
+.dissent-item .d-pos{
+  display:flex;gap:6px;align-items:center;padding:3px 0;
+  font-size:11px;
+}
+.dissent-item .d-pos .d-model{
+  padding:1px 6px;border-radius:3px;font-weight:600;flex-shrink:0;
+}
+.dissent-item .d-pos .d-stance{color:#9ca3af;flex-shrink:0;}
+.dissent-item .d-pos .d-summary{color:#6b7280;}
+
+/* 反共识卡 */
+.anti-card{
+  background:linear-gradient(135deg,#1a0a0a,#0f172a);
+  border:1px solid rgba(239,68,68,0.2);border-radius:10px;
+  padding:14px;margin-bottom:10px;
+  display:none;
+}
+.anti-card.open{display:block;}
+.anti-card .ac-title{
+  font-size:11px;font-weight:700;color:#ef4444;margin-bottom:6px;
+  display:flex;align-items:center;gap:6px;
+}
+.anti-card .ac-challenge{font-size:13px;color:#fca5a5;line-height:1.5;margin-bottom:8px;}
+.anti-card .ac-blindspot{
+  padding:4px 0;font-size:12px;color:#d1d5db;list-style:none;
+}
+.anti-card .ac-blindspot li{padding:2px 0;padding-left:12px;position:relative;}
+.anti-card .ac-blindspot li::before{content:"⚠";position:absolute;left:0;color:#ef4444;}
+.anti-card .ac-warning{font-size:11px;color:#6b7280;margin-top:6px;padding:6px;background:rgba(239,68,68,0.04);border-radius:6px;}
+
+/* 收敛建议 */
+.rec-card{
   background:linear-gradient(135deg,#064e3b,#0f172a);
-  border:1px solid #22c55e;border-radius:14px;
-  padding:20px;margin-bottom:16px;
+  border:1px solid #22c55e;border-radius:10px;
+  padding:14px;margin-bottom:10px;
 }
-.recommendation-card .rc-title{
-  font-size:13px;font-weight:700;color:#22c55e;margin-bottom:8px;
-  display:flex;align-items:center;gap:8px;
+.rec-card .rc-title{
+  font-size:11px;font-weight:700;color:#22c55e;margin-bottom:6px;
 }
-.recommendation-card .rc-body{
-  font-size:14px;color:#d1d5db;line-height:1.7;
-}
-.recommendation-card .rc-meta{
-  font-size:12px;color:#6b7280;margin-top:12px;
-  display:flex;gap:16px;
+.rec-card .rc-body{font-size:13px;color:#d1d5db;line-height:1.6;}
+.rec-card .rc-meta{
+  font-size:10px;color:#4a5268;margin-top:8px;
+  display:flex;gap:12px;
 }
 
-/* 交叉验证 */
-.cross-validate{
-  padding:12px 14px;background:rgba(99,102,241,0.04);
-  border:1px solid rgba(99,102,241,0.1);border-radius:10px;margin-bottom:16px;
+/* 加载 */
+.loading-overlay{
+  display:none;position:absolute;inset:0;z-index:10;
+  background:rgba(11,15,23,0.7);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;flex-direction:column;
 }
-.cross-validate .cv-title{
-  font-size:12px;font-weight:600;color:#6366f1;margin-bottom:6px;
+.loading-overlay.open{display:flex;}
+.loading-spinner{
+  width:28px;height:28px;border:2px solid #1f2937;
+  border-top-color:#22c55e;border-radius:50%;
+  animation:spin 0.7s linear infinite;
 }
-.cross-validate .cv-body{font-size:12px;color:#6b7280;line-height:1.5;}
-
-/* 空状态 */
-.empty-state{
-  text-align:center;color:#4a5268;padding:32px 0;
-}
-.empty-state .icon{font-size:28px;margin-bottom:6px;opacity:0.4;}
-.empty-state .e-title{font-size:14px;color:#6b7280;margin-bottom:4px;}
-.empty-state .e-sub{font-size:12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay .lm{font-size:12px;color:#9ca3af;margin-top:10px;}
 
 /* 错误 */
-.error-card{
-  background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);
-  border-radius:10px;padding:12px;font-size:13px;color:#ef4444;
-  display:none;margin-bottom:12px;
+.error-bar{
+  display:none;padding:8px 12px;margin-bottom:8px;
+  background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);
+  border-radius:6px;font-size:11px;color:#ef4444;
 }
-.error-card.open{display:block;}
+.error-bar.open{display:block;}
 
-/* 入口导航 */
-.system-nav{
-  display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;
-}
-.system-nav .sn-item{
-  padding:8px 16px;border-radius:10px;font-size:12px;font-weight:500;
-  border:1px solid #1f2937;color:#6b7280;text-decoration:none;transition:all .15s;
-}
-.system-nav .sn-item:hover{border-color:#374151;color:#9ca3af;}
-.system-nav .sn-item.active{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,0.06);}
+/* 空状态 */
+.empty-prompt{font-size:12px;color:#4a5268;text-align:center;padding:20px 0;line-height:1.6;}
 
-/* 响应式 */
-@media(max-width:640px){
-  .container{padding:16px 14px;}
-  .paste-row{flex-direction:column;}
-  .paste-row .model-tag{width:100%;}
-  .paste-row .remove-btn{align-self:flex-end;}
+/* 导航头 */
+.nav-bar{
+  display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;
+}
+.nav-bar a{
+  font-size:10px;padding:4px 10px;border-radius:6px;
+  color:#6b7280;text-decoration:none;border:1px solid #1f2937;transition:all .1s;
+}
+.nav-bar a:hover{color:#9ca3af;border-color:#374151;}
+.nav-bar a.active{color:#22c55e;border-color:#22c55e;background:rgba(34,197,94,0.06);}
+
+/* 滚动条 */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:#1f2937;border-radius:2px;}
+
+@media(max-width:1024px){
+  body{flex-direction:column;height:auto;overflow:auto;}
+  .left,.center,.right{width:100%;min-width:0;border-right:none;border-bottom:1px solid #1f2937;}
+  .left textarea{height:100px;}
 }
 </style>
 </head>
 <body>
 
-<div class="header">
+<!-- ◀ LEFT: 问题区 -->
+<div class="left">
   <div>
-    <span class="brand">Decision Compiler</span>
-    <span class="sub">System 2 · 多模型意见手动编译器</span>
+    <div class="brand">Decision <span>Compiler</span></div>
+    <div class="sub">System 2 · 多模型认知编译器 V4</div>
   </div>
-  <div class="nav">
-    <a href="/room">Board</a>
-    <a href="/compare" class="active">Compiler</a>
+
+  <label>📌 决策问题</label>
+  <textarea id="topicInput" placeholder="输入你要决策的问题…"></textarea>
+
+  <div class="mode-indicator">Multi-Model Decision Compiler</div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="analyzeBtn" disabled>▶ 生成决策报告</button>
+    <button class="btn btn-secondary" id="exportBtn" disabled>📄 导出 MD 报告</button>
+    <button class="btn btn-danger" id="challengeBtn" style="display:none;">⚡ 挑战共识</button>
+    <button class="btn btn-outline" id="resetBtn">↺ 清空重新开始</button>
   </div>
 </div>
 
-<div class="container">
-
-  <div class="page-title">
-    <h1>🧠 多模型认知编译器</h1>
-    <p>把不同 AI 的回答粘贴到这里。系统会自动找出共识、标出分歧、分析冲突来源，帮你从多个声音中收敛出可执行的结论。</p>
+<!-- ◀ CENTER: 模型输入区 -->
+<div class="center">
+  <div class="nav-bar">
+    <a href="/room">System 1 · 董事会</a>
+    <a href="/compare" class="active">System 2 · 编译器</a>
   </div>
 
-  <!-- 系统选择 -->
-  <div class="system-nav">
-    <a href="/room" class="sn-item">⚡ System 1 · AI 董事会</a>
-    <a href="/compare" class="sn-item active">🧩 System 2 · 手动编译器</a>
-  </div>
+  <div class="section-title">🤖 多模型输入（粘贴各模型回答）</div>
+  <div id="modelEntries"></div>
+  <button class="add-row-btn" id="addRowBtn">+ 添加一个模型回答</button>
+</div>
 
-  <!-- 粘贴区 -->
-  <div class="card" id="pasteCard">
-    <div class="paste-area" id="pasteArea"></div>
-    <div class="actions-bar">
-      <button class="btn btn-secondary" id="addEntryBtn">+ 添加一个模型回答</button>
-      <button class="btn btn-primary" id="analyzeBtn">▶ 分析认知结构</button>
-      <span class="hint" id="entryHint">至少需要 2 个模型回答</span>
+<!-- ◀ RIGHT: 决策报告区 -->
+<div class="right" id="rightPanel">
+  <div class="section-title">📊 决策报告</div>
+  <div id="reportContent">
+    <div class="empty-prompt">
+      粘贴 2 个以上模型的回答<br>
+      点击「生成决策报告」
     </div>
   </div>
+</div>
 
-  <!-- 错误 -->
-  <div class="error-card" id="errorCard"></div>
-
-  <!-- 加载 -->
-  <div class="loading-section" id="loadingSection">
-    <div class="loading-spinner"></div>
-    <div class="msg" id="loadingMsg">正在分析多模型认知结构…</div>
-    <div class="sub-msg">提取共识 · 检测分歧 · 溯源冲突</div>
-  </div>
-
-  <!-- 结果区 -->
-  <div class="results-section" id="resultsSection">
-
-    <!-- 交叉验证 -->
-    <div class="cross-validate" id="crossValidBox" style="display:none;">
-      <div class="cv-title">✓ 双模型交叉验证</div>
-      <div class="cv-body" id="crossValidBody">主分析模型与验证模型结论一致，分析结果可靠。</div>
-    </div>
-
-    <!-- 共识 -->
-    <div class="result-block" id="consensusBlock">
-      <div class="block-title">✅ 一致观点 <span class="badge badge-green" id="consensusCount">0</span></div>
-      <div id="consensusList"></div>
-    </div>
-
-    <!-- 分歧 -->
-    <div class="result-block" id="dissentBlock">
-      <div class="block-title">⚡ 分歧观点 <span class="badge badge-yellow" id="dissentCount">0</span></div>
-      <div id="dissentList"></div>
-    </div>
-
-    <!-- 冲突来源 -->
-    <div class="result-block" id="sourceBlock">
-      <div class="block-title">🔍 冲突来源分析</div>
-      <div id="sourceList"></div>
-    </div>
-
-    <!-- 不确定性 -->
-    <div class="result-block" id="uncertaintyBlock" style="display:none;">
-      <div class="block-title">⚠️ 仍有不确定性</div>
-      <div id="uncertaintyBody" style="font-size:13px;color:#6b7280;line-height:1.6;"></div>
-    </div>
-
-    <!-- 最终收敛建议 -->
-    <div class="recommendation-card" id="recCard">
-      <div class="rc-title">🎯 收敛建议</div>
-      <div class="rc-body" id="recBody"></div>
-      <div class="rc-meta">
-        <span id="recEntryCount">基于 — 个模型</span>
-        <span id="recModels"></span>
-      </div>
-    </div>
-
-    <!-- 新一轮 -->
-    <div style="text-align:center;margin-top:8px;">
-      <button class="btn btn-ghost" id="continueBtn" style="padding:10px 28px;">
-        + 贴入新一轮回答继续迭代
-      </button>
-    </div>
-
-  </div>
-
+<!-- 加载遮罩 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="lm" id="loadingMsg">正在分析多模型认知结构…</div>
 </div>
 
 <script>
-// ─── 默认模型列表 ───
-const MODEL_OPTIONS = [
-  'GPT-4o', 'Claude', 'Gemini', 'DeepSeek', 'Qwen',
-  'Perplexity', 'Mistral', 'Grok', 'Kimi', '豆包', '文心一言', '通义千问', '其他'
-];
+// ─── 标签颜色 ───
+const LABEL_COLORS = ['mc-label-a','mc-label-b','mc-label-c','mc-label-d','mc-label-e','mc-label-f'];
+const MODEL_LIST = ['GPT-4o','Claude','Gemini','DeepSeek','Qwen','Perplexity','Grok','Mistral','Kimi','豆包','文心一言','通义千问','其他'];
+const STANCE_COLORS = {a:'#3b82f6',b:'#f97316',c:'#8b5cf6',d:'#ec4899',e:'#0ea5e9',f:'#22c55e'};
 
-// ─── 状态 ───
 let entries = [];
-let historyResult = null;
+let lastAnalysis = null;
+let challengeResult = null;
 
-function getLabelColor(idx) {
-  const colors = ['plabel-a','plabel-b','plabel-c','plabel-d','plabel-e'];
-  return colors[idx % colors.length];
-}
+function getLabelColor(i){return LABEL_COLORS[i % LABEL_COLORS.length];}
 
-function getBadgeColor(severity) {
-  if (severity === 'high') return 'badge-red';
-  if (severity === 'medium') return 'badge-yellow';
-  return 'badge-blue';
-}
-
-// ─── 渲染粘贴行 ───
-function renderEntries() {
-  const area = document.getElementById('pasteArea');
-  area.innerHTML = '';
+// ─── 渲染模型输入行 ───
+function renderEntries(){
+  const container = document.getElementById('modelEntries');
+  container.innerHTML = '';
   entries.forEach((e, i) => {
-    const row = document.createElement('div');
-    row.className = 'paste-row';
+    const card = document.createElement('div');
+    card.className = 'model-card' + (e.content.trim() ? ' filled' : '');
+    const colorClass = getLabelColor(i);
     
-    const select = document.createElement('select');
-    select.className = 'model-select';
-    select.dataset.index = i;
-    MODEL_OPTIONS.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m;
-      if (m === e.label) opt.selected = true;
-    });
-    select.addEventListener('change', () => {
-      entries[i].label = select.value;
-    });
+    let credHtml = '';
+    // credibility data from window credStore
+    if(window.credStore && window.credStore[e.label]){
+      const c = window.credStore[e.label];
+      credHtml = `<span class="cred-badge">${c.percent}%</span>`;
+    }
     
-    const tagDiv = document.createElement('div');
-    tagDiv.className = 'model-tag';
-    tagDiv.appendChild(select);
-    
-    const textarea = document.createElement('textarea');
-    textarea.placeholder = `粘贴 ${e.label || '模型'} 的回答…`;
-    textarea.value = e.content;
-    textarea.dataset.index = i;
-    textarea.addEventListener('input', () => {
-      entries[i].content = textarea.value;
-    });
-    
-    const rmBtn = document.createElement('button');
-    rmBtn.className = 'remove-btn';
-    rmBtn.innerHTML = '×';
-    rmBtn.addEventListener('click', () => {
-      entries.splice(i, 1);
-      renderEntries();
-      updateUI();
-    });
-    
-    row.appendChild(tagDiv);
-    row.appendChild(textarea);
-    row.appendChild(rmBtn);
-    area.appendChild(row);
+    card.innerHTML = `
+      <div class="mc-header">
+        <span class="mc-label ${colorClass}">${e.label}</span>
+        <div class="mc-actions">
+          ${credHtml}
+          <button onclick="removeEntry(${i})" title="移除">✕</button>
+        </div>
+      </div>
+      <select onchange="updateLabel(${i}, this.value)">
+        ${MODEL_LIST.map(m => `<option value="${m}" ${m===e.label?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <textarea placeholder="粘贴 ${e.label} 的回答…" oninput="updateContent(${i}, this.value)">${e.content}</textarea>
+    `;
+    container.appendChild(card);
   });
   updateUI();
 }
 
-// ─── 更新界面状态 ───
-function updateUI() {
-  const count = entries.length;
-  document.getElementById('entryHint').textContent = 
-    count < 2 ? `已添加 ${count} 个，至少需要 2 个` : `已添加 ${count} 个模型回答`;
-  document.getElementById('analyzeBtn').disabled = count < 2;
-}
-
-// ─── 添加条目 ───
-function addEntry(label) {
-  entries.push({ label: label || 'GPT-4o', content: '' });
+function addEntry(label){
+  entries.push({label: label || 'GPT-4o', content: ''});
   renderEntries();
-  // scroll to new entry
-  const rows = document.querySelectorAll('.paste-row');
-  if (rows.length) rows[rows.length-1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const cards = document.querySelectorAll('.model-card');
+  if(cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth',block:'center'});
+}
+function removeEntry(i){entries.splice(i,1);renderEntries();}
+function updateLabel(i,v){entries[i].label=v;renderEntries();}
+function updateContent(i,v){
+  entries[i].content=v;
+  const cards = document.querySelectorAll('.model-card');
+  if(cards[i]) cards[i].className='model-card'+(v.trim()?' filled':'');
+  updateUI();
 }
 
-// ─── 显示错误 ───
-function showError(msg) {
-  const ec = document.getElementById('errorCard');
-  ec.textContent = '⚠️ ' + msg;
-  ec.classList.add('open');
+function updateUI(){
+  const valid = entries.filter(e=>e.content.trim()).length;
+  document.getElementById('analyzeBtn').disabled = valid < 2;
+  document.getElementById('exportBtn').disabled = !lastAnalysis;
 }
 
-// ─── 分析 ───
-async function runAnalysis() {
-  // 收集有效数据
-  const validEntries = [];
-  for (const e of entries) {
-    const label = e.label.trim() || '未命名';
-    const content = e.content.trim();
-    if (content) validEntries.push({ label, content });
-  }
-  if (validEntries.length < 2) {
-    showError('请至少填写 2 个模型的完整回答');
-    return;
-  }
+// ─── 加载动画 ───
+function showLoading(msg){
+  document.getElementById('loadingMsg').textContent = msg || '正在分析…';
+  document.getElementById('loadingOverlay').classList.add('open');
+}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('open');}
+
+function showError(msg){
+  const bar = document.createElement('div');
+  bar.className = 'error-bar open';
+  bar.textContent = '⚠ ' + msg;
+  document.getElementById('reportContent').prepend(bar);
+  setTimeout(()=>bar.remove(), 5000);
+}
+
+// ─── 生成决策报告 ───
+async function runAnalysis(){
+  const valid = entries.filter(e=>e.content.trim());
+  const topic = document.getElementById('topicInput').value.trim();
+  if(valid.length < 2){showError('请至少填写2个模型回答');return;}
   
-  document.getElementById('errorCard').classList.remove('open');
-  document.getElementById('loadingSection').classList.add('open');
-  document.getElementById('resultsSection').classList.remove('open');
-  document.getElementById('continueBtn').style.display = 'none';
+  showLoading('正在分析多模型认知结构…');
+  document.getElementById('challengeBtn').style.display = 'none';
   
-  const msgEl = document.getElementById('loadingMsg');
-  const msgs = ['正在分析多模型认知结构…', '提取共识观点…', '检测分歧点…', '溯源冲突…', '生成收敛建议…'];
-  let msgIdx = 0;
-  const msgTimer = setInterval(() => {
-    msgIdx = (msgIdx + 1) % msgs.length;
-    msgEl.textContent = msgs[msgIdx];
-  }, 1800);
-  
-  try {
+  try{
     const resp = await fetch('/api/compare', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ 
-        entries: validEntries,
-        history: historyResult
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({entries: valid.map(e=>({label:e.label,content:e.content})), topic: topic})
+    });
+    const data = await resp.json();
+    hideLoading();
+    
+    if(data.error){showError(data.error);return;}
+    const analysis = data.analysis;
+    if(!analysis || analysis.error){showError(analysis?.error||'分析失败');return;}
+    
+    lastAnalysis = analysis;
+    renderReport(analysis, valid);
+    document.getElementById('exportBtn').disabled = false;
+    
+    // 如果有共识，显示挑战按钮
+    if(analysis.consensus && analysis.consensus.length >= 2){
+      document.getElementById('challengeBtn').style.display = 'block';
+    }
+    
+  }catch(err){hideLoading();showError(err.message||'请求失败');}
+}
+
+// ─── 渲染报告 ───
+function renderReport(analysis, validEntries){
+  const rc = document.getElementById('reportContent');
+  
+  const consensus = analysis.consensus || [];
+  const dissent = analysis.dissent || [];
+  const sources = analysis.conflict_sources || [];
+  const recommendation = analysis.recommendation || '';
+  const uncertainty = analysis.uncertainty || '';
+  const xvalid = document.getElementById('crossValidBox');
+  
+  let html = '';
+  
+  // 交叉验证
+  if(analysis._xvalid){
+    html += `<div class="report-card"><div class="rc-title" style="color:#6366f1;">✓ 双模型交叉验证 <span class="rc-badge rc-badge-green">已验证</span></div>
+    <div style="font-size:11px;color:#6b7280;">主模型与验证模型分析结论一致</div></div>`;
+  }
+  
+  // 共识
+  html += `<div class="report-card"><div class="rc-title">✅ 一致观点 <span class="rc-badge rc-badge-green">${consensus.length}</span></div>`;
+  if(consensus.length===0){
+    html += '<div style="font-size:11px;color:#4a5268;padding:4px 0;">未识别到明显一致观点</div>';
+  }else{
+    consensus.forEach(c=>{
+      const fillClass = c.confidence==='high'?'fill-high':c.confidence==='medium'?'fill-medium':'fill-low';
+      html += `<div class="consensus-item"><div class="dot"></div><div style="flex:1;">
+        <div class="text">${c.point||''}</div>
+        <div class="conf-bar"><div class="fill ${fillClass}"></div></div></div></div>`;
+    });
+  }
+  html += '</div>';
+  
+  // 分歧
+  html += `<div class="report-card"><div class="rc-title">⚡ 分歧观点 <span class="rc-badge rc-badge-yellow">${dissent.length}</span></div>`;
+  if(dissent.length===0){
+    html += '<div style="font-size:11px;color:#4a5268;padding:4px 0;">所有模型观点高度一致</div>';
+  }else{
+    dissent.forEach(d=>{
+      const severity = d.severity||'medium';
+      const sevLabel = severity==='high'?'严重':severity==='medium'?'中等':'轻微';
+      html += `<div class="dissent-item"><div class="d-topic">${d.topic||''} <span style="font-weight:400;font-size:10px;color:#6b7280;">[${sevLabel}]</span></div>`;
+      (d.positions||[]).forEach((p,pi)=>{
+        const sc = STANCE_COLORS[String.fromCharCode(97+(pi%6))]||'#3b82f6';
+        html += `<div class="d-pos">
+          <span class="d-model" style="color:${sc}">${p.model||'模型'}</span>
+          <span class="d-stance">${p.stance||''}</span>
+          <span class="d-summary">${p.summary||''}</span>
+        </div>`;
+      });
+      html += '</div>';
+    });
+  }
+  html += '</div>';
+  
+  // 冲突来源
+  if(sources && sources.length > 0){
+    html += `<div class="report-card"><div class="rc-title">🔍 冲突来源分析</div>`;
+    sources.forEach(s=>{
+      html += `<div style="padding:6px 0;font-size:12px;color:#d1d5db;border-bottom:1px solid rgba(31,41,55,0.3);">
+        <div style="font-weight:500;">${s.source||''}</div>
+        <div style="color:#6b7280;margin-top:2px;">${s.detail||''}</div></div>`;
+    });
+    html += '</div>';
+  }
+  
+  // 不确定性
+  if(uncertainty){
+    html += `<div class="report-card"><div class="rc-title" style="color:#fbbf24;">⚠️ 仍有不确定性</div>
+    <div style="font-size:12px;color:#6b7280;line-height:1.6;">${uncertainty}</div></div>`;
+  }
+  
+  // 反共识区（占位）
+  html += `<div class="anti-card" id="antiCard"></div>`;
+  
+  // 收敛建议
+  html += `<div class="rec-card"><div class="rc-title">🎯 收敛建议</div>
+    <div class="rc-body">${recommendation||'暂无建议'}</div>
+    <div class="rc-meta">
+      <span>基于 ${validEntries.length} 个模型</span>
+      <span>${validEntries.map(e=>e.label).join(' · ')}</span>
+    </div></div>`;
+  
+  rc.innerHTML = html;
+  rc.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ─── 挑战共识 ───
+async function challengeConsensus(){
+  if(!lastAnalysis || !lastAnalysis.consensus || lastAnalysis.consensus.length < 2) return;
+  const topic = document.getElementById('topicInput').value.trim();
+  
+  showLoading('正在生成反共识分析…');
+  try{
+    const resp = await fetch('/api/challenge', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        consensus_points: lastAnalysis.consensus,
+        topic: topic
       })
     });
     const data = await resp.json();
-    clearInterval(msgTimer);
-    document.getElementById('loadingSection').classList.remove('open');
+    hideLoading();
     
-    if (data.error) { showError(data.error); return; }
+    if(data.error){showError(data.error);return;}
+    challengeResult = data;
     
-    const analysis = data.analysis;
-    if (!analysis || analysis.error) {
-      showError(analysis?.error || '分析失败');
-      return;
-    }
-    
-    // 显示结果
-    document.getElementById('resultsSection').classList.add('open');
-    document.getElementById('continueBtn').style.display = 'inline-block';
-    historyResult = analysis;
-    
-    // 共识
-    renderConsensus(analysis.consensus || []);
-    
-    // 分歧
-    renderDissent(analysis.dissent || []);
-    
-    // 冲突来源
-    renderSources(analysis.conflict_sources || []);
-    
-    // 不确定性
-    if (analysis.uncertainty) {
-      document.getElementById('uncertaintyBlock').style.display = 'block';
-      document.getElementById('uncertaintyBody').textContent = analysis.uncertainty;
-    }
-    
-    // 收敛建议
-    document.getElementById('recBody').textContent = analysis.recommendation || '暂无建议';
-    document.getElementById('recEntryCount').textContent = `基于 ${data.entry_count || validEntries.length} 个模型`;
-    document.getElementById('recModels').textContent = '来源: ' + (data.entries || []).join(' · ');
-    
-    // 交叉验证
-    if (data.cross_validation) {
-      document.getElementById('crossValidBox').style.display = 'block';
-      const cv = data.cross_validation;
-      const cvConsensus = (cv.consensus || []).length;
-      const cvDissent = (cv.dissent || []).length;
-      document.getElementById('crossValidBody').textContent = 
-        `验证模型（DeepSeek-V3）独立分析结果：共识别 ${cvConsensus} 条共识、${cvDissent} 项分歧。` +
-        (cvConsensus >= (analysis.consensus || []).length * 0.5 ? '与主模型结论基本一致，结果可信。' : '与主模型存在部分差异，建议对照查看。');
-    }
-    
-    // 滚动到结果
-    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    
-  } catch (err) {
-    clearInterval(msgTimer);
-    document.getElementById('loadingSection').classList.remove('open');
-    showError(err.message || '分析请求失败');
-  }
-}
-
-// ─── 渲染共识 ───
-function renderConsensus(items) {
-  const list = document.getElementById('consensusList');
-  list.innerHTML = '';
-  document.getElementById('consensusCount').textContent = items.length;
-  if (items.length === 0) {
-    list.innerHTML = '<div style="font-size:12px;color:#4a5268;padding:8px 0;">暂未识别到明显一致观点</div>';
-    return;
-  }
-  items.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'consensus-item';
-    div.innerHTML = `
-      <div class="dot"></div>
-      <div>
-        <div class="text">${item.point || ''}</div>
-        <div class="conf">置信度：${item.confidence === 'high' ? '高' : item.confidence === 'medium' ? '中' : '低'}</div>
-      </div>`;
-    list.appendChild(div);
-  });
-}
-
-// ─── 渲染分歧 ───
-function renderDissent(items) {
-  const list = document.getElementById('dissentList');
-  list.innerHTML = '';
-  document.getElementById('dissentCount').textContent = items.length;
-  if (items.length === 0) {
-    list.innerHTML = '<div style="font-size:12px;color:#4a5268;padding:8px 0;">所有模型观点高度一致，无明显分歧</div>';
-    return;
-  }
-  items.forEach((item, idx) => {
-    const div = document.createElement('div');
-    div.className = 'dissent-item';
-    let positionsHtml = '';
-    (item.positions || []).forEach((p, pi) => {
-      positionsHtml += `<div class="position">
-        <span class="plabel ${getLabelColor(pi)}">${p.model || '模型'}</span>
-        <span class="pstance">${p.stance || ''}</span>
-        <span class="psummary">${p.summary || ''}</span>
-      </div>`;
-    });
-    div.innerHTML = `
-      <div class="d-header">
-        <span class="topic">${item.topic || '分歧#' + (idx+1)}</span>
-        <span class="badge ${getBadgeColor(item.severity)}">${item.severity === 'high' ? '严重' : item.severity === 'medium' ? '中等' : '轻微'}</span>
+    const card = document.getElementById('antiCard');
+    if(!card) return;
+    card.className = 'anti-card open';
+    card.innerHTML = `
+      <div class="ac-title">⚡ 反共识挑战</div>
+      <div class="ac-challenge">${data.challenge||'挑战未被识别'}</div>
+      <ul class="ac-blindspot">
+        ${(data.blindspots||[]).map(b=>`<li>${b}</li>`).join('')}
+      </ul>
+      <div style="font-size:12px;color:#d1d5db;margin:6px 0;padding:6px;background:rgba(239,68,68,0.04);border-radius:6px;">
+        <div style="font-weight:500;color:#fca5a5;">替代假设：</div>
+        <div style="color:#6b7280;margin-top:2px;">${data.alternative||''}</div>
       </div>
-      <div class="d-body">${positionsHtml}</div>`;
-    list.appendChild(div);
-  });
+      <div class="ac-warning">⚠ ${data.warning||''}</div>
+    `;
+    card.scrollIntoView({behavior:'smooth',block:'center'});
+    
+  }catch(err){hideLoading();showError(err.message);}
 }
 
-// ─── 渲染冲突来源 ───
-function renderSources(items) {
-  const list = document.getElementById('sourceList');
-  list.innerHTML = '';
-  if (!items || items.length === 0) {
-    list.innerHTML = '<div style="font-size:12px;color:#4a5268;padding:8px 0;">未识别到深层冲突来源</div>';
-    return;
-  }
-  items.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'source-item';
-    div.innerHTML = `<div class="s-title">${item.source || ''}</div>
-      <div class="s-detail">${item.detail || ''}</div>`;
-    list.appendChild(div);
-  });
+// ─── 导出 ───
+async function exportReport(){
+  if(!lastAnalysis) return;
+  const valid = entries.filter(e=>e.content.trim());
+  const topic = document.getElementById('topicInput').value.trim();
+  
+  try{
+    const resp = await fetch('/api/export', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        analysis: lastAnalysis,
+        topic: topic,
+        entries: valid.map(e=>({label:e.label}))
+      })
+    });
+    const data = await resp.json();
+    if(data.markdown){
+      const blob = new Blob([data.markdown], {type:'text/markdown'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `decision-report-${Date.now()}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }else{showError('导出失败');}
+  }catch(err){showError(err.message);}
 }
 
-// ─── 新一轮 ───
-function continueRound() {
-  // 清空文本内容，保留标签
-  entries.forEach(e => e.content = '');
+// ─── 重置 ───
+function resetAll(){
+  entries = [];
+  lastAnalysis = null;
+  challengeResult = null;
+  document.getElementById('topicInput').value = '';
+  document.getElementById('reportContent').innerHTML = `
+    <div class="empty-prompt">
+      粘贴 2 个以上模型的回答<br>
+      点击「生成决策报告」
+    </div>`;
   renderEntries();
-  document.getElementById('resultsSection').classList.remove('open');
-  document.getElementById('continueBtn').style.display = 'none';
-  document.getElementById('analyzeBtn').disabled = true;
-  // 聚焦第一个文本框
-  const firstTextarea = document.querySelector('.paste-row textarea');
-  if (firstTextarea) firstTextarea.focus();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('challengeBtn').style.display = 'none';
+  document.getElementById('exportBtn').disabled = true;
 }
 
 // ─── 初始化 ───
-function init() {
-  // 默认 3 行
+function init(){
   addEntry('GPT-4o');
   addEntry('Claude');
   addEntry('DeepSeek');
   
-  document.getElementById('addEntryBtn').addEventListener('click', () => addEntry('GPT-4o'));
-  document.getElementById('analyzeBtn').addEventListener('click', runAnalysis);
-  document.getElementById('continueBtn').addEventListener('click', continueRound);
+  document.getElementById('addRowBtn').addEventListener('click',()=>addEntry('GPT-4o'));
+  document.getElementById('analyzeBtn').addEventListener('click',runAnalysis);
+  document.getElementById('exportBtn').addEventListener('click',exportReport);
+  document.getElementById('challengeBtn').addEventListener('click',challengeConsensus);
+  document.getElementById('resetBtn').addEventListener('click',resetAll);
+  
+  // 加载可靠性数据
+  fetch('/api/credibility').then(r=>r.json()).then(d=>{window.credStore=d;}).catch(()=>{});
 }
 
 init();
@@ -2231,6 +2389,7 @@ init();
 </body>
 </html>
 """
+
 
 # ============================================================
 
