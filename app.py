@@ -1082,78 +1082,55 @@ async def call_ceo(debate_results: list, prompt: str) -> dict:
 @app.post("/api/run")
 
 async def api_run(request: Request):
+    try:
+        body = await request.json()
+        topic = body.get("topic", "")
 
-    body = await request.json()
+        # 并行调用所有非CEO角色
+        tasks = []
+        for role_name in DEBATE_ROLES:
+            member = BOARD_MEMBERS[role_name]
+            tasks.append(call_siliconflow(member["model"], topic, role_name, member["prompt"]))
 
-    topic = body.get("topic", "")
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # 并行调用所有非CEO角色
+        # 过滤异常结果
+        for i, r in enumerate(results):
+            if isinstance(r, Exception):
+                results[i] = {"role": list(BOARD_MEMBERS.keys())[i], "model": "", "stance": "—", "reason": f"请求失败: {str(r)[:80]}"}
 
-    tasks = []
+        # 调用CEO裁决官（基于前6位结果）
+        ceo_result = await call_ceo(results, topic)
 
-    for role_name in DEBATE_ROLES:
+        # 全部 agents = 6位董事 + CEO
+        all_agents = results + [ceo_result]
 
-        member = BOARD_MEMBERS[role_name]
+        # V1.2 冲突决策引擎
+        # Step 1: 语义级冲突聚类
+        conflicts = _cluster_conflicts(results)
+        # Step 2: 决策评分系统
+        decision_score = _calculate_decision_score(results, conflicts)
+        # Step 3: 结构化CEO裁决
+        ceo_verdict = _ceo_structured_verdict(results, conflicts, decision_score)
+        # Step 4: 整合返回
+        support_count = sum(1 for r in results if r["stance"] == "支持")
+        oppose_count = sum(1 for r in results if r["stance"] == "反对")
 
-        tasks.append(call_siliconflow(member["model"], topic, role_name, member["prompt"]))
+        decision = {
+            "decision": ceo_verdict["decision"],
+            "confidence": ceo_verdict["confidence"],
+            "rationale": f"AI董事会7位董事辩论：{support_count}位支持（加权{decision_score['support_weight']}），{oppose_count}位反对（加权{decision_score['oppose_weight']}）。\n{ceo_verdict['reasoning']}",
+            "steps": ceo_verdict["steps"],
+            "risk": ceo_verdict["risk"]
+        }
 
-    results = await asyncio.gather(*tasks)
-
-    # 调用CEO裁决官（基于前6位结果）
-
-    ceo_result = await call_ceo(results, topic)
-
-    # 全部 agents = 6位董事 + CEO
-
-    all_agents = results + [ceo_result]
-
-    # ════════════════════════════════════════════════
-
-    # V1.2 冲突决策引擎
-
-    # ════════════════════════════════════════════════
-
-    # Step 1: 语义级冲突聚类
-
-    conflicts = _cluster_conflicts(results)
-
-    # Step 2: 决策评分系统
-
-    decision_score = _calculate_decision_score(results, conflicts)
-
-    # Step 3: 结构化CEO裁决
-
-    ceo_verdict = _ceo_structured_verdict(results, conflicts, decision_score)
-
-    # Step 4: 整合返回
-
-    support_count = sum(1 for r in results if r["stance"] == "支持")
-
-    oppose_count = sum(1 for r in results if r["stance"] == "反对")
-
-    decision = {
-
-        "decision": ceo_verdict["decision"],
-
-        "confidence": ceo_verdict["confidence"],
-
-        "rationale": f"AI董事会7位董事辩论：{support_count}位支持（加权{decision_score['support_weight']}），{oppose_count}位反对（加权{decision_score['oppose_weight']}）。\n{ceo_verdict['reasoning']}",
-
-        "steps": ceo_verdict["steps"],
-
-        "risk": ceo_verdict["risk"]
-
-    }
-
-    return {
-
-        "agents": all_agents,
-
-        "conflicts": conflicts,
-
-        "decision": decision
-
-    }
+        return {
+            "agents": all_agents,
+            "conflicts": conflicts,
+            "decision": decision
+        }
+    except Exception as e:
+        return {"error": str(e), "agents": [], "conflicts": [], "decision": {"decision": "无法裁决", "confidence": 0, "rationale": f"系统错误: {str(e)[:100]}", "steps": [], "risk": "高"}}
 
 # ============================================================
 
