@@ -2671,6 +2671,33 @@ async def api_evaluate(request: Request):
         return {"error": f"评估失败: {str(e)[:200]}"}
 
 
+@app.post("/v4/credibility/analyze")
+async def v4_credibility_analyze(request: Request):
+    """V4.1 可信度分析流水线：加权评分 + 冲突图 + 决策收敛"""
+    try:
+        try:
+            body = await request.json()
+        except UnicodeDecodeError:
+            raw = await request.body()
+            for enc in ['gbk', 'gb2312', 'utf-8']:
+                try:
+                    body = json.loads(raw.decode(enc))
+                    break
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    continue
+            else:
+                body = {}
+        question = body.get("question", "")
+        answers = body.get("answers", {})
+        task_type = body.get("task_type", None)
+        if not question or not answers or len(answers) < 2:
+            return {"error": "请提供问题及至少2个模型回答"}
+        result = _decision_engine.analyze_v4(question=question, answers=answers, task_type=task_type)
+        return result
+    except Exception as e:
+        return {"error": f"分析失败: {str(e)[:200]}"}
+
+
 @app.get("/debug/ping")
 async def debug_ping():
     import sys, aiohttp, json
