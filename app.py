@@ -141,111 +141,147 @@ DEBATE_ROLES = [k for k in BOARD_MEMBERS if k != "CEO裁决官"]
 # ============================================================
 
 LANDING_HTML = """<!DOCTYPE html>
-
-<html><head><meta charset="utf-8"><title>MindTrust OS · AI 智囊局</title>
-
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindTrust OS · AI 智囊局</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-
 *{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+  background:radial-gradient(ellipse at 30% 20%,#1b1f3a,#0b0f1a);
+  color:#e6e9f2;min-height:100vh;
+}
+.container{max-width:960px;margin:0 auto;padding:60px 24px 40px;text-align:center;}
+.hero-title{
+  font-size:56px;font-weight:600;letter-spacing:-1px;margin-bottom:12px;
+  background:linear-gradient(90deg,#7C5CFF,#22d3ee);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{font-size:16px;color:rgba(255,255,255,0.6);max-width:520px;margin:0 auto 28px;line-height:1.6;}
+.hero-input{
+  width:100%;max-width:680px;padding:16px 22px;border-radius:14px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
+  color:#fff;font-size:16px;font-family:inherit;outline:none;transition:all .2s;
+}
+.hero-input:focus{border-color:#7C5CFF;box-shadow:0 0 0 3px rgba(124,92,255,0.12);}
+.hero-input::placeholder{color:rgba(255,255,255,0.3);}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;}
+.btn{
+  padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block;
+}
+.btn-primary{background:linear-gradient(90deg,#7C5CFF,#6366f1);color:#fff;border:none;}
+.btn-primary:hover{transform:translateY(-1px);}
+.btn-secondary{background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);}
+.btn-secondary:hover{background:rgba(255,255,255,0.08);}
+.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:48px;text-align:left;}
+@media(max-width:640px){.layers{grid-template-columns:1fr;}}
+.layer-card{
+  padding:20px;border-radius:16px;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+  backdrop-filter:blur(8px);transition:all .2s;cursor:default;
+}
+.layer-card:hover{transform:translateY(-2px);border-color:rgba(124,92,255,0.3);}
+.layer-card.highlight{border-color:rgba(34,211,238,0.3);background:rgba(34,211,238,0.04);}
+.layer-card h3{font-size:14px;font-weight:600;margin-bottom:4px;}
+.layer-card p{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5;}
+.entry-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:36px;}
+@media(max-width:640px){.entry-grid{grid-template-columns:1fr;}}
+.entry-card{
+  padding:16px;border-radius:14px;text-align:center;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);
+  cursor:pointer;transition:all .2s;text-decoration:none;display:block;color:#e6e9f2;
+}
+.entry-card:hover{transform:translateY(-2px);border-color:rgba(124,92,255,0.3);}
+.entry-card .em{font-size:16px;font-weight:600;}
+.entry-card .em-sub{font-size:12px;color:rgba(255,255,255,0.4);display:block;margin-top:2px;}
+.model-links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:32px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06);}
+.model-links a{font-size:12px;color:rgba(255,255,255,0.35);text-decoration:none;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);transition:all .1s;}
+.model-links a:hover{color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.15);}
+.footer{text-align:center;margin-top:48px;font-size:11px;color:rgba(255,255,255,0.2);}
 
-body{background:#0B0F1A;color:#E6E8FF;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
-
-.container{text-align:center;max-width:640px;padding:40px;}
-
-h1{font-size:48px;font-weight:700;margin-bottom:6px;}
-
-h1 span{background:linear-gradient(135deg,#7C5CFF,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-
-.tagline{font-size:14px;color:#4a5268;margin-bottom:24px;letter-spacing:2px;text-transform:uppercase;}
-
-p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:16px;}
-
-.glow-input{width:100%;background:#111827;border:1px solid #1f2937;border-radius:16px;padding:20px 24px;color:#fff;font-size:18px;font-family:inherit;outline:none;margin-bottom:20px;transition:all .2s;}
-
-.glow-input:focus{border-color:#7C5CFF;box-shadow:0 0 0 4px rgba(124,92,255,0.1);}
-
-.glow-input::placeholder{color:#4a5268;}
-
-.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-
-.btn{display:inline-block;padding:16px 40px;background:#7C5CFF;color:#fff;font-size:16px;font-weight:600;border:none;border-radius:12px;cursor:pointer;text-decoration:none;transition:background .2s;}
-
-.btn:hover{background:#6B4DE0;}
-
-.btn-green{background:#22c55e;color:#000;}
-
-.btn-green:hover{background:#16a34a;}
-
-.btn-outline{background:transparent;border:1px solid #1f2937;color:#9ca3af;}
-
-.btn-outline:hover{background:#1f2937;color:#e5e7eb;}
-
-.links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:28px;padding-top:20px;border-top:1px solid #1f2937;}
-
-.links a{font-size:12px;color:#4a5268;text-decoration:none;padding:4px 10px;border-radius:6px;border:1px solid #1f2937;transition:all .1s;}
-
-.links a:hover{color:#9ca3af;border-color:#374151;}
-
-.pricing-note{font-size:12px;color:#4a5268;margin-top:20px;}
-
+/* 简版题词 */
+.promo-badge{
+  display:inline-block;font-size:11px;padding:4px 12px;border-radius:20px;
+  background:rgba(124,92,255,0.1);border:1px solid rgba(124,92,255,0.15);
+  color:#a78bfa;margin-bottom:16px;
+}
 </style>
-
-</head><body>
-
+</head>
+<body>
 <div class="container">
 
-<div style="margin-bottom:8px;"><span style="font-size:14px;color:#7C5CFF;font-weight:600;">🧠 MindTrust OS</span><span style="font-size:12px;color:#4a5268;margin-left:8px;">v5 · AI 智囊局</span></div>
+  <div class="promo-badge">🧠 MindTrust OS · v5 — AI 智囊局</div>
 
-<h1>不要一个人<br>做艰难的<span>决定</span></h1>
+  <div class="hero-title">不要一个人<br>做艰难的决定</div>
+  <div class="hero-sub">聚合全球最强大脑，为你提供确定性方案。</div>
 
-<div class="tagline">汇聚全球顶尖大模型 · 为你提供确定性决策</div>
+  <textarea class="hero-input" id="landingQuestion" rows="1" placeholder="你正在纠结什么决策？例如：五官灸加盟能不能做？"></textarea>
 
-<p style="font-size:15px;color:#6b7280;">输入你的困境，让最聪明的 AI 大脑为你开会。</p>
+  <div class="hero-btns">
+    <a class="btn btn-primary" href="/room" id="landingGoBtn">▶ 开始智囊会议</a>
+    <a class="btn btn-secondary" href="/compare">📄 手动粘贴 · 多模型对比</a>
+  </div>
 
-<textarea class="glow-input" id="landingQuestion" rows="2" placeholder="你正在纠结什么决策？&#10;例如：是否该离职做自媒体？五官灸加盟能不能做？"></textarea>
+  <div class="layers">
+    <div class="layer-card">
+      <h3>🌐 Layer 1 · 智能辩论</h3>
+      <p>7 位 AI 角色实时辩论，展示多模型观点的冲突与共识。</p>
+    </div>
+    <div class="layer-card">
+      <h3>💬 Layer 2 · 手动编译器</h3>
+      <p>粘贴各模型官网的回答，自动提取共识&分歧，生成决策报告。</p>
+    </div>
+    <div class="layer-card highlight">
+      <h3>🚀 Layer 3 · 深度裁决</h3>
+      <p>调用最强付费模型，输出含置信区间与执行路径的战略报告。</p>
+    </div>
+  </div>
 
-<div class="actions">
+  <div class="entry-grid">
+    <a class="entry-card" href="/room">
+      <div class="em">🧠 AI 董事会</div>
+      <span class="em-sub">免费多模型辩论层</span>
+    </a>
+    <a class="entry-card" href="/compare">
+      <div class="em">📄 编译器</div>
+      <span class="em-sub">手动多模型汇总</span>
+    </a>
+    <a class="entry-card" href="/room" style="border-color:rgba(34,211,238,0.2);">
+      <div class="em">⚡ 深度报告</div>
+      <span class="em-sub">加权战略决策报告</span>
+    </a>
+  </div>
 
-<a class="btn" href="/room" id="landingGoBtn">开始智囊会议 →</a>
+  <div class="model-links">
+    <a href="https://claude.ai" target="_blank">Claude</a>
+    <a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>
+    <a href="https://kimi.moonshot.cn" target="_blank">Kimi</a>
+    <a href="https://chatgpt.com" target="_blank">ChatGPT</a>
+    <a href="https://gemini.google.com" target="_blank">Gemini</a>
+    <a href="https://tongyi.aliyun.com" target="_blank">通义千问</a>
+    <a href="https://chatglm.cn" target="_blank">智谱GLM</a>
+    <a href="https://www.doubao.com" target="_blank">豆包</a>
+  </div>
 
-<a class="btn btn-outline" href="/compare">手动粘贴 · 多模型对比</a>
-
-</div>
-
-<div class="links">
-
-<a href="https://claude.ai" target="_blank">Claude</a>
-
-<a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>
-
-<a href="https://kimi.moonshot.cn" target="_blank">Kimi</a>
-
-<a href="https://chatgpt.com" target="_blank">ChatGPT</a>
-
-<a href="https://gemini.google.com" target="_blank">Gemini</a>
-
-<a href="https://tongyi.aliyun.com" target="_blank">通义千问</a>
-
-<a href="https://chatglm.cn" target="_blank">智谱GLM</a>
-
-<a href="https://www.doubao.com" target="_blank">豆包</a>
-
-</div>
-
-<div class="pricing-note">免费版 · 每日3次智囊会议 · <span style="color:#22c55e;">高级版 9.9元解锁深度决策报告</span></div>
+  <div class="footer">
+    MindTrust OS — AI Decision Infrastructure · 免费版每日 3 次 · 高级版 9.9 元起
+  </div>
 
 </div>
 
 <script>
-
-document.getElementById('landingQuestion').addEventListener('keydown', function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();var v=this.value.trim();if(v){sessionStorage.setItem('mindtrust_question',v);window.location.href='/room';}}});
-
+document.getElementById('landingQuestion').addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();var v=this.value.trim();if(v){sessionStorage.setItem('mindtrust_question',v);window.location.href='/room';}}
+});
 document.getElementById('landingGoBtn').addEventListener('click',function(e){var v=document.getElementById('landingQuestion').value.trim();if(v){e.preventDefault();sessionStorage.setItem('mindtrust_question',v);window.location.href='/room';}});
-
 </script>
 
-</body></html>
-
+</body>
+</html>
 """
 
 # ============================================================
