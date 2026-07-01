@@ -297,6 +297,108 @@ body {
  line-height: 1.4;
 }
 
+/* ───── 辩论可视化 ───── */
+.debate-container {
+ display: flex;
+ flex-direction: column;
+ gap: 12px;
+ margin-bottom: 28px;
+ max-height: 600px;
+ overflow-y: auto;
+ padding-right: 6px;
+}
+.debate-container::-webkit-scrollbar { width: 4px; }
+.debate-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 4px; }
+.debate-container::-webkit-scrollbar-thumb { background: #2A2F45; border-radius: 4px; }
+
+.debate-card {
+ background: rgba(255,255,255,0.03);
+ border: 1px solid rgba(255,255,255,0.06);
+ border-radius: 12px;
+ padding: 14px 18px;
+ transition: all 0.3s ease;
+ opacity: 0.3;
+}
+.debate-card.active {
+ opacity: 1;
+ border-color: rgba(124,92,255,0.3);
+ background: rgba(124,92,255,0.06);
+ box-shadow: 0 0 30px rgba(124,92,255,0.05);
+}
+.debate-card.done {
+ opacity: 1;
+ border-color: rgba(255,255,255,0.06);
+}
+
+.debate-header {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ margin-bottom: 6px;
+}
+.debate-header .icon { font-size: 20px; }
+.debate-header .name { font-size: 14px; font-weight: 600; }
+.debate-header .model { font-size: 11px; color: #4A4F6A; margin-left: 4px; }
+.debate-header .status {
+ font-size: 11px;
+ padding: 2px 10px;
+ border-radius: 12px;
+ margin-left: auto;
+ font-weight: 500;
+ white-space: nowrap;
+}
+.debate-header .status.speaking {
+ background: rgba(124,92,255,0.15);
+ color: #7C5CFF;
+ animation: pulse 1.2s ease-in-out infinite;
+}
+.debate-header .status.done {
+ background: rgba(74,222,128,0.12);
+ color: #4ADE80;
+}
+.debate-header .status.waiting {
+ background: rgba(255,255,255,0.04);
+ color: #4A4F6A;
+}
+
+@keyframes pulse {
+ 0%, 100% { opacity: 1; }
+ 50% { opacity: 0.4; }
+}
+
+.debate-content {
+ font-size: 14px;
+ color: #B0B5CC;
+ line-height: 1.6;
+ min-height: 24px;
+}
+
+.debate-content .cursor {
+ display: inline-block;
+ width: 2px;
+ height: 16px;
+ background: #7C5CFF;
+ animation: blink 0.8s step-end infinite;
+ vertical-align: text-bottom;
+ margin-left: 2px;
+}
+@keyframes blink {
+ 0%, 100% { opacity: 1; }
+ 50% { opacity: 0; }
+}
+
+.debate-stance {
+ display: inline-block;
+ font-size: 12px;
+ font-weight: 600;
+ padding: 2px 10px;
+ border-radius: 12px;
+ margin-top: 8px;
+}
+.debate-stance.support { background: rgba(74,222,128,0.12); color: #4ADE80; }
+.debate-stance.oppose { background: rgba(255,77,79,0.12); color: #FF6B6B; }
+.debate-stance.neutral { background: rgba(251,191,36,0.12); color: #FBBF24; }
+
 /* ───── 冲突区 ───── */
 .conflict-block {
  background: rgba(255,77,79,0.04);
@@ -470,6 +572,12 @@ body {
  </div>
  </div>
 
+ <!-- 💬 AI 董事会辩论 -->
+ <div class="section-title">💬 AI 董事会辩论</div>
+ <div class="debate-container" id="debateContainer">
+ <div style="color:#4A4F6A;font-size:14px;padding:20px 0;text-align:center;">输入决策问题后点击「生成分析」，AI 将依次发言辩论</div>
+ </div>
+
  <!-- AI 意见 -->
  <div class="section-title">AI 意见</div>
  <div class="ai-stream" id="agentGrid">
@@ -517,12 +625,20 @@ var bgInput = document.getElementById('bgInput');
 var runBtn = document.getElementById('runBtn');
 var compareInput = document.getElementById('compareInput');
 var compareBtn = document.getElementById('compareBtn');
+var debateContainer = document.getElementById('debateContainer');
 var agentGrid = document.getElementById('agentGrid');
 var conflictContainer = document.getElementById('conflictContainer');
 var decisionContainer = document.getElementById('decisionContainer');
 var remainingEl = document.getElementById('remainingCount');
 var adBanner = document.getElementById('adBanner');
 var adBtn = document.getElementById('adBtn');
+
+var DEBATE_AGENTS = [
+ { icon: '🧙', name: '东方战略官', model: 'Qwen', role: '东方战略官' },
+ { icon: '⚔️', name: '批判分析官', model: 'DeepSeek', role: '批判分析官' },
+ { icon: '🛡️', name: '风险控制官', model: 'GLM', role: '风险控制官' },
+ { icon: '📈', name: '增长策略官', model: 'GPT-4o', role: '增长策略官' }
+];
 
 var AGENTS = [
  { icon: '🧙', name: '东方战略官', model: 'Qwen' },
@@ -635,6 +751,96 @@ for (var t = 0; t < modeTabs.length; t++) {
 // ============================================================
 // 渲染函数
 // ============================================================
+function renderDebate(data) {
+ if (!data || data.length === 0) { debateContainer.innerHTML = '<div style="color:#4A4F6A;font-size:14px;padding:20px 0;text-align:center;">暂无辩论数据</div>'; return; }
+ var html = '';
+ for (var i = 0; i < data.length; i++) {
+ var a = data[i];
+ var meta = DEBATE_AGENTS[i] || DEBATE_AGENTS[0];
+ var statusClass = i === 0 ? 'active' : 'waiting';
+ var statusText = i === 0 ? '发言中...' : '等待发言';
+ var stanceClass = a.stance === '支持' ? 'support' : a.stance === '反对' ? 'oppose' : 'neutral';
+ html += '<div class="debate-card ' + statusClass + '" id="debate_' + i + '">' +
+ '<div class="debate-header">' +
+ '<span class="icon">' + meta.icon + '</span>' +
+ '<span class="name">' + (a.role || meta.name) + '</span>' +
+ '<span class="model">' + (a.model || meta.model) + '</span>' +
+ '<span class="status ' + (i === 0 ? 'speaking' : 'waiting') + '">' + statusText + '</span>' +
+ '</div>' +
+ '<div class="debate-content" id="debateContent_' + i + '">' +
+ (i === 0 ? '<span class="cursor"></span>' : '') +
+ '</div>' +
+ (a.stance ? '<span class="debate-stance ' + stanceClass + '" id="debateStance_' + i + '" style="display:none;">' + a.stance + '</span>' : '') +
+ '</div>';
+ }
+ debateContainer.innerHTML = html;
+
+ // 开始流式辩论
+ startDebateStream(data);
+}
+
+function startDebateStream(agents) {
+ var currentIndex = 0;
+
+ function playNext(index) {
+ if (index >= agents.length) {
+ // 所有发言完成 — 触发冲突+决策渲染
+ afterDebateComplete(agents);
+ return;
+ }
+
+ var card = document.getElementById('debate_' + index);
+ var contentEl = document.getElementById('debateContent_' + index);
+ if (!card || !contentEl) { playNext(index + 1); return; }
+
+ // 标记发言中
+ card.className = 'debate-card active';
+ card.querySelector('.status').textContent = '发言中...';
+ card.querySelector('.status').className = 'status speaking';
+
+ // 打字效果
+ var text = agents[index].reason || '';
+ var charIndex = 0;
+ contentEl.innerHTML = '';
+
+ var typeInterval = setInterval(function() {
+ if (charIndex < text.length) {
+ contentEl.textContent += text[charIndex];
+ charIndex++;
+ debateContainer.scrollTop = debateContainer.scrollHeight;
+ } else {
+ clearInterval(typeInterval);
+ // 完成发言
+ card.className = 'debate-card done';
+ card.querySelector('.status').textContent = '已发言 ✓';
+ card.querySelector('.status').className = 'status done';
+ contentEl.innerHTML = text;
+ var stanceEl = document.getElementById('debateStance_' + index);
+ if (stanceEl) stanceEl.style.display = 'inline-block';
+
+ // 下一个（等待800ms）
+ setTimeout(function() {
+ playNext(index + 1);
+ }, 800);
+ }
+ }, 30);
+ }
+
+ // 延迟500ms后开始
+ setTimeout(function() { playNext(0); }, 500);
+}
+
+function afterDebateComplete(agents) {
+ // 渲染AI意见卡片
+ renderAgents(agents);
+ // 分析冲突
+ if (window._pendingAPIData) {
+ var data = window._pendingAPIData;
+ if (data.conflicts) renderConflicts(data.conflicts);
+ if (data.decision) renderDecision(data.decision);
+ }
+}
+
 function renderAgents(data) {
  if (!data || data.length === 0) return;
  var html = '';
@@ -705,10 +911,12 @@ function runFreeDecision() {
 
  runBtn.disabled = true;
  runBtn.textContent = '⏳ 分析中…';
- var loadingEl = document.createElement('div');
- loadingEl.id = 'loadingHint';
- loadingEl.style.cssText = 'text-align:center;padding:16px;color:#7C5CFF;font-size:14px;';
- loadingEl.textContent = '正在调用Qwen/DeepSeek/GLM/GPT-4o进行多模型辩论…';
+
+ // 清空旧数据
+debateContainer.innerHTML = '<div style="color:#4A4F6A;font-size:14px;padding:20px 0;text-align:center;">🧠 AI正在辩论中，请稍候…</div>';
+agentGrid.innerHTML = '';
+conflictContainer.innerHTML = '<div class="empty-state">等待辩论完成</div>';
+decisionContainer.innerHTML = '<div style="color:#4A4F6A;font-size:14px;">等待辩论完成…</div>';
 
  fetch('/api/run', {
  method: 'POST',
@@ -723,19 +931,18 @@ function runFreeDecision() {
  if (data.detail) {
  throw new Error(data.detail);
  }
- if (data.agents) renderAgents(data.agents);
- if (data.conflicts) renderConflicts(data.conflicts);
- if (data.decision) renderDecision(data.decision);
- var hint = document.getElementById('loadingHint');
- if (hint) hint.textContent = '正在分析冲突，生成CEO决策…';
+ // 保存API数据，辩论完成后使用
+ window._pendingAPIData = data;
+ // 开始辩论可视化
+ if (data.agents && data.agents.length > 0) {
+ renderDebate(data.agents);
+ } else {
+ throw new Error('未获取到AI回复');
+ }
  }).catch(function(err) {
- var hint = document.getElementById('loadingHint');
- if (hint) hint.remove();
  renderMockData();
  decisionContainer.innerHTML = '<div class="verdict">接口错误</div><div class="reason" style="color:#FF6B6B;margin-top:8px;">' + err.message + '</div>';
  }).finally(function() {
- var hint = document.getElementById('loadingHint');
- if (hint) hint.remove();
  runBtn.disabled = false;
  runBtn.textContent = '生成分析';
  updateUI();
@@ -793,23 +1000,27 @@ function runCompareDecision() {
 // Mock 数据
 // ============================================================
 function renderMockData() {
- renderAgents([
- { role: '东方战略官', model: 'Qwen', stance: '支持', reason: '三伏天是养生心智最强时期' },
- { role: '批判分析官', model: 'DeepSeek', stance: '反对', reason: '3万预算测试门槛不足' },
- { role: '风险控制官', model: 'GLM', stance: '中立', reason: '风险可控，需设止损线' },
- { role: '增长策略官', model: 'GPT-4o', stance: '支持', reason: '市场窗口期正在打开' }
- ]);
- renderConflicts([
+ var mockAgents = [
+ { role: '东方战略官', model: 'Qwen', stance: '支持', reason: '三伏天是养生心智最强时期，建议小步快跑抢占窗口。' },
+ { role: '批判分析官', model: 'DeepSeek', stance: '反对', reason: '3万预算在小红书测试门槛不足，建议暂缓投入。' },
+ { role: '风险控制官', model: 'GLM', stance: '中立', reason: '风险可控，但需设置明确止损线，建议小规模测试。' },
+ { role: '增长策略官', model: 'GPT-4o', stance: '支持', reason: '市场窗口期正在打开，竞品已验证路径，建议快速跟进。' }
+ ];
+ window._pendingAPIData = {
+ agents: mockAgents,
+ conflicts: [
  { title: '预算判断分歧', left: '东方战略官 3万足够测试', right: '批判分析官 3万远远不足', level: '高' },
  { title: '时间窗口判断', left: '增长策略官 7月15日前必须决策', right: '风险控制官 养生心智全年可打', level: '中' }
- ]);
- renderDecision({
+ ],
+ decision: {
  decision: '小规模测试',
  confidence: 78,
  rationale: '市场存在真实需求信号，风险可控，ROI不确定但可验证。',
  steps: ['筛选3个KOC账号询价', '投入5000元测试2条内容', '48小时后复盘决定是否追加'],
  risk: '初期转化波动较大，内容质量决定ROI上限'
- });
+ }
+ };
+ renderDebate(mockAgents);
 }
 
 // ============================================================
