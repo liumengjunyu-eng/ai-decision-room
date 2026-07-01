@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>AI 决策会议室</title>
+
+ <style>
+ * {
+ margin: 0;
+ padding: 0;
+ box-sizing: border-box;
+ }
+
+ body {
+ background: #0B0F1A;
+ color: #E8EDF5;
+ font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+ display: flex;
+ justify-content: center;
+ padding: 24px;
+ min-height: 100vh;
+ }
+
+ .room {
+ max-width: 680px;
+ width: 100%;
+ }
+
+ /* ─── 顶部 ─── */
+ .header {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding-bottom: 16px;
+ border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+ margin-bottom: 24px;
+ }
+
+ .header h1 {
+ font-size: 18px;
+ font-weight: 600;
+ }
+
+ .header h1 span {
+ color: #7C5CFF;
+ }
+
+ .header .badge {
+ font-size: 12px;
+ color: #5A657A;
+ background: rgba(255, 255, 255, 0.04);
+ padding: 4px 14px;
+ border-radius: 20px;
+ border: 1px solid rgba(255, 255, 255, 0.06);
+ }
+
+ /* ─── 输入 ─── */
+ .input-area {
+ margin-bottom: 28px;
+ }
+
+ .input-area .row {
+ display: flex;
+ gap: 10px;
+ }
+
+ .input-area input {
+ flex: 1;
+ padding: 14px 18px;
+ background: rgba(255, 255, 255, 0.04);
+ border: 1px solid rgba(255, 255, 255, 0.08);
+ border-radius: 12px;
+ color: #E8EDF5;
+ font-size: 14px;
+ outline: none;
+ transition: border 0.2s;
+ font-family: inherit;
+ }
+
+ .input-area input:focus {
+ border-color: #7C5CFF;
+ }
+
+ .input-area input::placeholder {
+ color: #4A5268;
+ }
+
+ .input-area .btn {
+ padding: 14px 28px;
+ background: #7C5CFF;
+ border: none;
+ border-radius: 12px;
+ color: #fff;
+ font-weight: 600;
+ font-size: 14px;
+ cursor: pointer;
+ transition: background 0.2s;
+ white-space: nowrap;
+ }
+
+ .input-area .btn:hover {
+ background: #6B4DE0;
+ }
+
+ .input-area .btn:disabled {
+ opacity: 0.4;
+ cursor: not-allowed;
+ }
+
+ /* ─── 会议桌 ─── */
+ .table {
+ display: flex;
+ flex-direction: column;
+ gap: 8px;
+ margin-bottom: 24px;
+ }
+
+ .speech {
+ display: flex;
+ align-items: center;
+ gap: 14px;
+ padding: 12px 16px;
+ background: rgba(255, 255, 255, 0.03);
+ border-radius: 12px;
+ border: 1px solid rgba(255, 255, 255, 0.04);
+ opacity: 0;
+ transform: translateY(6px);
+ animation: fadeUp 0.35s ease forwards;
+ }
+
+ @keyframes fadeUp {
+ to {
+ opacity: 1;
+ transform: translateY(0);
+ }
+ }
+
+ .speech .avatar {
+ font-size: 20px;
+ flex-shrink: 0;
+ }
+
+ .speech .body {
+ flex: 1;
+ min-width: 0;
+ }
+
+ .speech .body .top {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ margin-bottom: 2px;
+ }
+
+ .speech .body .top .name {
+ font-weight: 600;
+ font-size: 13px;
+ }
+
+ .speech .body .top .tag {
+ font-size: 10px;
+ font-weight: 600;
+ padding: 1px 10px;
+ border-radius: 10px;
+ }
+
+ .tag.go {
+ background: rgba(74, 222, 128, 0.12);
+ color: #4ADE80;
+ }
+
+ .tag.no {
+ background: rgba(255, 107, 107, 0.12);
+ color: #FF6B6B;
+ }
+
+ .tag.wait {
+ background: rgba(255, 255, 255, 0.04);
+ color: #8A92A8;
+ }
+
+ .tag.high-risk {
+ background: rgba(255, 107, 107, 0.15);
+ color: #FF6B6B;
+ }
+
+ .tag.medium-risk {
+ background: rgba(245, 158, 11, 0.12);
+ color: #F59E0B;
+ }
+
+ .speech .body .text {
+ font-size: 14px;
+ color: #C8D0E0;
+ line-height: 1.5;
+ }
+
+ .speech .body .text .cursor {
+ display: inline-block;
+ width: 2px;
+ height: 14px;
+ background: #7C5CFF;
+ animation: blink 0.8s step-end infinite;
+ vertical-align: text-bottom;
+ margin-left: 2px;
+ }
+
+ @keyframes blink {
+ 0%,
+ 100% {
+ opacity: 1;
+ }
+ 50% {
+ opacity: 0;
+ }
+ }
+
+ /* ─── 决策仪表盘（新增） ─── */
+ .dashboard {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 10px;
+ margin-bottom: 24px;
+ padding: 16px 18px;
+ background: rgba(255, 255, 255, 0.02);
+ border-radius: 14px;
+ border: 1px solid rgba(255, 255, 255, 0.04);
+ display: none;
+ }
+
+ .dashboard.visible {
+ display: grid;
+ }
+
+ .dash-item {
+ display: flex;
+ flex-direction: column;
+ gap: 4px;
+ }
+
+ .dash-item .label {
+ font-size: 11px;
+ color: #5A657A;
+ text-transform: uppercase;
+ letter-spacing: 0.04em;
+ }
+
+ .dash-item .value {
+ font-size: 16px;
+ font-weight: 600;
+ }
+
+ .dash-item .bar {
+ height: 4px;
+ background: rgba(255, 255, 255, 0.06);
+ border-radius: 4px;
+ overflow: hidden;
+ margin-top: 2px;
+ }
+
+ .dash-item .bar .fill {
+ height: 100%;
+ border-radius: 4px;
+ transition: width 0.8s ease;
+ }
+
+ .dash-item .bar .fill.conflict {
+ background: #FF6B6B;
+ }
+ .dash-item .bar .fill.consensus {
+ background: #4ADE80;
+ }
+ .dash-item .bar .fill.risk {
+ background: #F59E0B;
+ }
+
+ .dash-conflict-text {
+ font-size: 13px;
+ color: #9AA8C0;
+ line-height: 1.5;
+ grid-column: 1 / -1;
+ padding-top: 6px;
+ border-top: 1px solid rgba(255, 255, 255, 0.04);
+ margin-top: 4px;
+ }
+
+ .dash-conflict-text strong {
+ color: #FF6B6B;
+ }
+
+ /* ─── CEO 裁决 ─── */
+ .ceo-section {
+ border-top: 1px solid rgba(255, 255, 255, 0.06);
+ padding-top: 20px;
+ }
+
+ .ceo-card {
+ background: rgba(124, 92, 255, 0.06);
+ border: 1px solid rgba(124, 92, 255, 0.15);
+ border-radius: 14px;
+ padding: 18px 22px;
+ }
+
+ .ceo-card .label {
+ font-size: 11px;
+ font-weight: 600;
+ text-transform: uppercase;
+ letter-spacing: 0.06em;
+ color: #7C5CFF;
+ margin-bottom: 4px;
+ }
+
+ .ceo-card .verdict {
+ font-size: 24px;
+ font-weight: 700;
+ color: #E8EDF5;
+ margin-bottom: 2px;
+ }
+
+ .ceo-card .confidence {
+ font-size: 14px;
+ color: #5A657A;
+ margin-bottom: 12px;
+ }
+
+ .ceo-card .reason {
+ font-size: 14px;
+ color: #9AA8C0;
+ line-height: 1.6;
+ }
+
+ .ceo-card .steps {
+ margin-top: 12px;
+ display: flex;
+ flex-direction: column;
+ gap: 4px;
+ }
+
+ .ceo-card .steps .step {
+ font-size: 13px;
+ color: #B0C0D8;
+ padding-left: 18px;
+ position: relative;
+ }
+
+ .ceo-card .steps .step::before {
+ content: "▸";
+ position: absolute;
+ left: 0;
+ color: #7C5CFF;
+ }
+
+ /* ─── 空状态 ─── */
+ .empty {
+ text-align: center;
+ color: #4A5268;
+ padding: 30px 0;
+ font-size: 14px;
+ }
+
+ .empty .icon {
+ font-size: 32px;
+ margin-bottom: 8px;
+ opacity: 0.5;
+ }
+
+ /* ─── 响应式 ─── */
+ @media (max-width: 560px) {
+ body {
+ padding: 16px;
+ }
+
+ .input-area .row {
+ flex-direction: column;
+ }
+
+ .dashboard {
+ grid-template-columns: 1fr 1fr;
+ gap: 8px;
+ padding: 12px 14px;
+ }
+
+ .speech {
+ padding: 10px 14px;
+ gap: 10px;
+ flex-wrap: wrap;
+ }
+
+ .speech .body .top {
+ flex-wrap: wrap;
+ }
+
+ .ceo-card .verdict {
+ font-size: 20px;
+ }
+
+ .dash-item .value {
+ font-size: 14px;
+ }
+ }
+ </style>
+</head>
+<body>
+
+ <div class="room">
+
+ <!-- 顶部 -->
+ <div class="header">
+ <h1>🧠 AI <span>会议室</span></h1>
+ <span class="badge" id="statusBadge">● 就绪</span>
+ </div>
+
+ <!-- 输入 -->
+ <div class="input-area">
+ <div class="row">
+ <input id="topicInput" placeholder="输入决策问题，例如：是否要做小红书投放？" />
+ <button class="btn" id="runBtn">召开董事会</button>
+ </div>
+ </div>
+
+ <!-- 会议桌 -->
+ <div class="table" id="tableContainer">
+ <div class="empty" id="emptyState">
+ <div class="icon">💬</div>
+ <div>输入问题后，AI 将依次发言</div>
+ </div>
+ </div>
+
+ <!-- 决策仪表盘 -->
+ <div class="dashboard" id="dashboard">
+ <div class="dash-item">
+ <span class="label">冲突强度</span>
+ <span class="value" id="conflictValue">78%</span>
+ <div class="bar"><div class="fill conflict" id="conflictBar" style="width:78%;"></div></div>
+ </div>
+ <div class="dash-item">
+ <span class="label">共识度</span>
+ <span class="value" id="consensusValue">32%</span>
+ <div class="bar"><div class="fill consensus" id="consensusBar" style="width:32%;"></div></div>
+ </div>
+ <div class="dash-item">
+ <span class="label">风险指数</span>
+ <span class="value" id="riskValue">72%</span>
+ <div class="bar"><div class="fill risk" id="riskBar" style="width:72%;"></div></div>
+ </div>
+ <div class="dash-item">
+ <span class="label">决策倾向</span>
+ <span class="value" id="tendencyValue">⚖️ 倾向暂缓</span>
+ </div>
+ <div class="dash-conflict-text" id="keyConflict">
+ <strong>⚔️ 关键冲突：</strong> 战略支持 vs 风控反对
+ </div>
+ </div>
+
+ <!-- CEO 裁决 -->
+ <div class="ceo-section" id="ceoSection" style="display:none;">
+ <div class="ceo-card">
+ <div class="label">👑 CEO 裁决</div>
+ <div class="verdict" id="ceoVerdict">—</div>
+ <div class="confidence" id="ceoConfidence">置信度 —</div>
+ <div class="reason" id="ceoReason"></div>
+ <div class="steps" id="ceoSteps"></div>
+ </div>
+ </div>
+
+ </div>
+
+ <script>
+ // ──────────────────────────────────────────────
+ // 董事会配置
+ // ──────────────────────────────────────────────
+ const BOARD = [
+ { id: 'strategy', name: '战略官', icon: '🧙', tag: '谨慎支持', tagClass: 'go' },
+ { id: 'critic', name: '批判官', icon: '⚔️', tag: '反对', tagClass: 'no' },
+ { id: 'risk', name: '风控官', icon: '🛡️', tag: '高风险', tagClass: 'high-risk' },
+ { id: 'growth', name: '增长官', icon: '📈', tag: '支持', tagClass: 'go' },
+ { id: 'insight', name: '洞察官', icon: '🔍', tag: '中立', tagClass: 'wait' }
+ ];
+
+ const VIEWS = {
+ strategy: '市场窗口期存在，但进入时机偏早，建议6个月后启动。',
+ critic: '用户需求证据不足，核心假设需要先验证。反对当前执行。',
+ risk: '现金流风险过高，如果执行失败可能中断项目运营。建议暂缓。',
+ growth: '增长潜力明确，用户获取成本正在上升，建议快速测试。',
+ insight: '需求真实但渠道匹配度需要验证，建议先做小范围调研。'
+ };
+
+ const CEO_DATA = {
+ verdict: '建议暂缓执行',
+ confidence: '44%',
+ reason: '战略支持但风险过高，且用户需求证据不足。建议先完成需求验证，再评估是否推进。',
+ steps: ['完成用户需求访谈（30人）', '验证核心假设是否成立', '3周后重新召开董事会']
+ };
+
+ // ─── 仪表盘数据 ───
+ const DASH_DATA = {
+ conflict: 78,
+ consensus: 32,
+ risk: 72,
+ tendency: '⚖️ 倾向暂缓',
+ keyConflict: '战略支持 vs 风控反对'
+ };
+
+ // ──────────────────────────────────────────────
+ // DOM
+ // ──────────────────────────────────────────────
+ const table = document.getElementById('tableContainer');
+ const empty = document.getElementById('emptyState');
+ const dashboard = document.getElementById('dashboard');
+ const ceoSection = document.getElementById('ceoSection');
+ const ceoVerdict = document.getElementById('ceoVerdict');
+ const ceoConfidence = document.getElementById('ceoConfidence');
+ const ceoReason = document.getElementById('ceoReason');
+ const ceoSteps = document.getElementById('ceoSteps');
+ const topicInput = document.getElementById('topicInput');
+ const runBtn = document.getElementById('runBtn');
+ const statusBadge = document.getElementById('statusBadge');
+
+ // 仪表盘元素
+ const conflictValue = document.getElementById('conflictValue');
+ const conflictBar = document.getElementById('conflictBar');
+ const consensusValue = document.getElementById('consensusValue');
+ const consensusBar = document.getElementById('consensusBar');
+ const riskValue = document.getElementById('riskValue');
+ const riskBar = document.getElementById('riskBar');
+ const tendencyValue = document.getElementById('tendencyValue');
+ const keyConflict = document.getElementById('keyConflict');
+
+ let isRunning = false;
+
+ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+ // ─── 打字效果 ───
+ async function typeText(el, text, speed = 22) {
+ el.textContent = '';
+ for (let i = 0; i < text.length; i++) {
+ el.textContent += text[i];
+ await sleep(speed);
+ }
+ }
+
+ // ─── 清空 ───
+ function clearTable() {
+ document.querySelectorAll('.speech').forEach(el => el.remove());
+ empty.style.display = 'block';
+ dashboard.classList.remove('visible');
+ ceoSection.style.display = 'none';
+ }
+
+ // ─── 显示仪表盘 ───
+ function showDashboard() {
+ conflictValue.textContent = DASH_DATA.conflict + '%';
+ conflictBar.style.width = DASH_DATA.conflict + '%';
+ consensusValue.textContent = DASH_DATA.consensus + '%';
+ consensusBar.style.width = DASH_DATA.consensus + '%';
+ riskValue.textContent = DASH_DATA.risk + '%';
+ riskBar.style.width = DASH_DATA.risk + '%';
+ tendencyValue.textContent = DASH_DATA.tendency;
+ keyConflict.innerHTML = `<strong>⚔️ 关键冲突：</strong> ${DASH_DATA.keyConflict}`;
+ dashboard.classList.add('visible');
+ dashboard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+ }
+
+ // ─── 添加发言 ───
+ function addSpeech(member, text) {
+ empty.style.display = 'none';
+
+ const div = document.createElement('div');
+ div.className = 'speech';
+ div.innerHTML = `
+ <span class="avatar">${member.icon}</span>
+ <div class="body">
+ <div class="top">
+ <span class="name">${member.name}</span>
+ <span class="tag ${member.tagClass}">${member.tag}</span>
+ </div>
+ <div class="text" id="text-${Date.now()}"></div>
+ </div>
+ `;
+
+ table.appendChild(div);
+ table.scrollTop = table.scrollHeight;
+ return div.querySelector('.text');
+ }
+
+ // ─── 显示CEO ───
+ function showCEO() {
+ ceoVerdict.textContent = CEO_DATA.verdict;
+ ceoConfidence.textContent = `置信度 ${CEO_DATA.confidence}`;
+ ceoReason.textContent = CEO_DATA.reason;
+
+ ceoSteps.innerHTML = '';
+ CEO_DATA.steps.forEach(s => {
+ const el = document.createElement('div');
+ el.className = 'step';
+ el.textContent = s;
+ ceoSteps.appendChild(el);
+ });
+
+ ceoSection.style.display = 'block';
+ ceoSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+ }
+
+ // ─── 运行董事会 ───
+ async function runBoard() {
+ if (isRunning) return;
+
+ const topic = topicInput.value.trim() || '是否要做小红书投放？';
+
+ isRunning = true;
+ runBtn.disabled = true;
+ runBtn.textContent = '⏳ 发言中…';
+ statusBadge.textContent = '● 会议中';
+ statusBadge.style.color = '#4ADE80';
+
+ clearTable();
+
+ // 依次发言
+ for (const member of BOARD) {
+ const text = VIEWS[member.id] || '分析中…';
+ const el = addSpeech(member, text);
+ await sleep(200);
+ await typeText(el, text, 20);
+ await sleep(250);
+ }
+
+ // 显示仪表盘
+ await sleep(400);
+ showDashboard();
+
+ // CEO 裁决
+ await sleep(400);
+ showCEO();
+
+ statusBadge.textContent = '● 已结束';
+ statusBadge.style.color = '#8A92A8';
+ runBtn.disabled = false;
+ runBtn.textContent = '召开董事会';
+ isRunning = false;
+ }
+
+ // ─── 绑定 ───
+ runBtn.addEventListener('click', runBoard);
+ topicInput.addEventListener('keydown', (e) => {
+ if (e.key === 'Enter') runBoard();
+ });
+
+ // ─── 首次加载示例 ───
+ window.addEventListener('load', () => {
+ setTimeout(runBoard, 300);
+ });
+
+ console.log('🏛️ AI 决策会议室 V3.1 已加载');
+ console.log('📊 新增决策仪表盘：冲突 / 共识 / 风险');
+ </script>
+
+</body>
+</html>
