@@ -182,7 +182,8 @@ p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
 
 # ============================================================
 # ============================================================
-# ROOM PAGE — V3.5 Decision Trace OS
+# ============================================================
+# ROOM PAGE — V3 Single-Thread Meeting Room
 # ============================================================
 ROOM_HTML = r"""
 <!DOCTYPE html>
@@ -190,416 +191,310 @@ ROOM_HTML = r"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Decision Trace</title>
+<title>AI Decision Meeting Room</title>
 <style>
-/* ─── 全局 ─── */
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
     background: #0B0F1A;
     color: #E6EAF2;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ─── 顶部 ─── */
 .header {
-    padding: 16px 24px;
-    border-bottom: 1px solid #1F2430;
+    height: 56px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    border-bottom: 1px solid #1F2430;
     background: rgba(11,15,26,0.95);
-    backdrop-filter: blur(8px);
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    flex-shrink: 0;
 }
-.header .logo { font-size: 14px; font-weight: 600; color: #E6EAF2; }
+.header .logo { font-weight: 600; font-size: 14px; color: #A8B3CF; }
 .header .logo span { color: #7C5CFF; }
-.header .tagline { font-size: 12px; color: #6B7280; }
+.header .status { font-size: 12px; color: #6B7280; display: flex; align-items: center; gap: 8px; }
+.header .status .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #4A5268;
+}
+.header .status .dot.active { background: #4ADE80; animation: pulse-dot 1.2s ease-in-out infinite; }
+.header .status .dot.speaking { background: #F59E0B; animation: pulse-dot 0.8s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
+
+/* ─── 主区域 ─── */
+.main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+.main::-webkit-scrollbar { width: 4px; }
+.main::-webkit-scrollbar-track { background: transparent; }
+.main::-webkit-scrollbar-thumb { background: #2A3142; border-radius: 4px; }
 
 /* ─── 容器 ─── */
 .container {
-    max-width: 860px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 24px 20px;
+    padding: 24px 20px 100px;
 }
 
-/* ─── 状态栏 ─── */
-.status-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-    padding: 10px 14px;
-    background: rgba(124,92,255,0.04);
-    border: 1px solid rgba(124,92,255,0.08);
-    border-radius: 10px;
-    font-size: 13px;
-    color: #8B93A7;
-}
-.status-bar .dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #4A5268;
-    flex-shrink: 0;
-}
-.status-bar .dot.active { background: #4ADE80; animation: pulse-dot 1.2s ease-in-out infinite; }
-.status-bar .dot.running { background: #F59E0B; animation: pulse-dot 1.2s ease-in-out infinite; }
-@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
-.status-bar .stext { flex: 1; }
-.status-bar .saction { font-size: 12px; color: #7C5CFF; cursor: pointer; }
-
-/* ─── 问题 ─── */
-.question {
-    background: #121827;
-    border: 1px solid #232A3B;
-    padding: 14px;
+/* ─── 议题卡 ─── */
+.topic-card {
+    background: #111625;
+    border: 1px solid #232838;
     border-radius: 12px;
-    margin-bottom: 20px;
+    padding: 16px;
+    margin-bottom: 24px;
 }
-.question .qlabel {
+.topic-card .tlabel {
     font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.06em; color: #7AA2FF; margin-bottom: 6px;
+    letter-spacing: 0.06em; color: #7AA2FF; margin-bottom: 8px;
 }
-.question .qinput {
+.topic-card .tinput {
     display: flex; gap: 10px;
 }
-.question input {
+.topic-card input {
     flex: 1; padding: 12px 16px;
     background: rgba(255,255,255,0.03);
-    border: 1px solid #232A3B; border-radius: 10px;
+    border: 1px solid #2A3142; border-radius: 10px;
     color: #E6EAF2; font-size: 14px; outline: none;
     font-family: inherit;
 }
-.question input:focus { border-color: #7C5CFF; }
-.question input::placeholder { color: #4A5268; }
-.question button {
-    padding: 12px 24px; background: #7C5CFF; border: none;
+.topic-card input:focus { border-color: #7C5CFF; }
+.topic-card input::placeholder { color: #4A5268; }
+.topic-card button {
+    padding: 12px 24px; background: #6D5EF7; border: none;
     border-radius: 10px; color: #fff; font-weight: 600;
     font-size: 13px; cursor: pointer; white-space: nowrap;
 }
-.question button:hover { background: #6B4DE0; }
-.question button:disabled { opacity: 0.35; cursor: not-allowed; }
+.topic-card button:hover { background: #5C4EE0; }
+.topic-card button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* ─── 冲突矩阵 ─── */
-.matrix {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 20px;
-}
-.cell {
-    background: #0E1320;
-    border: 1px solid #222838;
-    padding: 12px 8px;
-    border-radius: 10px;
-    font-size: 12px;
-    text-align: center;
-    line-height: 1.5;
-}
-.cell .num { font-size: 20px; font-weight: 700; display: block; margin-bottom: 2px; }
-.cell.support .num { color: #22C55E; }
-.cell.oppose .num { color: #EF4444; }
-.cell.neutral .num { color: #FBBF24; }
-.cell.verdict .num { color: #7C5CFF; }
-.cell .label { color: #8B93A7; font-size: 11px; }
-
-/* ─── 模块（推理块） ─── */
-.block {
-    margin-bottom: 12px;
-    border-radius: 12px;
-    background: #0F1422;
-    border: 1px solid #222838;
-    padding: 14px;
-    opacity: 0;
-    transform: translateY(8px);
-    animation: fadeUp 0.4s ease forwards;
-}
-@keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
-.block.support { border-left: 3px solid #22C55E; }
-.block.oppose { border-left: 3px solid #EF4444; }
-.block.neutral { border-left: 3px solid #FBBF24; }
-
-.block .role {
-    font-size: 12px; color: #7AA2FF; margin-bottom: 6px;
+/* ─── 会议阶段标签 ─── */
+.stage-label {
+    font-size: 12px; color: #8B93A7;
+    padding: 6px 0; margin-bottom: 4px;
     display: flex; align-items: center; gap: 8px;
 }
-.block .role .tag {
+.stage-label .stage-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #7C5CFF;
+}
+
+/* ─── 发言消息 ─── */
+.msg {
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid #222838;
+    background: #0F1422;
+    line-height: 1.7;
+    margin-bottom: 8px;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: msgIn 0.35s ease forwards;
+}
+@keyframes msgIn { to { opacity:1; transform:translateY(0); } }
+.msg .role {
+    font-size: 13px; color: #7AA2FF; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+}
+.msg .role .tag {
     font-size: 10px; font-weight: 600; padding: 1px 8px;
     border-radius: 8px;
 }
-.block .role .tag.support { background: rgba(34,197,94,0.12); color: #22C55E; }
-.block .role .tag.oppose { background: rgba(239,68,68,0.12); color: #EF4444; }
-.block .role .tag.neutral { background: rgba(251,191,36,0.12); color: #FBBF24; }
-.block .role .weight-badge { color: #8B93A7; font-size: 11px; }
+.msg .role .tag.support { background: rgba(34,197,94,0.12); color: #22C55E; }
+.msg .role .tag.oppose { background: rgba(239,68,68,0.12); color: #EF4444; }
+.msg .role .tag.neutral { background: rgba(251,191,36,0.12); color: #FBBF24; }
 
-.block .summary {
-    font-size: 14px; color: #C8D0E0; line-height: 1.6;
-    margin-bottom: 8px;
+/* 发起人 */
+.msg.user { background: #1A1F33; border-left: 3px solid #7C5CFF; }
+.msg.user .role { color: #A8B3CF; }
+
+/* AI发言 */
+.msg.ai { border-left: 3px solid #2DD4BF; }
+.msg.ai.oppose { border-left: 3px solid #EF4444; }
+.msg.ai.neutral { border-left: 3px solid #FBBF24; }
+
+/* CEO */
+.msg.ceo {
+    background: #15122A;
+    border: 1px solid rgba(109,94,247,0.3);
+    border-left: 3px solid #7C5CFF;
+    margin-top: 16px;
 }
-.block .summary .type-cursor {
+.msg.ceo .role { color: #7C5CFF; }
+.msg.ceo .verdict { font-size: 18px; font-weight: 700; margin: 4px 0; }
+.msg.ceo .conf { font-size: 12px; color: #8B93A7; margin-bottom: 8px; }
+.msg.ceo .steps { margin-top: 8px; }
+.msg.ceo .steps .step {
+    font-size: 13px; color: #B0C0D8; padding: 2px 0 2px 14px; position: relative;
+}
+.msg.ceo .steps .step::before {
+    content: ""; position: absolute; left: 0; top: 8px;
+    width: 5px; height: 5px; border-radius: 50%; background: #7C5CFF;
+}
+
+/* 当前发言人高亮 */
+.msg.speaking {
+    border-color: #7C5CFF;
+    box-shadow: 0 0 0 1px rgba(124,92,255,0.15);
+}
+
+/* 打字光标 */
+.msg .content .cursor {
     display: inline-block; width: 2px; height: 15px;
     background: #7C5CFF; animation: blink 0.8s step-end infinite;
     vertical-align: text-bottom; margin-left: 1px;
 }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-.block .expand-hint {
-    font-size: 12px; color: #6B7280; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 2px 0;
-}
-.block .expand-hint:hover { color: #7C5CFF; }
+/* 错误 */
+.msg.error { border-left: 3px solid #F59E0B; }
+.msg.error .role { color: #F59E0B; }
+.msg .err-text { font-size: 13px; color: #F59E0B; font-style: italic; }
 
-/* 推理链 */
-.block .trace {
-    margin-top: 10px;
-    padding: 12px 14px;
-    background: rgba(124,92,255,0.04);
-    border: 1px solid rgba(124,92,255,0.08);
-    border-radius: 10px;
-    font-size: 13px;
-    color: #9AA8C0;
-    line-height: 1.7;
-    display: none;
+/* ─── 输入栏 ─── */
+.input-bar {
+    flex-shrink: 0;
+    border-top: 1px solid #1F2430;
+    padding: 12px 20px;
+    background: #0B0F1A;
+    display: flex;
+    justify-content: center;
 }
-.block .trace.open { display: block; }
-.block .trace .chain-step {
-    padding: 2px 0; display: flex; align-items: flex-start; gap: 8px;
+.input-inner {
+    max-width: 720px;
+    width: 100%;
+    display: flex;
+    gap: 10px;
 }
-.block .trace .chain-step::before {
-    content: "→"; color: #7C5CFF; flex-shrink: 0;
+.input-inner input {
+    flex: 1; padding: 12px 16px;
+    border-radius: 10px; border: 1px solid #2A3142;
+    background: #111625; color: white; font-size: 14px;
+    outline: none; font-family: inherit;
 }
-
-/* 错误状态 */
-.block.error { border-left: 3px solid #F59E0B; }
-.block.error .role { color: #F59E0B; }
-.block .error-msg { font-size: 13px; color: #F59E0B; font-style: italic; }
-
-/* ─── 决策结果 ─── */
-.result {
-    margin-top: 20px;
-    padding: 18px;
-    border-radius: 14px;
-    background: #11162A;
-    border: 1px solid rgba(124,92,255,0.25);
-    display: none;
+.input-inner input:focus { border-color: #7C5CFF; }
+.input-inner input::placeholder { color: #4A5268; }
+.input-inner button {
+    padding: 12px 20px; background: #6D5EF7; border: none;
+    border-radius: 10px; color: white; font-weight: 600;
+    font-size: 13px; cursor: pointer;
 }
-.result.open { display: block; }
-.result .rlabel {
-    font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.08em; color: #7C5CFF; margin-bottom: 4px;
-}
-.result .rverdict { font-size: 22px; font-weight: 700; color: #E8EDF5; margin-bottom: 2px; }
-.result .rconfidence {
-    font-size: 13px; color: #8B93A7; margin-bottom: 10px;
-}
-.result .bar-track {
-    height: 6px; background: #1F2430; border-radius: 6px;
-    overflow: hidden; margin-bottom: 12px;
-}
-.result .bar-track .bar-fill {
-    height: 100%; border-radius: 6px;
-    transition: width 0.8s ease;
-}
-.result .bar-track .bar-fill.support { background: #22C55E; }
-.result .bar-track .bar-fill.oppose { background: #EF4444; }
-.result .bar-track .bar-fill.neutral { background: #FBBF24; }
-.result .rlogic {
-    background: rgba(124,92,255,0.04);
-    border: 1px solid rgba(124,92,255,0.08);
-    border-radius: 10px; padding: 12px 14px;
-    font-size: 13px; color: #9AA8C0; line-height: 1.7;
-}
-.result .rsteps { margin-top: 10px; }
-.result .rsteps .step {
-    font-size: 13px; color: #B0C0D8; padding: 3px 0 3px 16px; position: relative;
-}
-.result .rsteps .step::before {
-    content: ""; position: absolute; left: 0; top: 9px;
-    width: 6px; height: 6px; border-radius: 50%; background: #7C5CFF;
-}
+.input-inner button:hover { background: #5C4EE0; }
+.input-inner button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ─── 空状态 ─── */
-.empty {
-    text-align: center; color: #4A5268; padding: 60px 0; font-size: 14px;
+.empty-state {
+    text-align: center; color: #4A5268; padding: 60px 0;
 }
-.empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
-
-/* ─── 响应式 ─── */
-@media (max-width: 640px) {
-    .container { padding: 16px 12px; }
-    .matrix { grid-template-columns: 1fr 1fr; }
-    .question .qinput { flex-direction: column; }
-}
+.empty-state .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.4; }
+.empty-state .hint { font-size: 13px; margin-top: 6px; color: #3A4268; }
 </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="logo">🧠 AI <span>Decision Trace</span></div>
-    <div class="tagline">Explainable Decision Engine</div>
+    <div class="logo">🧠 AI <span>Decision Meeting Room</span></div>
+    <div class="status">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">就绪</span>
+    </div>
 </div>
 
-<div class="container">
+<div class="main" id="mainArea">
+    <div class="container">
 
-    <!-- 状态 -->
-    <div class="status-bar" id="statusBar">
-        <span class="dot" id="statusDot"></span>
-        <span class="stext" id="statusText">就绪 — 输入决策问题启动分析</span>
-        <span class="saction" id="statusAction"></span>
+        <!-- 议题 -->
+        <div class="topic-card">
+            <div class="tlabel">📋 当前议题</div>
+            <div class="tinput">
+                <input id="topicInput" placeholder="例如：是否要进入五官灸健康赛道？" />
+                <button id="runBtn">发起会议</button>
+            </div>
+        </div>
+
+        <!-- 发言区 -->
+        <div id="threadContainer">
+            <div class="empty-state" id="emptyState">
+                <div class="icon">🏛️</div>
+                <div>输入议题，AI 董事会将依次发言</div>
+                <div class="hint">发起人 → 6位董事 → CEO 裁决</div>
+            </div>
+        </div>
+
     </div>
+</div>
 
-    <!-- 问题 -->
-    <div class="question">
-        <div class="qlabel">🔍 决策问题</div>
-        <div class="qinput">
-            <input id="topicInput" placeholder="例如：是否要进入五官灸健康赛道？" />
-            <button id="runBtn">分析决策</button>
-        </div>
+<!-- 输入栏 -->
+<div class="input-bar">
+    <div class="input-inner">
+        <input id="bottomInput" placeholder="输入新的议题..." />
+        <button id="bottomBtn">发起会议</button>
     </div>
-
-    <!-- 冲突矩阵 -->
-    <div class="matrix" id="matrixContainer">
-        <div class="cell support">
-            <span class="num" id="mSupport">0</span>
-            <span class="label">✅ 支持</span>
-        </div>
-        <div class="cell oppose">
-            <span class="num" id="mOppose">0</span>
-            <span class="label">❌ 反对</span>
-        </div>
-        <div class="cell neutral">
-            <span class="num" id="mNeutral">0</span>
-            <span class="label">⚖️ 中立</span>
-        </div>
-        <div class="cell verdict">
-            <span class="num" id="mVerdict">—</span>
-            <span class="label">🏁 结论</span>
-        </div>
-    </div>
-
-    <!-- 推理链列表 -->
-    <div id="traceContainer">
-        <div class="empty" id="emptyState">
-            <div class="icon">🧠</div>
-            <div>输入决策问题，启动 AI 分析</div>
-            <div style="font-size:12px;color:#4A5268;margin-top:8px;">7位董事 → 冲突分析 → 加权决策</div>
-        </div>
-    </div>
-
-    <!-- 决策结果 -->
-    <div class="result" id="resultContainer">
-        <div class="rlabel">👑 最终裁决</div>
-        <div class="rverdict" id="rVerdict">—</div>
-        <div class="rconfidence" id="rConfidence">置信度 —</div>
-        <div class="bar-track"><div class="bar-fill" id="rBar" style="width:0%"></div></div>
-        <div class="rlogic" id="rLogic"></div>
-        <div class="rsteps" id="rSteps"></div>
-    </div>
-
 </div>
 
 <script>
-// 董事会配置
 const BOARD = [
-    { id: 0, name: '战略官',   icon: '🧙', title: 'CSO', tagClass: 'support' },
-    { id: 1, name: '批判官',   icon: '⚔️', title: 'CRO', tagClass: 'oppose' },
-    { id: 2, name: '风控官',   icon: '🛡️', title: 'CTO', tagClass: 'oppose' },
-    { id: 3, name: '增长官',   icon: '📈', title: 'CGO', tagClass: 'support' },
-    { id: 4, name: '洞察官',   icon: '🔍', title: 'CIO', tagClass: 'neutral' },
-    { id: 5, name: '创新官',   icon: '💡', title: 'CIO', tagClass: 'support' }
+    { id: 'strategy',  name: '战略官', icon: '🧙', title: '战略部' },
+    { id: 'critic',    name: '批判官', icon: '⚔️', title: '风控部' },
+    { id: 'risk',      name: '风控官', icon: '🛡️', title: '风控部' },
+    { id: 'growth',    name: '增长官', icon: '📈', title: '增长部' },
+    { id: 'insight',   name: '洞察官', icon: '🔍', title: '洞察部' },
+    { id: 'innovation',name: '创新官', icon: '💡', title: '创新部' }
 ];
+const CEO = { name: 'CEO 裁决官', icon: '👑', title: '最终裁决' };
 
-const container = document.getElementById('traceContainer');
+const container = document.getElementById('threadContainer');
 const emptyState = document.getElementById('emptyState');
 const topicInput = document.getElementById('topicInput');
+const bottomInput = document.getElementById('bottomInput');
 const runBtn = document.getElementById('runBtn');
+const bottomBtn = document.getElementById('bottomBtn');
+const mainArea = document.getElementById('mainArea');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
-const matrix = {
-    support: document.getElementById('mSupport'),
-    oppose: document.getElementById('mOppose'),
-    neutral: document.getElementById('mNeutral'),
-    verdict: document.getElementById('mVerdict')
-};
-const resultContainer = document.getElementById('resultContainer');
-const rVerdict = document.getElementById('rVerdict');
-const rConfidence = document.getElementById('rConfidence');
-const rBar = document.getElementById('rBar');
-const rLogic = document.getElementById('rLogic');
-const rSteps = document.getElementById('rSteps');
 
 let isRunning = false;
+let meetingPhase = 'idle';
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// 清空
-function clearAll() {
-    document.querySelectorAll('.block').forEach(el => el.remove());
-    emptyState.style.display = 'block';
-    resultContainer.classList.remove('open');
-    // Reset matrix
-    matrix.support.textContent = '0';
-    matrix.oppose.textContent = '0';
-    matrix.neutral.textContent = '0';
-    matrix.verdict.textContent = '—';
-}
-
-// 展开/折叠推理链
-function toggleTrace(el) {
-    const trace = el.nextElementSibling;
-    if (trace && trace.classList.contains('trace')) {
-        const isOpen = trace.classList.contains('open');
-        trace.classList.toggle('open');
-        el.textContent = isOpen ? '展开推理链 →' : '收起推理链 ↓';
-    }
-}
-
-// 推断推理链（从角色文本中提取关键短语）
-function extractReasoningChain(text) {
-    if (!text || text.length < 20) return [];
-    // 尝试按 。！？分割成有意义的短句
-    const sentences = text.split(/[。！？\n]/).filter(s => s.trim().length > 5);
-    if (sentences.length <= 2) {
-        // 太短就用原始文本中的关键词
-        const parts = text.split(/[,，、]/).filter(s => s.trim().length > 3);
-        return parts.slice(0, 5).map(s => s.trim());
-    }
-    return sentences.slice(0, 5).map(s => s.trim());
-}
-
-// 创建推理块
-function addTraceBlock(member, text, stance, isError, index) {
+// 添加阶段标签
+function addStage(text) {
     emptyState.style.display = 'none';
-    
     const div = document.createElement('div');
-    div.className = 'block ' + (isError ? 'error' : (stance === '支持' ? 'support' : stance === '反对' ? 'oppose' : 'neutral'));
-    div.style.animationDelay = (index * 0.15) + 's';
+    div.className = 'stage-label';
+    div.innerHTML = '<span class="stage-dot"></span> ' + text;
+    container.appendChild(div);
+}
 
-    const chain = extractReasoningChain(text);
-    let traceHTML = '';
-    if (chain.length > 0 && !isError) {
-        traceHTML = '<div class="trace" id="trace-' + index + '">' +
-            chain.map(s => '<div class="chain-step">' + s + '</div>').join('') +
-            '</div>';
-    }
-
-    // 默认不展开推理链
+// 添加消息
+function addMessage(type, icon, name, roleHtml, content, extraClass) {
+    emptyState.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'msg ' + type + (extraClass ? ' ' + extraClass : '');
     div.innerHTML = `
-        <div class="role">
-            ${member.icon} ${member.name}
-            <span class="tag ${isError ? 'neutral' : stance}">${isError ? '暂不可用' : (stance || '中立')}</span>
-            <span class="weight-badge">${isError ? '' : member.title}</span>
-        </div>
-        <div class="summary" id="sum-${index}">${isError ? '<span class="error-msg">' + text + '</span>' : ''}</div>
-        ${chain.length > 0 && !isError ? '<div class="expand-hint" onclick="toggleTrace(this)">展开推理链 →</div>' : ''}
-        ${traceHTML}
+        <div class="role">${icon} ${name}${roleHtml}</div>
+        <div class="content">${content}</div>
     `;
     container.appendChild(div);
-    return div.querySelector('.summary');
+    div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return div.querySelector('.content');
+}
+
+// 获取立场标签
+function stanceTag(stance) {
+    if (stance === '支持') return '<span class="tag support">支持</span>';
+    if (stance === '反对') return '<span class="tag oppose">反对</span>';
+    if (stance === '中立') return '<span class="tag neutral">中立</span>';
+    return '';
 }
 
 // 打字效果
-async function typeText(el, text, speed = 15) {
+async function typeText(el, text, speed = 16) {
     el.textContent = '';
     for (let i = 0; i < text.length; i++) {
         el.textContent += text[i];
@@ -607,70 +502,34 @@ async function typeText(el, text, speed = 15) {
     }
 }
 
-// 更新冲突矩阵
-function updateMatrix(agents) {
-    const sup = agents.filter(a => a.stance === '支持').length;
-    const opp = agents.filter(a => a.stance === '反对').length;
-    const neu = agents.filter(a => a.stance === '中立' || a.stance === '—').length;
-    matrix.support.textContent = sup;
-    matrix.oppose.textContent = opp;
-    matrix.neutral.textContent = neu;
-    // 初步结论
-    if (sup > opp) matrix.verdict.textContent = '支持领先';
-    else if (opp > sup) matrix.verdict.textContent = '反对领先';
-    else matrix.verdict.textContent = '胶着';
-}
-
-// 显示决策结果
-function showResult(decision, agents) {
-    if (!decision) return;
-    rVerdict.textContent = decision.decision || '—';
-    const conf = decision.confidence || 0;
-    rConfidence.textContent = '置信度：' + conf + '%（基于风险权重主导）';
-    const rational = decision.rationale || decision.reasoning || '';
-    rLogic.textContent = '计算逻辑：' + rational;
-
-    // 条形图颜色
-    const sup = agents.filter(a => a.stance === '支持').length;
-    const opp = agents.filter(a => a.stance === '反对').length;
-    if (conf >= 50) {
-        const dominating = sup > opp ? '支持' : '反对';
-        rBar.className = 'bar-fill ' + (dominating === '支持' ? 'support' : 'oppose');
-    } else {
-        rBar.className = 'bar-fill neutral';
-    }
-    rBar.style.width = conf + '%';
-
-    // 步骤
-    rSteps.innerHTML = '';
-    const steps = decision.steps || [];
-    steps.forEach(s => {
-        const el = document.createElement('div');
-        el.className = 'step';
-        el.textContent = s;
-        rSteps.appendChild(el);
-    });
-
-    resultContainer.classList.add('open');
-    setTimeout(() => resultContainer.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
-}
-
-// 运行分析
-async function runAnalysis() {
+async function runMeeting() {
     if (isRunning) return;
-    const topic = topicInput.value.trim();
+    const topic = topicInput.value.trim() || bottomInput.value.trim();
     if (!topic) {
-        statusText.textContent = '⚠️ 请先输入决策问题';
+        statusText.textContent = '⚠️ 请输入议题';
         return;
     }
 
     isRunning = true;
-    runBtn.disabled = true;
-    runBtn.textContent = '⏳ 分析中…';
-    statusDot.className = 'dot running';
-    statusText.textContent = '正在调用 AI 董事会分析…';
+    meetingPhase = 'running';
+    runBtn.disabled = bottomBtn.disabled = true;
+    runBtn.textContent = bottomBtn.textContent = '⏳ 会议中…';
+    statusDot.className = 'dot speaking';
+    statusText.textContent = '会议进行中';
 
-    clearAll();
+    // 清空并重置
+    document.querySelectorAll('.msg, .stage-label').forEach(el => el.remove());
+    emptyState.style.display = 'none';
+
+    // 阶段1: 主持人提出议题
+    addStage('📌 主持人提出议题');
+    const userEl = addMessage('user', '👤', '发起人', '', topic);
+    userEl.innerHTML = topic;
+    await sleep(400);
+
+    // 阶段2: 董事依次发言
+    addStage('💬 董事发言');
+    await sleep(200);
 
     try {
         const resp = await fetch('/api/run', {
@@ -678,78 +537,84 @@ async function runAnalysis() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ topic: topic })
         });
-
-        if (!resp.ok) {
-            const errText = await resp.text().catch(() => '');
-            throw new Error(errText || 'API 请求失败 (' + resp.status + ')');
-        }
-
+        if (!resp.ok) throw new Error('API 请求失败');
         const data = await resp.json();
         const agents = data.agents || [];
         const decision = data.decision || null;
 
-        if (!agents || agents.length === 0) {
-            throw new Error('未收到 AI 董事会回应');
-        }
-
-        statusText.textContent = '分析进行中…';
-
-        // 依次显示每个推理块
+        // 依次发言
         for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
             const agent = agents[i];
             const member = BOARD[i];
-            
-            // 检查是否CEO（CEO单独在最后）
-            if (i === agents.length - 1 && agent.role === 'CEO裁决官') continue;
-
-            const isError = !agent.stance || agent.stance === '—' || 
+            const isError = !agent.stance || agent.stance === '—' ||
                 (agent.reason && (agent.reason.startsWith('API 错误') || agent.reason.startsWith('请求失败')));
-            const text = agent.reason || agent.output || '分析中…';
-
-            const el = addTraceBlock(member, text, agent.stance, isError, i);
-            updateMatrix(agents.slice(0, i + 1));
-
+            const text = agent.reason || '分析中…';
+            
+            const roleHtml = ' <span style="font-size:11px;color:#6B7280;">' + member.title + '</span> ' + stanceTag(agent.stance || '');
+            const msgCls = isError ? 'error' : (agent.stance === '反对' ? 'oppose' : agent.stance === '中立' ? 'neutral' : '');
+            const displayText = isError ? (text.includes('403') ? '模型暂不可用，正在切换…' : text) : text;
+            
+            const contentEl = addMessage('ai ' + msgCls, member.icon, member.name, roleHtml, '', msgCls);
+            statusText.textContent = member.name + ' 发言中…';
+            
             if (!isError) {
-                await typeText(el, text, 15);
+                await typeText(contentEl, text, 14);
             } else {
-                el.innerHTML = '<span class="error-msg">' + (text.includes('403') ? '模型暂不可用，正在切换…' : text) + '</span>';
+                contentEl.innerHTML = '<span class="err-text">' + displayText + '</span>';
             }
-            await sleep(200);
+            await sleep(150);
         }
 
-        // 显示决策结果
+        // 阶段3: CEO裁决
         if (decision) {
+            addStage('👑 CEO 裁决');
+            statusText.textContent = 'CEO 正在裁决…';
             await sleep(300);
-            statusText.textContent = '正在生成最终裁决…';
-            await sleep(500);
-            showResult(decision, agents);
-            matrix.verdict.textContent = decision.decision || '—';
+
+            const stepsHtml = (decision.steps || []).map(s => '<div class="step">' + s + '</div>').join('');
+            const div = document.createElement('div');
+            div.className = 'msg ceo';
+            div.innerHTML = `
+                <div class="role">${CEO.icon} ${CEO.name} <span style="font-size:11px;color:#6B7280;">${CEO.title}</span></div>
+                <div class="verdict">${decision.decision || '—'}</div>
+                <div class="conf">置信度 ${decision.confidence || 0}%</div>
+                <div style="font-size:13px;color:#9AA8C0;line-height:1.6;">${decision.rationale || decision.reasoning || ''}</div>
+                <div class="steps">${stepsHtml}</div>
+            `;
+            container.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        statusDot.className = 'dot';
-        statusText.textContent = '✅ 分析完成 — ' + (decision?.decision || '已结束');
+        meetingPhase = 'done';
+        statusText.textContent = '✅ 会议结束';
+        statusDot.className = 'dot active';
 
     } catch (err) {
-        statusDot.className = 'dot';
-        statusText.textContent = '❌ 出错了: ' + (err.message || '未知错误');
-        // 显示错误在页面上
-        const errDiv = document.createElement('div');
-        errDiv.className = 'block error';
-        errDiv.innerHTML = '<div class="role">⚠️ 系统</div><div class="summary"><span class="error-msg">请求失败: ' + (err.message || '') + '</span></div>';
-        container.appendChild(errDiv);
+        meetingPhase = 'error';
+        statusText.textContent = '❌ 会议出错';
+        const contentEl = addMessage('error', '⚠️', '系统', '', '');
+        contentEl.innerHTML = '<span class="err-text">' + (err.message || '请求失败') + '</span>';
     }
 
-    runBtn.disabled = false;
-    runBtn.textContent = '分析决策';
+    statusDot.className = 'dot';
+    runBtn.disabled = bottomBtn.disabled = false;
+    runBtn.textContent = bottomBtn.textContent = '发起会议';
     isRunning = false;
 }
 
-// 绑定
-runBtn.addEventListener('click', runAnalysis);
-topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runAnalysis(); });
+function triggerRun() {
+    bottomInput.value = topicInput.value;
+    topicInput.value = bottomInput.value;
+    runMeeting();
+}
 
-console.log('🧠 AI Decision Trace V3.5 已加载');
-console.log('核心模式：冲突矩阵 → 推理链 → 加权决策');
+runBtn.addEventListener('click', triggerRun);
+bottomBtn.addEventListener('click', triggerRun);
+topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerRun(); });
+bottomInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerRun(); });
+
+console.log('🏛️ AI Decision Meeting Room V3 加载完成');
+console.log('单线程会议流 · 6董事 → 冲突 → CEO裁决');
 </script>
 
 </body>
