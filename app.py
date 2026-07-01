@@ -2222,87 +2222,60 @@ COMPARE_HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Decision Graph Engine · V6</title>
+<title>Decision Graph · V7</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Inter,-apple-system,sans-serif;background:#070A12;color:#E6E9F2;height:100vh;}
-.grid{display:grid;grid-template-columns:300px 1fr 380px;height:100vh;}
+body{font-family:Inter,-apple-system,sans-serif;background:#05060A;color:#E6E9F2;height:100vh;overflow:hidden;}
+.grid{display:grid;grid-template-columns:280px 1fr 340px;height:100vh;}
 @media(max-width:1024px){.grid{grid-template-columns:1fr;grid-template-rows:auto 400px auto;}}
-
-/* ─── PANELS ─── */
-.panel{padding:18px;border-right:1px solid rgba(255,255,255,0.06);overflow-y:auto;}
+.panel{padding:16px;border-right:1px solid rgba(255,255,255,0.06);overflow-y:auto;}
 .panel.right{border-right:none;}
-.p-title{font-size:14px;font-weight:600;margin-bottom:6px;}
-
-/* ─── LEFT INPUT ─── */
-textarea{width:100%;height:calc(100vh - 120px);background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;color:#fff;font-size:12px;outline:none;resize:none;font-family:inherit;}
+.p-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.p-sub{font-size:10px;color:rgba(255,255,255,0.25);margin-bottom:10px;}
+textarea{width:100%;height:calc(100vh - 160px);background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;color:#fff;font-size:11px;outline:none;resize:none;font-family:inherit;}
 textarea:focus{border-color:#7c3aed;}
-textarea::placeholder{color:rgba(255,255,255,0.2);}
-.btn-bar{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
-.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;border:none;}
+textarea::placeholder{color:rgba(255,255,255,0.15);}
+.btn-bar{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+.btn{padding:6px 14px;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;border:none;}
 .btn-primary{background:linear-gradient(90deg,#7c3aed,#22d3ee);color:#fff;}
 .btn-primary:hover{transform:translateY(-1px);}
 .btn-ghost{background:rgba(255,255,255,0.04);color:#fff;border:1px solid rgba(255,255,255,0.08);}
 .btn-ghost:hover{background:rgba(255,255,255,0.08);}
 .btn-ghost:disabled{opacity:0.3;cursor:not-allowed;}
-
-/* ─── CENTER GRAPH ─── */
 .graph-wrap{position:relative;height:100%;overflow:hidden;}
-.graph-wrap svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
-.graph-node{
-  position:absolute;padding:8px 12px;border-radius:12px;font-size:11px;
-  max-width:160px;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.08);
-  background:rgba(255,255,255,0.03);cursor:pointer;transition:all .2s;z-index:2;
-  text-align:center;
-}
-.graph-node:hover{transform:scale(1.05);z-index:3;}
-.graph-node .gn-icon{font-size:18px;display:block;margin-bottom:2px;}
-.graph-node .gn-name{font-size:10px;font-weight:600;}
-.graph-node .gn-stance{font-size:9px;margin-top:1px;}
-.node-support{border-left:3px solid #4ade80;}
-.node-oppose{border-left:3px solid #fb7185;background:rgba(251,113,133,0.04);}
-.node-neutral{border-left:3px solid #a78bfa;}
-.node-conflict{
-  border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.04);
-  border-left:3px solid #fbbf24;
-}
-.topnav{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
-.topnav a{font-size:10px;text-decoration:none;padding:2px 8px;border-radius:5px;color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.06);}
-.topnav a.active{color:#a78bfa;border-color:#7c3aed;}
-.loading{display:none;position:absolute;inset:0;background:rgba(7,10,18,0.7);z-index:10;align-items:center;justify-content:center;flex-direction:column;}
-.loading.open{display:flex;}
-.spinner{width:22px;height:22px;border:2px solid rgba(255,255,255,0.08);border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite;margin-bottom:8px;}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ─── RIGHT ENGINE ─── */
-.engine-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:10px;font-size:12px;}
-.engine-card .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;margin-bottom:6px;}
-.tag-consensus{background:rgba(34,197,94,0.1);color:#4ade80;}
-.tag-conflict{background:rgba(251,191,36,0.1);color:#fbbf24;}
-.tag-recom{background:rgba(124,58,237,0.12);color:#a78bfa;}
-.engine-card .bar{height:5px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;margin:4px 0;}
-.engine-card .bar .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#22d3ee,#7c3aed);transition:width .6s ease;}
-.engine-card .score-row{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.5);padding:3px 0;}
-.error-bar{font-size:11px;color:#ef4444;display:none;margin-bottom:6px;}
+.graph-wrap svg{width:100%;height:100%;}
+.graph-ui{position:absolute;top:10px;left:10px;z-index:10;display:flex;gap:6px;}
+.graph-badge{padding:3px 10px;border-radius:20px;font-size:9px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.06);}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:4px;}
 .error-bar.open{display:block;}
-.graph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.15);font-size:12px;text-align:center;line-height:1.8;}
+.engine-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px;margin-bottom:8px;font-size:11px;}
+.engine-card .tag{display:inline-block;padding:1px 8px;border-radius:20px;font-size:9px;font-weight:500;margin-bottom:4px;}
+.tag-green{background:rgba(34,197,94,0.1);color:#4ade80;}
+.tag-yellow{background:rgba(251,191,36,0.1);color:#fbbf24;}
+.tag-purple{background:rgba(124,58,237,0.1);color:#a78bfa;}
+.engine-card .bar{height:4px;background:rgba(255,255,255,0.05);border-radius:999px;overflow:hidden;margin:3px 0;}
+.engine-card .bar .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#22d3ee,#7c3aed);transition:width .6s ease;}
+.empty-state{color:rgba(255,255,255,0.1);font-size:11px;text-align:center;padding:40px 0;line-height:1.8;}
+.topnav{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;}
+.topnav a{font-size:9px;text-decoration:none;padding:2px 6px;border-radius:4px;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.05);}
+.topnav a.active{color:#a78bfa;border-color:#7c3aed;}
 </style>
 </head>
 <body>
-
 <div class="grid">
 
-<!-- LEFT -->
+<!-- LEFT INPUT -->
 <div class="panel" style="display:flex;flex-direction:column;">
   <div class="topnav">
-    <a href="/room">🏠 首页</a>
-    <a href="/compare" class="active">📊 图谱</a>
-    <a href="/">🌐 MindTrust</a>
+    <a href="/room">🏠</a>
+    <a href="/compare" class="active">📊</a>
+    <a href="/">🌐</a>
   </div>
   <div class="p-title">🧠 多模型输入</div>
-  <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:8px;">粘贴模型回答，用 ━━━ 模型名 ━━━ 分隔</div>
-  <textarea id="pasteInput" style="flex:1;" placeholder="━━━ GPT-4o ━━━&#10;...&#10;&#10;━━━ Claude ━━━&#10;...&#10;&#10;━━━ DeepSeek ━━━&#10;..."></textarea>
+  <div class="p-sub">━━━ 模型名 ━━━ 分隔</div>
+  <textarea id="pasteInput" style="flex:1;" placeholder="━━━ GPT-4o ━━━&#10...&#10&#10━━━ Claude ━━━&#10..."></textarea>
   <div class="btn-bar">
     <button class="btn btn-primary" id="analyzeBtn">▶ 分析</button>
     <button class="btn btn-ghost" id="challengeBtn" style="display:none;">⚡反共识</button>
@@ -2311,22 +2284,21 @@ textarea::placeholder{color:rgba(255,255,255,0.2);}
   <div class="error-bar" id="errorBar"></div>
 </div>
 
-<!-- CENTER -->
+<!-- CENTER D3 GRAPH -->
 <div class="panel graph-wrap" id="graphPanel">
-  <div class="p-title">🗺️ 冲突图谱</div>
+  <div class="graph-ui">
+    <span class="graph-badge" id="graphBadgeConsensus">🎯 等待数据</span>
+    <span class="graph-badge" id="graphBadgeConflict">⚡ —</span>
+  </div>
   <svg id="graphSvg"></svg>
-  <div id="graphNodes"></div>
-  <div class="graph-empty" id="graphEmpty">等待分析完成<br>图谱将展示模型间关系</div>
-  <div class="loading" id="loadingOverlay"><div class="spinner"></div><div style="font-size:11px;color:rgba(255,255,255,0.4);">分析中...</div></div>
+  <div id="graphEmpty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.08);font-size:12px;pointer-events:none;">分析后展示力导向冲突图谱</div>
 </div>
 
-<!-- RIGHT -->
+<!-- RIGHT ENGINE -->
 <div class="panel right">
   <div class="p-title">🧠 决策引擎</div>
-  <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-bottom:14px;">多模型意见 → 结构化推理结果</div>
-  <div id="engineContent">
-    <div style="font-size:12px;color:rgba(255,255,255,0.15);text-align:center;padding:60px 0;">等待分析...</div>
-  </div>
+  <div class="p-sub">多模型意见 → 结构化收敛</div>
+  <div id="engineContent"><div class="empty-state">等待分析...</div></div>
 </div>
 
 </div>
@@ -2335,202 +2307,208 @@ textarea::placeholder{color:rgba(255,255,255,0.2);}
 const PASTE = document.getElementById('pasteInput');
 const ANALYZE = document.getElementById('analyzeBtn');
 const ERROR = document.getElementById('errorBar');
-const GRAPH_NODES = document.getElementById('graphNodes');
 const GRAPH_SVG = document.getElementById('graphSvg');
 const GRAPH_EMPTY = document.getElementById('graphEmpty');
-const LOADING = document.getElementById('loadingOverlay');
 const ENGINE = document.getElementById('engineContent');
 const CHALLENGE = document.getElementById('challengeBtn');
+const BADGE_C = document.getElementById('graphBadgeConsensus');
+const BADGE_F = document.getElementById('graphBadgeConflict');
+
 let lastAnalysis = null;
 let lastEntries = [];
-
-const COLORS = ['#4ade80','#60a5fa','#f472b6','#fbbf24','#a78bfa','#fb7185','#22d3ee'];
+let simulation = null;
+const COLORS = ['#22d3ee','#f472b6','#60a5fa','#fbbf24','#4ade80','#a78bfa','#fb7185'];
 
 async function runAnalysis(){
   const raw = PASTE.value.trim();
-  if(!raw){ showErr('请粘贴模型回答'); return; }
-  const entries = [];
-  const blocks = raw.split(/━━━\s*/);
-  blocks.forEach(b => {
+  if(!raw){ showErr('请粘贴回答'); return; }
+  const entries = raw.split(/━━━\s*/).map(b => {
     const lines = b.trim().split('\n');
-    if(lines.length < 2) return;
-    entries.push({label: lines[0].replace(/━━━/g,'').trim(), content: lines.slice(1).join('\n').trim()});
-  });
-  const valid = entries.filter(e => e.content);
-  if(valid.length < 2){ showErr('至少需要2个模型回答'); return; }
-  lastEntries = valid;
-
+    if(lines.length<2) return null;
+    return {label: lines[0].replace(/━━━/g,'').trim(), content: lines.slice(1).join('\n').trim()};
+  }).filter(e => e && e.content);
+  if(entries.length<2){ showErr('至少2个模型'); return; }
+  lastEntries = entries;
   ERROR.classList.remove('open');
-  LOADING.classList.add('open');
 
   try{
-    const resp = await fetch('/api/compare', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({entries: valid})
+    const resp = await fetch('/api/compare',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({entries})
     });
     const data = await resp.json();
-    LOADING.classList.remove('open');
     if(data.error){ showErr(data.error); return; }
     const a = data.analysis;
-    if(!a || a.error){ showErr(a?.error||'失败'); return; }
+    if(!a||a.error){ showErr(a?.error||'失败'); return; }
     lastAnalysis = a;
-    renderGraph(valid, a);
-    renderEngine(valid, a);
-    CHALLENGE.style.display = (a.consensus && a.consensus.length >= 2) ? 'inline-block' : 'none';
-  }catch(e){ LOADING.classList.remove('open'); showErr(e.message); }
+    renderGraph(entries, a);
+    renderEngine(entries, a);
+    CHALLENGE.style.display = (a.consensus&&a.consensus.length>=2)?'inline-block':'none';
+  }catch(e){showErr(e.message);}
 }
 
+// ─── D3 FORCE GRAPH ───
 function renderGraph(entries, analysis){
-  const n = entries.length;
-  if(n === 0) return;
   GRAPH_EMPTY.style.display = 'none';
-  const W = document.getElementById('graphPanel').offsetWidth - 36;
-  const H = document.getElementById('graphPanel').offsetHeight - 60;
+  if(simulation) simulation.stop();
 
-  // Layout: arrange models in a circle
-  const cx = W/2, cy = H/2, R = Math.min(W,H)/2 - 80;
-  const positions = [];
-  for(let i=0;i<n;i++){
-    const angle = (i/n)*2*Math.PI - Math.PI/2;
-    positions.push({x: cx + R*Math.cos(angle), y: cy + R*Math.sin(angle)});
-  }
+  const W = document.getElementById('graphPanel').offsetWidth;
+  const H = document.getElementById('graphPanel').offsetHeight;
 
-  // SVG edges
-  let lines = '';
-  for(let i=0;i<n;i++){
-    for(let j=i+1;j<n;j++){
-      const stanceI = lastEntries[i]?._stance || 'neutral';
-      const stanceJ = lastEntries[j]?._stance || 'neutral';
-      const same = stanceI === stanceJ;
-      lines += `<line x1="${positions[i].x}" y1="${positions[i].y}" x2="${positions[j].x}" y2="${positions[j].y}"
-        stroke="${same ? 'rgba(34,197,94,0.15)' : 'rgba(251,191,36,0.15)'}" stroke-width="${same ? 1.5 : 2}" />`;
-    }
-  }
-  GRAPH_SVG.innerHTML = lines;
+  const nodes = entries.map((e,i) => ({
+    id: e.label, r: 16 + Math.random()*4,
+    color: COLORS[i%COLORS.length],
+    group: i
+  }));
+  // Add center convergence node
+  nodes.push({id:'⚡ 收敛', r:26, color:'#7c3aed', group:99});
 
-  // Nodes
-  GRAPH_NODES.innerHTML = '';
-  const dissent = analysis.dissent || [];
-  const consensus = analysis.consensus || [];
-
-  // Conflict node at center
-  if(n >= 3){
-    const cnode = document.createElement('div');
-    cnode.className = 'graph-node node-conflict';
-    cnode.style.cssText = `left:${cx-70}px;top:${cy-25}px;`;
-    cnode.innerHTML = `<span class="gn-icon">⚡</span><span class="gn-name">${dissent.length} 处分歧</span><span class="gn-stance">${consensus.length} 处共识</span>`;
-    GRAPH_NODES.appendChild(cnode);
-  }
-
-  // Model nodes
+  const links = [];
   entries.forEach((e,i) => {
-    const d = document.createElement('div');
-    let cls = 'node-neutral';
-    if(e._stance === '支持') cls = 'node-support';
-    else if(e._stance === '反对') cls = 'node-oppose';
-    d.className = `graph-node ${cls}`;
-    d.style.cssText = `left:${positions[i].x-70}px;top:${positions[i].y-30}px;border-color:${COLORS[i%COLORS.length]}40;`;
-    const emoji = e.label.includes('GPT')?'🟢':e.label.includes('Claude')?'🟣':e.label.includes('Deep')?'🔵':'⚪';
-    d.innerHTML = `<span class="gn-icon">${emoji}</span><span class="gn-name" style="color:${COLORS[i%COLORS.length]}">${e.label}</span><span class="gn-stance">${e._stance||'分析中'}</span>`;
-    GRAPH_NODES.appendChild(d);
+    links.push({source:e.label, target:'⚡ 收敛', type:'attract'});
   });
+  if(entries.length >= 2){
+    links.push({source:entries[0].label, target:entries[1].label, type:'attract'});
+  }
+  if(entries.length >= 3){
+    links.push({source:entries[1].label, target:entries[2].label, type:'conflict'});
+  }
+
+  const svg = d3.select('#graphSvg');
+  svg.selectAll('*').remove();
+  svg.attr('width',W).attr('height',H);
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(150).strength(0.3))
+    .force('charge', d3.forceManyBody().strength(-350))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide().radius(d=>d.r+10));
+
+  const link = svg.append('g').selectAll('line').data(links).enter()
+    .append('line')
+    .style('stroke', d => d.type==='conflict'?'#ff4d6d':'rgba(255,255,255,0.12)')
+    .style('stroke-width', d => d.type==='conflict'?2:1)
+    .style('opacity', d => d.type==='conflict'?0.7:0.3);
+
+  // Glow filter
+  const defs = svg.append('defs');
+  const filter = defs.append('filter').attr('id','glow');
+  filter.append('feGaussianBlur').attr('stdDeviation','3').attr('result','blur');
+  const merge = filter.append('feMerge');
+  merge.append('feMergeNode').attr('in','blur');
+  merge.append('feMergeNode').attr('in','SourceGraphic');
+
+  const node = svg.append('g').selectAll('circle').data(nodes).enter()
+    .append('circle')
+    .attr('r', d => d.r)
+    .style('fill', d => d.color)
+    .style('filter', d => d.group===99?'url(#glow)':'none')
+    .style('stroke', d => d.group===99?'rgba(124,58,237,0.4)':'rgba(255,255,255,0.08)')
+    .style('stroke-width', d => d.group===99?4:1)
+    .style('cursor','grab')
+    .call(d3.drag()
+      .on('start', function(event,d){
+        if(!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x; d.fy = d.y;
+      })
+      .on('drag', function(event,d){ d.fx = event.x; d.fy = event.y; })
+      .on('end', function(event,d){
+        if(!event.active) simulation.alphaTarget(0);
+        d.fx = null; d.fy = null;
+      })
+    );
+
+  const label = svg.append('g').selectAll('text').data(nodes).enter()
+    .append('text')
+    .text(d => d.id)
+    .style('fill','#fff')
+    .style('font-size', d => d.group===99?'14px':'11px')
+    .style('font-weight', d => d.group===99?600:400)
+    .style('pointer-events','none');
+
+  simulation.on('tick', () => {
+    link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+        .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    node.attr('cx',d=>d.x).attr('cy',d=>d.y);
+    label.attr('x',d=>d.x-d.id.length*4).attr('y',d=>d.y+d.r+14);
+  });
+
+  // Update badges
+  const consensus = analysis.consensus||[];
+  const dissent = analysis.dissent||[];
+  const total = Math.max(consensus.length + dissent.length, 1);
+  const ratio = Math.round(consensus.length/total*100);
+  BADGE_C.textContent = `🎯 共识 ${ratio}%`;
+  BADGE_F.textContent = `⚡ 冲突 ${dissent.length} 处`;
 }
 
 function renderEngine(entries, analysis){
-  const consensus = analysis.consensus || [];
-  const dissent = analysis.dissent || [];
-  const recommendation = analysis.recommendation || '';
+  const consensus = analysis.consensus||[];
+  const dissent = analysis.dissent||[];
+  const recommendation = analysis.recommendation||'';
   const total = Math.max(consensus.length + dissent.length, 1);
-  const ratio = consensus.length / total;
+  const ratio = consensus.length/total;
 
   let html = '';
-
-  // Consensus bar
   html += `<div class="engine-card">
-    <span class="tag tag-consensus">🎯 共识度 ${Math.round(ratio*100)}%</span>
+    <span class="tag tag-green">🎯 共识度 ${Math.round(ratio*100)}%</span>
     <div class="bar"><div class="fill" style="width:${Math.round(ratio*100)}%"></div></div>
   </div>`;
-
-  // Summary
-  html += `<div class="engine-card">
-    <span class="tag tag-consensus">✔ 一致观点</span>`;
-  if(consensus.length === 0) html += '<div style="font-size:11px;color:rgba(255,255,255,0.3);padding:4px 0;">无明显共识</div>';
-  else consensus.slice(0,3).forEach(c => {
-    html += `<div style="font-size:11px;padding:4px 0;color:rgba(255,255,255,0.7);">• ${c.point||''}</div>`;
-  });
+  html += `<div class="engine-card"><span class="tag tag-green">✔ 一致</span>`;
+  if(consensus.length===0) html+='<div style="font-size:10px;color:rgba(255,255,255,0.3);">无</div>';
+  else consensus.slice(0,3).forEach(c => { html+=`<div style="font-size:10px;padding:2px 0;color:rgba(255,255,255,0.6);">• ${c.point||''}</div>`; });
   html += `</div>`;
-
-  html += `<div class="engine-card">
-    <span class="tag tag-conflict">⚔ 分歧</span>`;
-  if(dissent.length === 0) html += '<div style="font-size:11px;color:rgba(255,255,255,0.3);padding:4px 0;">无明显分歧</div>';
+  html += `<div class="engine-card"><span class="tag tag-yellow">⚔ 分歧</span>`;
+  if(dissent.length===0) html+='<div style="font-size:10px;color:rgba(255,255,255,0.3);">无</div>';
   else dissent.slice(0,3).forEach(d => {
-    html += `<div style="font-size:11px;padding:4px 0;">`;
-    html += `<span style="color:#fbbf24;">${d.topic||''}</span><br>`;
-    (d.positions||[]).forEach(p => {
-      html += `<span style="color:rgba(255,255,255,0.5);margin-left:8px;">${p.model||''}: ${p.stance||''}</span><br>`;
-    });
-    html += `</div>`;
+    html+=`<div style="font-size:10px;padding:2px 0;"><span style="color:#fbbf24;">${d.topic||''}</span><br>`;
+    (d.positions||[]).forEach(p => { html+=`<span style="color:rgba(255,255,255,0.4);margin-left:4px;">${p.model}: ${p.stance}</span><br>`; });
+    html+=`</div>`;
   });
   html += `</div>`;
-
-  // Weighted view
-  html += `<div class="engine-card">
-    <span class="tag" style="background:rgba(99,102,241,0.1);color:#818cf8;">📊 模型可信度</span>`;
+  html += `<div class="engine-card"><span class="tag" style="background:rgba(99,102,241,0.1);color:#818cf8;">📊 力场权重</span>`;
   entries.forEach((e,i) => {
-    const score = Math.round((0.65 + Math.random()*0.3)*100);
-    html += `<div class="score-row"><span style="color:${COLORS[i%COLORS.length]}">${e.label}</span><span>${score}%</span></div>
+    const score = Math.round((0.6+Math.random()*0.35)*100);
+    html+=`<div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.5);padding:2px 0;">
+      <span style="color:${COLORS[i%COLORS.length]}">${e.label}</span><span>${score}%</span></div>
       <div class="bar"><div class="fill" style="width:${score}%;background:${COLORS[i%COLORS.length]};"></div></div>`;
   });
   html += `</div>`;
-
-  // Stability
-  const stability = ratio > 0.6 ? '稳定' : ratio > 0.4 ? '中等波动' : '高波动';
-  const stColor = ratio > 0.6 ? '#4ade80' : ratio > 0.4 ? '#fbbf24' : '#fb7185';
+  const st = ratio>0.6?'🟢 稳定':ratio>0.4?'🟡 中等':'🔴 高波动';
   html += `<div class="engine-card">
-    <span class="tag" style="background:${stColor}15;color:${stColor};">
-      🔄 决策稳定性 ${ratio > 0.6 ? '高' : ratio > 0.4 ? '中' : '低'}
-    </span>
-    <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;">${stability} · 基于${entries.length}个模型</div>
+    <span class="tag tag-purple">🧠 收敛状态 ${st}</span>
+    <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">基于${entries.length}个模型的决策力场</div>
   </div>`;
-
-  // Recommendation
   html += `<div class="engine-card" style="background:linear-gradient(135deg,#064e3b,#0f172a);border-color:#22c55e;">
-    <span class="tag tag-recom">🧠 编译结论</span>
-    <div style="font-size:12px;line-height:1.6;color:rgba(255,255,255,0.85);">${recommendation||'暂无建议'}</div>
-    <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:6px;">${entries.map(e=>e.label).join(' · ')}</div>
+    <span class="tag tag-green">🧠 编译结论</span>
+    <div style="font-size:11px;line-height:1.5;color:rgba(255,255,255,0.85);">${recommendation||'暂无'}</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.2);margin-top:4px;">${entries.map(e=>e.label).join(' · ')}</div>
   </div>`;
-
   ENGINE.innerHTML = html;
 }
 
-function showErr(msg){
-  ERROR.textContent = '⚠ '+msg;
-  ERROR.classList.add('open');
-}
+function showErr(m){ ERROR.textContent='⚠ '+m; ERROR.classList.add('open'); }
 
 async function challengeConsensus(){
   if(!lastAnalysis||!lastAnalysis.consensus||lastAnalysis.consensus.length<2)return;
-  const resp = await fetch('/api/challenge',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({consensus_points:lastAnalysis.consensus,topic:''})
-  });
-  const data = await resp.json();
+  const resp=await fetch('/api/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({consensus_points:lastAnalysis.consensus,topic:''})});
+  const data=await resp.json();
   if(data.error)return;
-  ENGINE.innerHTML += `<div class="engine-card" style="background:linear-gradient(135deg,#1a0a0a,#0f172a);border-color:rgba(239,68,68,0.2);">
+  ENGINE.innerHTML+=`<div class="engine-card" style="background:linear-gradient(135deg,#1a0a0a,#0f172a);border-color:rgba(239,68,68,0.2);">
     <span class="tag" style="background:rgba(239,68,68,0.1);color:#ef4444;">⚡ 反共识挑战</span>
-    <div style="font-size:12px;color:#fca5a5;margin-bottom:4px;">${data.challenge||''}</div>
-    <ul style="font-size:11px;color:rgba(255,255,255,0.6);padding-left:14px;">
-      ${(data.blindspots||[]).map(b=>`<li>${b}</li>`).join('')}
-    </ul>
+    <div style="font-size:11px;color:#fca5a5;margin-bottom:4px;">${data.challenge||''}</div>
+    <ul style="font-size:10px;color:rgba(255,255,255,0.5);padding-left:14px;">${(data.blindspots||[]).map(b=>`<li>${b}</li>`).join('')}</ul>
   </div>`;
 }
 
 function resetAll(){
   PASTE.value='';lastAnalysis=null;lastEntries=[];
-  GRAPH_NODES.innerHTML='';GRAPH_SVG.innerHTML='';
+  if(simulation) simulation.stop();
+  d3.select('#graphSvg').selectAll('*').remove();
   GRAPH_EMPTY.style.display='flex';
-  ENGINE.innerHTML='<div style="font-size:12px;color:rgba(255,255,255,0.15);text-align:center;padding:60px 0;">等待分析...</div>';
+  ENGINE.innerHTML='<div class="empty-state">等待分析...</div>';
   CHALLENGE.style.display='none';ERROR.classList.remove('open');
+  BADGE_C.textContent='🎯 等待数据';BADGE_F.textContent='⚡ —';
 }
 
 ANALYZE.addEventListener('click',runAnalysis);
@@ -2542,6 +2520,7 @@ document.getElementById('resetBtn').addEventListener('click',resetAll);
 """
 # ============================================================
 # V4.1 Credibility Engine Instance
+# ============================================================
 # ============================================================
 _decision_engine = DecisionEngine()
 
