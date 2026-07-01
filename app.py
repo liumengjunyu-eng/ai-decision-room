@@ -100,415 +100,439 @@ p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
 ROOM_HTML = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
- <meta charset="UTF-8" />
- <meta name="viewport" content="width=device-width, initial-scale=1.0" />
- <title>AI Decision Room</title>
- <link rel="preconnect" href="https://fonts.googleapis.com" />
- <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
- <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
- <style>
- :root {
- --bg: #0B0F1A;
- --bg-elevated: #111827;
- --bg-card: rgba(255,255,255,0.03);
- --border: rgba(255,255,255,0.06);
- --border-strong: rgba(255,255,255,0.10);
- --text-primary: #EDF2F7;
- --text-secondary: #94A3B8;
- --text-muted: #475569;
- --purple: #6C5CE7;
- --purple-dim: rgba(108,92,231,0.12);
- --purple-glow: rgba(108,92,231,0.20);
- --red: #FF6B6B;
- --red-dim: rgba(255,107,107,0.08);
- --blue: #60A5FA;
- --green: #4ADE80;
- --orange: #FBBF24;
- --radius: 12px;
- --radius-lg: 16px;
- --radius-xl: 20px;
- --space-sm: 8px;
- --space-md: 16px;
- --space-lg: 24px;
- --space-xl: 32px;
- --space-2xl: 48px;
- --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
- }
- * { margin:0; padding:0; box-sizing:border-box; }
- body {
- background: var(--bg);
- color: var(--text-primary);
- font-family: var(--font);
- font-size: 15px;
- line-height: 1.6;
- min-height: 100vh;
- padding: var(--space-lg);
- display: flex;
- justify-content: center;
- -webkit-font-smoothing: antialiased;
- }
- body::before {
- content:'';
- position:fixed;
- top:-30%;left:-10%;
- width:60%;height:60%;
- background:radial-gradient(circle at 30% 20%, rgba(108,92,231,0.06), transparent 70%);
- pointer-events:none;z-index:0;
- }
- .container { max-width:860px; width:100%; position:relative; z-index:1; }
- .topbar {
- display:flex; justify-content:space-between; align-items:center;
- padding:var(--space-sm) 0 var(--space-lg);
- border-bottom:1px solid var(--border);
- margin-bottom:var(--space-2xl);
- }
- .logo { display:flex; align-items:center; gap:10px; font-size:17px; font-weight:600; letter-spacing:-0.02em; color:var(--text-primary); text-decoration:none; }
- .logo-icon { width:32px; height:32px; background:var(--purple); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; }
- .logo span { color:var(--text-secondary); font-weight:400; }
- .remaining-badge {
- font-size:13px; color:var(--text-secondary);
- background:var(--bg-card); border:1px solid var(--border);
- padding:5px 16px; border-radius:20px;
- display:flex; align-items:center; gap:8px;
- }
- .remaining-badge strong { color:var(--text-primary); font-weight:600; }
- .mode-tabs {
- display:flex; gap:4px;
- background:var(--bg-elevated); border-radius:var(--radius-lg); padding:4px;
- border:1px solid var(--border); margin-bottom:var(--space-2xl);
- }
- .mode-tab {
- flex:1; padding:10px 16px; border:none; border-radius:var(--radius);
- background:transparent; color:var(--text-muted);
- font-family:var(--font); font-size:14px; font-weight:500;
- cursor:pointer; transition:all 0.2s; text-align:center;
- }
- .mode-tab:hover { color:var(--text-secondary); }
- .mode-tab.active { background:var(--purple-dim); color:var(--purple); box-shadow:0 0 24px var(--purple-glow); }
- .mode-tab .badge {
- font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px; margin-left:6px;
- background:rgba(255,255,255,0.04); color:var(--text-muted);
- }
- .mode-tab.active .badge { background:rgba(108,92,231,0.2); color:var(--purple); }
- .input-section { margin-bottom:var(--space-2xl); display:none; }
- .input-section.active { display:block; }
- .input-section label { display:block; font-size:13px; font-weight:500; color:var(--text-secondary); margin-bottom:var(--space-sm); }
- .input-row { display:flex; gap:var(--space-md); }
- .input-row input, .input-row textarea {
- flex:1; padding:14px 18px; background:var(--bg-elevated);
- border:1px solid var(--border); border-radius:var(--radius);
- color:var(--text-primary); font-family:var(--font); font-size:15px;
- outline:none; transition:border-color 0.2s, box-shadow 0.2s;
- }
- .input-row input::placeholder, .input-row textarea::placeholder { color:var(--text-muted); }
- .input-row input:focus, .input-row textarea:focus { border-color:var(--purple); box-shadow:0 0 0 3px var(--purple-dim); }
- .input-row textarea { width:100%; resize:vertical; min-height:56px; }
- .btn-primary {
- padding:14px 32px; background:var(--purple); border:none; border-radius:var(--radius);
- color:#fff; font-family:var(--font); font-size:15px; font-weight:600;
- cursor:pointer; transition:all 0.2s; white-space:nowrap;
- display:flex; align-items:center; gap:8px;
- }
- .btn-primary:hover { background:#5A4BD1; transform:translateY(-1px); box-shadow:0 8px 30px rgba(108,92,231,0.25); }
- .btn-primary:disabled { opacity:0.35; cursor:not-allowed; transform:none; box-shadow:none; }
- .input-actions { display:flex; gap:var(--space-md); margin-top:var(--space-md); }
- .ad-banner {
- display:none; align-items:center; justify-content:space-between;
- padding:14px 20px; background:var(--red-dim);
- border:1px solid rgba(255,107,107,0.12); border-radius:var(--radius);
- margin-bottom:var(--space-lg); flex-wrap:wrap; gap:var(--space-md);
- }
- .ad-banner.active { display:flex; }
- .ad-banner .ad-text { font-size:14px; color:var(--text-secondary); }
- .ad-banner .ad-text strong { color:var(--red); }
- .ad-banner .ad-btn {
- padding:8px 20px; background:var(--red); border:none; border-radius:8px;
- color:#fff; font-weight:600; font-size:13px; cursor:pointer; transition:background 0.2s;
- }
- .ad-banner .ad-btn:hover { background:#E05555; }
- .debate-flow { margin-bottom:var(--space-2xl); }
- .section-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:var(--space-md); }
- .flow-item { display:flex; gap:var(--space-md); padding:var(--space-md) 0; border-bottom:1px solid rgba(255,255,255,0.03); }
- .flow-item:last-child { border-bottom:none; }
- .flow-item .avatar {
- width:40px; height:40px; border-radius:50%;
- display:flex; align-items:center; justify-content:center; font-size:18px;
- flex-shrink:0; background:var(--bg-card); border:1px solid var(--border);
- }
- .flow-item .content { flex:1; min-width:0; }
- .flow-item .content .meta { display:flex; align-items:center; gap:var(--space-sm); margin-bottom:4px; flex-wrap:wrap; }
- .flow-item .content .meta .name { font-weight:600; font-size:14px; color:var(--text-primary); }
- .flow-item .content .meta .title { font-size:12px; color:var(--text-muted); }
- .flow-item .content .meta .stance-tag { font-size:10px; font-weight:600; padding:2px 10px; border-radius:12px; }
- .stance-tag.support { background:rgba(74,222,128,0.12); color:var(--green); }
- .stance-tag.oppose { background:rgba(255,107,107,0.12); color:var(--red); }
- .stance-tag.neutral { background:rgba(255,255,255,0.04); color:var(--text-muted); }
- .flow-item .content .text { font-size:14px; color:var(--text-secondary); line-height:1.7; }
- .conflict-section { margin-bottom:var(--space-2xl); }
- .conflict-section .section-label { display:flex; align-items:center; gap:var(--space-sm); }
- .conflict-bar-group {
- display:flex; flex-direction:column; gap:var(--space-md);
- background:var(--bg-elevated); border-radius:var(--radius-lg);
- padding:var(--space-lg); border:1px solid var(--border);
- }
- .conflict-item-compact { display:flex; flex-direction:column; gap:4px; }
- .conflict-item-compact .conflict-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-secondary); }
- .conflict-item-compact .conflict-label .left { color:var(--blue); }
- .conflict-item-compact .conflict-label .right { color:var(--red); }
- .conflict-track { height:4px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; position:relative; }
- .conflict-track .fill { height:100%; border-radius:4px; transition:width 0.8s ease; }
- .conflict-track .fill.support { background:var(--blue); }
- .conflict-track .fill.oppose { background:var(--red); }
- .conflict-meta { display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-top:2px; }
- .ceo-section { margin-top:var(--space-xl); padding-top:var(--space-xl); border-top:1px solid var(--border); }
- .ceo-card {
- background:rgba(108,92,231,0.04); border:1px solid rgba(108,92,231,0.12);
- border-radius:var(--radius-lg); padding:var(--space-lg) var(--space-xl);
- transition:border-color 0.3s;
- }
- .ceo-card:hover { border-color:rgba(108,92,231,0.2); }
- .ceo-card .ceo-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--purple); margin-bottom:var(--space-sm); }
- .ceo-card .ceo-decision { font-size:28px; font-weight:700; color:var(--text-primary); letter-spacing:-0.02em; margin-bottom:4px; }
- .ceo-card .ceo-confidence { font-size:14px; color:var(--text-secondary); margin-bottom:var(--space-md); }
- .ceo-card .ceo-divider { height:1px; background:var(--border); margin:var(--space-md) 0; }
- .ceo-card .ceo-reason { font-size:14px; color:var(--text-secondary); line-height:1.7; }
- .ceo-card .ceo-steps { margin-top:var(--space-md); }
- .ceo-card .ceo-steps .step-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-muted); margin-bottom:var(--space-sm); }
- .ceo-card .ceo-steps ul { list-style:none; padding:0; }
- .ceo-card .ceo-steps ul li { font-size:14px; color:var(--text-secondary); padding:4px 0 4px 20px; position:relative; }
- .ceo-card .ceo-steps ul li::before { content:'\25B9'; position:absolute; left:0; color:var(--purple); }
- .ceo-card .ceo-risk { margin-top:var(--space-md); display:inline-flex; align-items:center; gap:var(--space-sm); font-size:13px; color:var(--red); background:var(--red-dim); padding:4px 14px; border-radius:20px; }
- .empty-state { text-align:center; padding:var(--space-2xl) var(--space-lg); color:var(--text-muted); font-size:14px; }
- .empty-state .icon { font-size:32px; margin-bottom:var(--space-md); }
- @media (max-width:640px) {
- body { padding:var(--space-md); }
- .topbar { flex-direction:column; align-items:flex-start; gap:var(--space-md); }
- .remaining-badge { align-self:flex-start; }
- .mode-tabs { flex-direction:column; }
- .input-row { flex-direction:column; }
- .btn-primary { width:100%; justify-content:center; }
- .ceo-card .ceo-decision { font-size:22px; }
- }
- </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Decision Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0B0F1A;
+  --bg-elevated: #111827;
+  --border: rgba(255,255,255,0.06);
+  --text: #EDF2F7;
+  --text-secondary: #94A3B8;
+  --text-muted: #475569;
+  --purple: #6C5CE7;
+  --purple-dim: rgba(108,92,231,0.12);
+  --purple-glow: rgba(108,92,231,0.20);
+  --red: #FF6B6B;
+  --red-dim: rgba(255,107,107,0.08);
+  --blue: #60A5FA;
+  --green: #4ADE80;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg); color: var(--text); font-family: var(--font);
+  font-size: 15px; line-height: 1.6; min-height: 100vh;
+  padding: 24px; display: flex; justify-content: center; -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content:''; position:fixed; top:-30%;left:-10%; width:60%;height:60%;
+  background:radial-gradient(circle at 30% 20%, rgba(108,92,231,0.06), transparent 70%);
+  pointer-events:none; z-index:0;
+}
+.container { max-width:860px; width:100%; position:relative; z-index:1; }
+.topbar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 0 24px; border-bottom:1px solid var(--border); margin-bottom:32px;
+}
+.logo { display:flex; align-items:center; gap:10px; font-size:17px; font-weight:600; letter-spacing:-0.02em; color:var(--text); text-decoration:none; }
+.logo-icon { width:32px; height:32px; background:var(--purple); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+.logo span { color:var(--text-secondary); font-weight:400; }
+.badge {
+  font-size:13px; color:var(--text-secondary); background:var(--bg-elevated);
+  border:1px solid var(--border); padding:5px 16px; border-radius:20px;
+  display:flex; align-items:center; gap:8px;
+}
+.badge strong { color:var(--text); font-weight:600; }
+.input-area { margin-bottom:32px; }
+.input-row { display:flex; gap:12px; }
+.input-area input {
+  flex:1; padding:14px 18px; background:var(--bg-elevated);
+  border:1px solid var(--border); border-radius:var(--radius);
+  color:var(--text); font-family:var(--font); font-size:15px;
+  outline:none; transition:border-color 0.2s;
+}
+.input-area input:focus { border-color:var(--purple); box-shadow:0 0 0 3px var(--purple-dim); }
+.input-area input::placeholder { color:var(--text-muted); }
+.btn {
+  padding:14px 28px; background:var(--purple); border:none; border-radius:var(--radius);
+  color:#fff; font-weight:600; font-size:15px; cursor:pointer;
+  transition:all 0.2s; white-space:nowrap;
+}
+.btn:hover { background:#5A4BD1; transform:translateY(-1px); box-shadow:0 8px 30px var(--purple-glow); }
+.btn:disabled { opacity:0.35; cursor:not-allowed; transform:none; box-shadow:none; }
+.ad-banner {
+  display:none; align-items:center; justify-content:space-between;
+  padding:14px 20px; background:var(--red-dim);
+  border:1px solid rgba(255,107,107,0.12); border-radius:var(--radius);
+  margin-bottom:24px; flex-wrap:wrap; gap:16px;
+}
+.ad-banner.active { display:flex; }
+.ad-banner .ad-text { font-size:14px; color:var(--text-secondary); }
+.ad-banner .ad-text strong { color:var(--red); }
+.ad-banner .ad-btn {
+  padding:8px 20px; background:var(--red); border:none; border-radius:8px;
+  color:#fff; font-weight:600; font-size:13px; cursor:pointer;
+}
+.ad-banner .ad-btn:hover { background:#E05555; }
+.section-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:16px; }
+.debate-flow { margin-bottom:32px; }
+.flow-item {
+  display:flex; gap:16px; padding:16px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  opacity:0; transform:translateX(-8px);
+  transition:opacity 0.6s ease, transform 0.4s ease;
+}
+.flow-item.active { opacity:1; transform:translateX(0); }
+.flow-item.done { opacity:0.85; transform:translateX(0); }
+.flow-item .avatar {
+  width:44px; height:44px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:20px;
+  flex-shrink:0; background:rgba(255,255,255,0.04); border:1px solid var(--border);
+}
+.flow-item .content { flex:1; min-width:0; }
+.flow-item .content .meta {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px;
+}
+.flow-item .content .meta .name { font-weight:600; font-size:15px; color:var(--text); }
+.flow-item .content .meta .title { font-size:12px; color:var(--text-muted); }
+.stance-tag {
+  font-size:11px; font-weight:600; padding:2px 12px; border-radius:12px;
+}
+.stance-tag.support { background:rgba(74,222,128,0.12); color:var(--green); }
+.stance-tag.oppose { background:rgba(255,107,107,0.12); color:var(--red); }
+.stance-tag.neutral { background:rgba(255,255,255,0.04); color:var(--text-muted); }
+.flow-item .content .text {
+  font-size:15px; color:var(--text-secondary); line-height:1.7; min-height:24px;
+}
+.flow-item .content .text .cursor {
+  display:inline-block; width:2px; height:18px; background:var(--purple);
+  animation:blink 0.8s step-end infinite; vertical-align:text-bottom; margin-left:2px;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.status-dot {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:17px;
+  transition:all 0.3s;
+}
+.status-dot.waiting { background:#2A3347; }
+.status-dot.speaking { background:var(--purple); animation:pulse-dot 1s ease-in-out infinite; }
+.status-dot.done { background:var(--green); }
+@keyframes pulse-dot {
+  0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)}
+}
+.conflict-section { margin-bottom:32px; }
+.conflict-bar-group {
+  display:flex; flex-direction:column; gap:16px;
+  background:var(--bg-elevated); border-radius:var(--radius-lg);
+  padding:24px; border:1px solid var(--border);
+}
+.conflict-item { display:flex; flex-direction:column; gap:4px; }
+.conflict-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-secondary); }
+.conflict-label .left { color:var(--blue); }
+.conflict-label .right { color:var(--red); }
+.conflict-track { height:4px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; display:flex; }
+.conflict-track .fill { height:100%; transition:width 0.8s ease; }
+.conflict-track .fill.left { background:var(--blue); }
+.conflict-track .fill.right { background:var(--red); }
+.conflict-meta { display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-top:2px; }
+.ceo-section { margin-top:32px; padding-top:24px; border-top:1px solid var(--border); }
+.ceo-card {
+  background:rgba(108,92,231,0.04); border:1px solid rgba(108,92,231,0.12);
+  border-radius:var(--radius-lg); padding:24px 28px;
+}
+.ceo-card .ceo-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--purple); margin-bottom:6px; }
+.ceo-card .ceo-decision { font-size:28px; font-weight:700; color:var(--text); letter-spacing:-0.02em; }
+.ceo-card .ceo-confidence { font-size:14px; color:var(--text-secondary); margin-top:4px; }
+.ceo-card .ceo-divider { height:1px; background:var(--border); margin:16px 0; }
+.ceo-card .ceo-reason { font-size:14px; color:var(--text-secondary); line-height:1.7; }
+.ceo-card .ceo-steps { margin-top:12px; }
+.ceo-card .ceo-steps .step-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-muted); margin-bottom:6px; }
+.ceo-card .ceo-steps ul { list-style:none; padding:0; }
+.ceo-card .ceo-steps ul li { font-size:14px; color:var(--text-secondary); padding:4px 0 4px 20px; position:relative; }
+.ceo-card .ceo-steps ul li::before { content:'\u25B9'; position:absolute; left:0; color:var(--purple); }
+.ceo-card .ceo-risk { margin-top:12px; display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--red); background:var(--red-dim); padding:4px 14px; border-radius:20px; }
+.empty-state { text-align:center; padding:48px 24px; color:var(--text-muted); font-size:14px; }
+.empty-state .icon { font-size:32px; margin-bottom:16px; }
+@media (max-width:640px) {
+  body { padding:16px; }
+  .topbar { flex-direction:column; align-items:flex-start; gap:16px; }
+  .badge { align-self:flex-start; }
+  .input-row { flex-direction:column; }
+  .btn { width:100%; justify-content:center; }
+  .ceo-card .ceo-decision { font-size:22px; }
+  .ceo-card { padding:16px 18px; }
+}
+</style>
 </head>
 <body>
 <div class="container">
- <header class="topbar">
- <a class="logo" href="/">
- <span class="logo-icon">&#x1F9E0;</span>
- AI <span>Decision Room</span>
- </a>
- <div class="remaining-badge">
- <span>今日剩余</span>
- <strong id="remainingCount">10</strong>
- <span>次</span>
- </div>
- </header>
- <div class="mode-tabs" id="modeTabs">
- <button class="mode-tab active" data-mode="free">&#x26A1; 快速决策 <span class="badge">免费</span></button>
- <button class="mode-tab" data-mode="compare">&#x1F50D; 深度对比 <span class="badge">手动</span></button>
- <button class="mode-tab" data-mode="pro">&#x1F9E0; 全模型Pro <span class="badge">即将上线</span></button>
- </div>
- <div class="ad-banner" id="adBanner">
- <span class="ad-text">&#x1F4FA; 今日免费次数已用完，看 <strong>15秒广告</strong> 解锁 <strong>5次</strong></span>
- <button class="ad-btn" id="adBtn">&#x25B6; 观看广告解锁</button>
- </div>
- <div class="input-section active" id="inputFree">
- <label for="topicInput">&#x1F4CC; 决策议题</label>
- <div class="input-row">
- <input id="topicInput" placeholder="输入你正在纠结的真实决策&hellip;" />
- </div>
- <div class="input-actions">
- <button class="btn-primary" id="runBtn">&#x1F9E0; 生成分析</button>
- </div>
- </div>
- <div class="input-section" id="inputCompare">
- <label for="compareInput">&#x1F4CC; 粘贴各模型输出（每行一个）</label>
- <div class="input-row">
- <textarea id="compareInput" placeholder="例如：&#10;ChatGPT: 建议投放&hellip;&#10;Claude: 建议暂缓&hellip;"></textarea>
- </div>
- <div class="input-actions">
- <button class="btn-primary" id="compareBtn">&#x1F50D; 分析对比</button>
- </div>
- </div>
- <div class="debate-flow">
- <div class="section-label">&#x1F4AC; 董事会辩论</div>
- <div id="agentGrid"></div>
- </div>
- <div class="conflict-section">
- <div class="section-label">&#x2694xFE0F; 核心冲突</div>
- <div id="conflictContainer" class="conflict-bar-group">
- <div class="empty-state">
- <div class="icon">&#x23F3;</div>
- <span>运行分析后显示冲突结构</span>
- </div>
- </div>
- </div>
- <div class="ceo-section">
- <div class="section-label">&#x1F451; CEO 裁决</div>
- <div id="decisionContainer" class="ceo-card">
- <div class="ceo-label">最终决策</div>
- <div style="color:var(--text-muted);font-size:14px;">等待决策生成&hellip;</div>
- </div>
- </div>
-</div>
-<script>
-const STATE = { mode:'free', remaining:10, isAdLocked:false, isAdPlaying:false, userId:localStorage.getItem('decision_room_user_id')||'default' };
-const AGENT_META = [
- { role:'战略官', title:'CSO', icon:'&#x1F9D9;' },
- { role:'批判官', title:'CRO', icon:'&#x2694xFE0F;' },
- { role:'风控官', title:'COO', icon:'&#x1F6E1xFE0F;' },
- { role:'增长官', title:'CGO', icon:'&#x1F4C8;' },
- { role:'洞察官', title:'CCO', icon:'&#x1F50D;' },
- { role:'创新官', title:'CIO', icon:'&#x1F680;' },
- { role:'CEO裁决官', title:'CEO', icon:'&#x1F451;' }
-];
-function $(id){return document.getElementById(id);}
-const modeTabs=document.querySelectorAll('.mode-tab');
-const inputFree=$('inputFree'),inputCompare=$('inputCompare');
-const topicInput=$('topicInput'),runBtn=$('runBtn');
-const compareInput=$('compareInput'),compareBtn=$('compareBtn');
-const agentGrid=$('agentGrid'),conflictContainer=$('conflictContainer');
-const decisionContainer=$('decisionContainer'),remainingEl=$('remainingCount');
-const adBanner=$('adBanner'),adBtn=$('adBtn');
 
+<header class="topbar">
+  <a class="logo" href="/"><span class="logo-icon">&#x1F9E0;</span> AI <span>Decision Room</span></a>
+  <div class="badge"><span>今日剩余</span> <strong id="remainingCount">10</strong> <span>次</span></div>
+</header>
+
+<div class="ad-banner" id="adBanner">
+  <span class="ad-text">&#x1F4FA; 今日免费次数已用完，看 <strong>15秒广告</strong> 解锁 <strong>5次</strong></span>
+  <button class="ad-btn" id="adBtn">&#x25B6; 观看广告解锁</button>
+</div>
+
+<div class="input-area">
+  <div class="input-row">
+    <input id="topicInput" placeholder="输入决策议题，例如：蕲艾五官灸是否要做小红书投放？">
+    <button class="btn" id="runBtn">&#x1F9E0; 召开董事会</button>
+  </div>
+</div>
+
+<div class="debate-flow">
+  <div class="section-label">&#x1F4AC; 董事会辩论</div>
+  <div id="agentGrid"><div class="empty-state"><div class="icon">&#x1F4A1;</div><span>输入议题后，AI 董事会将依次发言</span></div></div>
+</div>
+
+<div class="conflict-section">
+  <div class="section-label">&#x2694;&#xFE0F; 核心冲突</div>
+  <div id="conflictContainer" class="conflict-bar-group">
+    <div class="empty-state"><div class="icon">&#x23F3;</div><span>运行分析后显示冲突结构</span></div>
+  </div>
+</div>
+
+<div class="ceo-section">
+  <div class="section-label">&#x1F451; CEO 裁决</div>
+  <div id="decisionContainer" class="ceo-card">
+    <div class="ceo-label">最终决策</div>
+    <div style="color:var(--text-muted);font-size:14px;">等待辩论结束&hellip;</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// === 配置 ===
+const BOARD = [
+  {id:'strategy',  icon:'&#x1F9D9;', name:'战略官',   title:'CSO',  color:'#7CC4FF', stance:'support'},
+  {id:'critic',   icon:'&#x2694;&#xFE0F;', name:'批判官', title:'CRO',  color:'#FF7C7C', stance:'oppose'},
+  {id:'risk',     icon:'&#x1F6E1;&#xFE0F;', name:'风控官',  title:'COO',  color:'#FBBF24', stance:'neutral'},
+  {id:'growth',   icon:'&#x1F4C8;',  name:'增长官',   title:'CGO',  color:'#4ADE80', stance:'support'},
+  {id:'insight',  icon:'&#x1F50D;',  name:'洞察官',   title:'CCO',  color:'#60A5FA', stance:'support'},
+  {id:'innovation', icon:'&#x1F680;', name:'创新官', title:'CIO',  color:'#A78BFA', stance:'support'},
+  {id:'ceo',      icon:'&#x1F451;',  name:'CEO裁决官', title:'CEO',  color:'#7C5CFF', stance:'support'},
+];
+
+const STATE = {
+  remaining: 10,
+  isAdPlaying: false,
+  userId: localStorage.getItem('decision_room_user_id') || 'default',
+};
+
+const $ = id => document.getElementById(id);
+const topicInput = $('topicInput');
+const runBtn = $('runBtn');
+const agentGrid = $('agentGrid');
+const conflictContainer = $('conflictContainer');
+const decisionContainer = $('decisionContainer');
+const remainingEl = $('remainingCount');
+const adBanner = $('adBanner');
+const adBtn = $('adBtn');
+
+// === 次数管理 ===
 function loadState(){
- const key='decision_room_'+STATE.userId;
- try{
-  const d=JSON.parse(localStorage.getItem(key));
-  if(d&&d.date===new Date().toDateString()){STATE.remaining=d.remaining;}
-  else{STATE.remaining=10;saveState();}
- }catch(e){STATE.remaining=10;saveState();}
- updateUI();
+  try{
+    const d = JSON.parse(localStorage.getItem('decision_room_'+STATE.userId));
+    if(d && d.date === new Date().toDateString()) STATE.remaining = d.remaining;
+    else { STATE.remaining = 10; saveState(); }
+  } catch(e) { STATE.remaining = 10; saveState(); }
+  updateUI();
 }
 function saveState(){
- localStorage.setItem('decision_room_'+STATE.userId,JSON.stringify({date:new Date().toDateString(),remaining:STATE.remaining}));
+  localStorage.setItem('decision_room_'+STATE.userId, JSON.stringify({
+    date: new Date().toDateString(), remaining: STATE.remaining,
+  }));
 }
 function useOne(){
- if(STATE.remaining<=0){STATE.isAdLocked=true;updateUI();return false;}
- STATE.remaining-=1;STATE.isAdLocked=false;saveState();updateUI();return true;
+  if(STATE.remaining <= 0) return false;
+  STATE.remaining -= 1; saveState(); updateUI(); return true;
 }
 function updateUI(){
- remainingEl.textContent=STATE.remaining;
- runBtn.disabled=STATE.remaining<=0;
- runBtn.style.opacity=STATE.remaining<=0?'0.35':'1';
- adBanner.classList.toggle('active',STATE.remaining<=0);
+  remainingEl.textContent = STATE.remaining;
+  runBtn.disabled = STATE.remaining <= 0;
+  runBtn.style.opacity = STATE.remaining <= 0 ? '0.35' : '1';
+  adBanner.classList.toggle('active', STATE.remaining <= 0);
 }
 function unlockByAd(){
- if(STATE.isAdPlaying)return;
- STATE.isAdPlaying=true;adBtn.disabled=true;adBtn.textContent='&#x23F3; 15s';
- let s=15;
- const iv=setInterval(()=>{
-  s-=1;adBtn.textContent='&#x23F3; '+s+'s';
-  if(s<=0){
-   clearInterval(iv);
-   STATE.remaining=Math.min(10,STATE.remaining+5);
-   STATE.isAdLocked=false;STATE.isAdPlaying=false;
-   saveState();updateUI();adBtn.disabled=false;
-   adBtn.textContent='&#x25B6; 观看广告解锁';
-  }
- },1000);
+  if(STATE.isAdPlaying) return;
+  STATE.isAdPlaying = true; adBtn.disabled = true; adBtn.textContent = '&#x23F3; 15s';
+  let s = 15;
+  const iv = setInterval(() => {
+    s -= 1; adBtn.textContent = '&#x23F3; '+s+'s';
+    if(s <= 0){
+      clearInterval(iv);
+      STATE.remaining = Math.min(10, STATE.remaining + 5);
+      STATE.isAdPlaying = false; saveState(); updateUI();
+      adBtn.disabled = false; adBtn.textContent = '&#x25B6; 观看广告解锁';
+    }
+  }, 1000);
 }
-modeTabs.forEach(t=>t.addEventListener('click',()=>{
- modeTabs.forEach(x=>x.classList.remove('active'));
- t.classList.add('active');STATE.mode=t.dataset.mode;
- inputFree.classList.toggle('active',STATE.mode==='free');
- inputCompare.classList.toggle('active',STATE.mode==='compare');
-}));
 
-function renderFlow(agents){
- if(!agents||agents.length===0){agentGrid.innerHTML='<div class="empty-state"><div class="icon">&#x23F3;</div><span>等待分析&hellip;</span></div>';return;}
- let html='';
- agents.forEach((a,i)=>{
-  const m=AGENT_META[i]||{};
-  const stance=a.stance||'neutral';
-  const stanceLabel=stance==='support'?'支持':stance==='oppose'?'反对':'中立';
-  html+='<div class="flow-item">'
-   +'<div class="avatar">'+(m.icon||'&#x1F9E0;')+'</div>'
-   +'<div class="content"><div class="meta">'
-   +'<span class="name">'+(m.role||a.role||'AI')+'</span>'
-   +'<span class="title">'+(m.title||'')+'</span>'
-   +'<span class="stance-tag '+stance+'">'+stanceLabel+'</span></div>'
-   +'<div class="text">'+(a.reason||a.output||'&mdash;')+'</div></div></div>';
- });
- agentGrid.innerHTML=html;
-}
-function renderConflicts(conflicts){
- if(!conflicts||conflicts.length===0){
-  conflictContainer.innerHTML='<div class="empty-state"><div class="icon">&#x2705;</div><span>未检测到明显冲突</span></div>';return;
- }
- let html='';
- conflicts.forEach(c=>{
-  const sp=c.severity_pct||50;
-  const op=100-sp;
-  html+='<div class="conflict-item-compact">'
-   +'<div class="conflict-label"><span class="left">'+(c.left||'支持方')+'</span><span class="right">'+(c.right||'反对方')+'</span></div>'
-   +'<div class="conflict-track">'
-   +'<div class="fill support" style="width:'+sp+'%;"></div>'
-   +'<div class="fill oppose" style="width:'+op+'%;"></div></div>'
-   +'<div class="conflict-meta"><span>'+(c.title||'冲突点')+'</span><span>强度 '+sp+'%</span></div></div>';
- });
- conflictContainer.innerHTML=html;
-}
-function renderDecision(data){
- if(!data||!data.decision){
-  decisionContainer.innerHTML='<div class="ceo-label">最终决策</div><div style="color:var(--text-muted);font-size:14px;">等待决策生成&hellip;</div>';return;
- }
- const steps=data.steps||['规划执行路径'];
- const riskText=data.risk||'请关注执行风险';
- decisionContainer.innerHTML='<div class="ceo-label">最终决策</div>'
-  +'<div class="ceo-decision">'+data.decision+'</div>'
-  +'<div class="ceo-confidence">置信度 '+(data.confidence||78)+'%</div>'
-  +'<div class="ceo-divider"></div>'
-  +'<div class="ceo-reason">'+(data.rationale||'基于多模型冲突分析，综合决策。')+'</div>'
-  +'<div class="ceo-steps"><div class="step-label">执行路径</div>'
-  +'<ul>'+steps.map(s=>'<li>'+s+'</li>').join('')+'</ul></div>'
-  +'<div class="ceo-risk">&#x26A0; '+riskText+'</div>';
-}
-async function runFreeDecision(){
- if(!useOne())return;
- const payload={topic:topicInput.value.trim()||'蕲艾五官灸是否做小红书投放',background:''};
- runBtn.disabled=true;runBtn.textContent='&#x23F3; 分析中&hellip;';
- try{
-  const res=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  const data=await res.json();
-  if(data.agents)renderFlow(data.agents);
-  if(data.conflicts)renderConflicts(data.conflicts);
-  if(data.decision)renderDecision(data.decision);
- }catch(e){
-  // fallback to mock
-  renderFlow([
-   {stance:'support',reason:'三伏天是养生心智最强时期，建议小步快跑。'},
-   {stance:'oppose',reason:'3万预算在小红书测试门槛不足，建议暂缓。'},
-   {stance:'neutral',reason:'风险可控，但需设置明确止损线。'},
-   {stance:'support',reason:'市场窗口期正在打开，建议快速跟进。'},
-   {stance:'support',reason:'小红书养生人群增长43%，内容测试成本低于3千元即可验证。'},
-   {stance:'support',reason:'可结合AI生成测评内容+UGC裂变，以极低成本完成冷启动。'},
-   {stance:'support',reason:'综合6位董事意见，多数支持。建议投入8000元做2周内容测试。'}
-  ]);
-  renderConflicts([
-   {title:'预算判断分歧',left:'战略官 3万足够',right:'批判官 3万不足',severity_pct:82},
-   {title:'时间窗口判断',left:'增长官 必须7月前',right:'风控官 可延后',severity_pct:65},
-   {title:'渠道策略分歧',left:'洞察官 小红书成本低',right:'批判官 ROI不确定',severity_pct:48}
-  ]);
-  renderDecision({
-   decision:'小规模测试（建议8000元预算）',confidence:82,
-   rationale:'6位董事投票：4位支持、1位反对、1位中立。',
-   steps:['筛选3个KOC账号','制作2条AI+真人内容','投入8000元跑2周','第7天复盘，ROI>1.0则追加'],
-   risk:'初期转化波动较大，内容质量决定ROI上限。需预留2万元止损线。'
+// === 流式辩论 ===
+function playDebateFlow(agents, onDone){
+  if(!agents || agents.length === 0){ onDone(); return; }
+  let html = '';
+  agents.forEach((a, i) => {
+    const m = BOARD[i] || {};
+    const stance = a.stance || 'neutral';
+    const label = stance === 'support' ? '支持' : stance === 'oppose' ? '反对' : '中立';
+    html += '<div class="flow-item" id="flow-'+i+'">'
+      + '<div class="avatar">'+(m.icon||'&#x1F9E0;')+'</div>'
+      + '<div class="content">'
+      + '<div class="meta">'
+      + '<span class="name">'+(m.name||a.role||'AI')+'</span>'
+      + '<span class="title">'+(m.title||'')+'</span>'
+      + '<span class="stance-tag '+stance+'">'+label+'</span>'
+      + '</div>'
+      + '<div class="text" id="text-'+i+'"></div>'
+      + '</div>'
+      + '<span class="status-dot waiting" id="dot-'+i+'"></span>'
+      + '</div>';
   });
- }finally{
-  runBtn.disabled=false;runBtn.textContent='&#x1F9E0; 生成分析';updateUI();
- }
+  agentGrid.innerHTML = html;
+
+  let idx = 0;
+  function next(){
+    if(idx >= agents.length){ onDone(); return; }
+    const item = $('flow-'+idx);
+    const textEl = $('text-'+idx);
+    const dot = $('dot-'+idx);
+    const agent = agents[idx];
+    item.className = 'flow-item active';
+    item.style.opacity = '1';
+    dot.className = 'status-dot speaking';
+    const text = agent.reason || agent.output || '—';
+    let ci = 0;
+    textEl.textContent = '';
+    const ti = setInterval(() => {
+      if(ci < text.length){ textEl.textContent += text[ci]; ci++; }
+      else {
+        clearInterval(ti);
+        item.className = 'flow-item done';
+        dot.className = 'status-dot done';
+        idx++;
+        setTimeout(next, 300);
+      }
+    }, 20);
+  }
+  setTimeout(next, 200);
 }
+
+function renderConflicts(conflicts){
+  if(!conflicts || conflicts.length === 0){
+    conflictContainer.innerHTML = '<div class="empty-state"><div class="icon">&#x2705;</div><span>未检测到明显冲突</span></div>';
+    return;
+  }
+  let html = '';
+  conflicts.forEach(c => {
+    const sev = c.severity_pct || 50;
+    html += '<div class="conflict-item">'
+      + '<div class="conflict-label"><span class="left">'+(c.left||'支持方')+'</span><span class="right">'+(c.right||'反对方')+'</span></div>'
+      + '<div class="conflict-track"><div class="fill left" style="width:'+sev+'%;"></div><div class="fill right" style="width:'+(100-sev)+'%;"></div></div>'
+      + '<div class="conflict-meta"><span>'+(c.title||'冲突点')+'</span><span>强度 '+sev+'%</span></div>'
+      + '</div>';
+  });
+  conflictContainer.innerHTML = html;
+}
+
+function renderDecision(data){
+  if(!data || !data.decision){
+    decisionContainer.innerHTML = '<div class="ceo-label">最终决策</div><div style="color:var(--text-muted);font-size:14px;">等待辩论结束&hellip;</div>';
+    return;
+  }
+  const st = data.steps || ['规划执行路径'];
+  decisionContainer.innerHTML = '<div class="ceo-label">最终决策</div>'
+    + '<div class="ceo-decision">'+data.decision+'</div>'
+    + '<div class="ceo-confidence">置信度 '+(data.confidence||78)+'%</div>'
+    + '<div class="ceo-divider"></div>'
+    + '<div class="ceo-reason">'+(data.rationale||'基于多模型冲突分析，综合决策。')+'</div>'
+    + '<div class="ceo-steps"><div class="step-label">执行路径</div>'
+    + '<ul>'+st.map(s => '<li>'+s+'</li>').join('')+'</ul></div>'
+    + '<div class="ceo-risk">&#x26A0; '+(data.risk||'请关注执行风险')+'</div>';
+}
+
+// === Mock 数据（适配后端 7-agent 格式） ===
+const MOCK_AGENTS = [
+  {stance:'support', reason:'三伏天是养生心智最强时期，竞品已验证路径，建议小步快跑抢占先机。'},
+  {stance:'oppose', reason:'3万预算在小红书测试门槛不足，竞品已占据心智，此时进入成本过高。'},
+  {stance:'neutral', reason:'风险可控但需谨慎。建议设5000元止损线，48h内完成验证。'},
+  {stance:'support', reason:'赛道的获客成本正上升，现在是卡位最后窗口。建议用5000元做AB测试。'},
+  {stance:'support', reason:'小红书养生人群增长43%，内容测试成本低于3千元即可验证，值得尝试。'},
+  {stance:'support', reason:'可结合AI生成测评内容+UGC裂变，以极低成本完成冷启动，建议执行。'},
+  {stance:'support', reason:'综合6位董事意见——4票支持、1票反对、1票中立，建议投入8000元做2周内容测试。'},
+];
+
+const MOCK_CONFLICTS = [
+  {title:'预算判断分歧', left:'战略官 3万足够', right:'批判官 3万不足', severity_pct:82},
+  {title:'时间窗口判断', left:'增长官 必须7月前', right:'风控官 可延后', severity_pct:65},
+  {title:'渠道策略分歧', left:'洞察官 小红书低成本', right:'批判官 ROI不确定', severity_pct:48},
+];
+
+const MOCK_DECISION = {
+  decision: '小规模测试（建议8000元预算）',
+  confidence: 82,
+  rationale: '6位董事投票：4票支持、1票反对、1票中立。市场存在真实需求信号，风险可控。',
+  steps: ['筛选3个KOC账号询价','制作2条AI+真人内容内容','投入8000元跑2周','第7天复盘，ROI>1.0则追加'],
+  risk: '初期转化波动较大，内容质量决定ROI上限。需预留2万元止损线。',
+};
+
+async function runFreeDecision(){
+  if(!useOne()) return;
+  runBtn.disabled = true;
+  runBtn.textContent = '&#x23F3; 辩论中…';
+  decisionContainer.innerHTML = '<div class="ceo-label">最终决策</div><div style="color:var(--text-muted);font-size:14px;">&#x23F3; AI 董事会正在辩论&hellip;</div>';
+  conflictContainer.innerHTML = '<div class="empty-state"><div class="icon">&#x23F3;</div><span>辩论中&hellip;</span></div>';
+
+  try{
+    const payload = {topic: topicInput.value.trim() || '蕲艾五官灸是否做小红书投放', background: ''};
+    const res = await fetch('/api/run', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    const data = await res.json();
+    if(data.agents){
+      playDebateFlow(data.agents, () => {
+        if(data.conflicts) renderConflicts(data.conflicts);
+        if(data.decision) renderDecision(data.decision);
+        else renderDecision(MOCK_DECISION);
+      });
+    } else { fallback(); }
+  } catch(e){ fallback(); }
+
+  function fallback(){
+    playDebateFlow(MOCK_AGENTS, () => {
+      renderConflicts(MOCK_CONFLICTS);
+      renderDecision(MOCK_DECISION);
+    });
+  }
+
+  runBtn.disabled = false;
+  runBtn.textContent = '&#x1F9E0; 召开董事会';
+  updateUI();
+}
+
+// === 初始化 ===
 loadState();
-runBtn.addEventListener('click',runFreeDecision);
-adBtn.addEventListener('click',unlockByAd);
-topicInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&STATE.mode==='free')runFreeDecision();});
+runBtn.addEventListener('click', runFreeDecision);
+adBtn.addEventListener('click', unlockByAd);
+topicInput.addEventListener('keydown', e => { if(e.key === 'Enter') runFreeDecision(); });
+
+// 初始展示
+playDebateFlow(MOCK_AGENTS, () => {
+  renderConflicts(MOCK_CONFLICTS);
+  renderDecision(MOCK_DECISION);
+});
 </script>
 </body>
-</html>
-"""
+</html>"""
 
 # ════════════════════════════════════════════════════════════
 # V1.2 冲突决策引擎
