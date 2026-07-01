@@ -181,7 +181,7 @@ p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
 # ============================================================
 
 # ============================================================
-# ROOM PAGE — V3 会议室型 UI（Linear 风格）
+# ROOM PAGE — V3.5 微信群聊式会议 UI
 # ============================================================
 ROOM_HTML = r"""
 <!DOCTYPE html>
@@ -197,35 +197,43 @@ body {
     background: #0B0F1A;
     color: #E8EDF5;
     font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
-    display: flex;
-    justify-content: center;
-    padding: 32px 20px;
-    min-height: 100vh;
+    display: flex; justify-content: center;
+    padding: 32px 20px; min-height: 100vh;
 }
 .container { max-width: 720px; width: 100%; }
 
-/* ─── 顶部品牌区 ─── */
+/* ─── 顶部 ─── */
 .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    margin-bottom: 28px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 24px;
 }
 .header .logo { font-weight: 600; font-size: 18px; letter-spacing: -0.3px; color: #E8EDF5; }
 .header .logo span { color: #7C5CFF; }
 .header .status { font-size: 12px; color: #5A657A; display: flex; align-items: center; gap: 8px; }
 .header .status .dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #4A5268; transition: background 0.3s;
+    width: 8px; height: 8px; border-radius: 50%; background: #4A5268;
 }
 .header .status .dot.active { background: #4ADE80; animation: pulse-dot 1.2s ease-in-out infinite; }
+.header .status .dot.speaking { background: #F59E0B; animation: pulse-dot 1.2s ease-in-out infinite; }
 @keyframes pulse-dot {
     0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)}
 }
 
+/* ─── 投票概览 ─── */
+.vote-summary {
+    display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.vote-pill {
+    font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px;
+    display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.06);
+}
+.vote-pill.support { background: rgba(74,222,128,0.08); color: #4ADE80; border-color: rgba(74,222,128,0.12); }
+.vote-pill.oppose { background: rgba(255,107,107,0.08); color: #FF6B6B; border-color: rgba(255,107,107,0.12); }
+.vote-pill.neutral { background: rgba(255,255,255,0.04); color: #8A92A8; border-color: rgba(255,255,255,0.06); }
+
 /* ─── 输入区 ─── */
-.input-area { margin-bottom: 32px; }
+.input-area { margin-bottom: 24px; }
 .input-area .row { display: flex; gap: 12px; }
 .input-area input {
     flex: 1; padding: 14px 18px; background: rgba(255,255,255,0.04);
@@ -242,16 +250,18 @@ body {
 .input-area .btn:hover { background: #6B4DE0; }
 .input-area .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ─── 会议桌 ─── */
+/* ─── 会议桌（群聊风格） ─── */
 .boardroom { margin-bottom: 32px; }
 .boardroom .label {
     font-size: 11px; font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.06em; color: #5A657A; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
 }
+.boardroom .label .count { font-size: 12px; color: #4A5268; font-weight: 400; }
 
-/* 发言气泡 */
+/* 发言气泡（微信群聊式） */
 .speech {
-    display: flex; gap: 14px; padding: 14px 0;
+    display: flex; gap: 12px; padding: 12px 0;
     border-bottom: 1px solid rgba(255,255,255,0.04);
     opacity: 0; transform: translateY(6px);
     animation: fadeUp 0.4s ease forwards;
@@ -261,23 +271,71 @@ body {
     width: 40px; height: 40px; border-radius: 50%; display: flex;
     align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    position: relative;
 }
+.speech .avatar .typing {
+    position: absolute; bottom: -2px; right: -2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #F59E0B; border: 2px solid #0B0F1A;
+    display: none; animation: pulse-dot 1.2s ease-in-out infinite;
+}
+.speech .avatar .typing.active { display: block; }
+
 .speech .body { flex: 1; min-width: 0; }
 .speech .body .meta {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 2px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px; flex-wrap: wrap;
 }
 .speech .body .meta .name { font-weight: 600; font-size: 14px; color: #E8EDF5; }
 .speech .body .meta .title { font-size: 12px; color: #5A657A; }
 .speech .body .meta .tag {
-    font-size: 10px; font-weight: 600; padding: 2px 10px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
 }
 .tag.support { background: rgba(74,222,128,0.12); color: #4ADE80; }
 .tag.oppose { background: rgba(255,107,107,0.12); color: #FF6B6B; }
 .tag.neutral { background: rgba(255,255,255,0.04); color: #8A92A8; }
-.speech .body .text {
-    font-size: 14px; color: #C8D0E0; line-height: 1.6;
+.tag.error { background: rgba(245,158,11,0.12); color: #F59E0B; }
+.tag.waiting { background: rgba(124,92,255,0.1); color: #7C5CFF; animation: pulse-text 1.5s ease-in-out infinite; }
+
+@keyframes pulse-text {
+    0%,100%{opacity:1} 50%{opacity:0.5}
 }
+
+/* 发言内容 */
+.speech .body .text {
+    font-size: 14px; color: #C8D0E0; line-height: 1.7;
+    max-height: 4.2em; /* 约3行 */
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.speech .body .text.expanded {
+    max-height: none;
+    overflow: visible;
+}
+.speech .body .text-collapsed {
+    font-size: 14px; color: #C8D0E0; line-height: 1.7;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.speech .body .text-collapsed.expanded {
+    -webkit-line-clamp: unset; display: block;
+}
+.speech .body .expand-btn {
+    font-size: 12px; color: #7C5CFF; margin-top: 4px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px; user-select: none;
+}
+.speech .body .expand-btn:hover { color: #A78BFA; }
+
+/* 错误/等待状态 */
+.speech.error .avatar { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.15); }
+.speech.waiting .avatar { background: rgba(124,92,255,0.08); border-color: rgba(124,92,255,0.15); }
+.speech .body .error-text { font-size: 13px; color: #F59E0B; font-style: italic; }
+.speech .body .retry-btn {
+    font-size: 12px; color: #7C5CFF; margin-top: 4px; cursor: pointer;
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    background: rgba(124,92,255,0.08); border: 1px solid rgba(124,92,255,0.12);
+}
+.speech .body .retry-btn:hover { background: rgba(124,92,255,0.15); }
 
 /* ─── CEO裁决 ─── */
 .ceo-section { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 24px; }
@@ -294,13 +352,17 @@ body {
 .ceo-card .ceo-reason { font-size: 14px; color: #9AA8C0; line-height: 1.7; }
 .ceo-card .ceo-steps { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
 .ceo-card .ceo-steps .step {
-    font-size: 13px; color: #B0C0D8; padding-left: 18px; position: relative;
+    font-size: 13px; color: #B0C0D8; padding-left: 16px; position: relative;
 }
-.ceo-card .ceo-steps .step::before { content: "\u25b8"; position: absolute; left: 0; color: #7C5CFF; }
+.ceo-card .ceo-steps .step::before {
+    content: ""; position: absolute; left: 0; top: 8px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #7C5CFF;
+}
 
 /* ─── 空状态 ─── */
-.empty { text-align: center; color: #4A5268; padding: 30px 0; font-size: 14px; }
-.empty .icon { font-size: 32px; margin-bottom: 8px; opacity: 0.5; }
+.empty { text-align: center; color: #4A5268; padding: 40px 0; font-size: 14px; }
+.empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
 
 /* ─── 错误提示 ─── */
 .error-banner {
@@ -309,6 +371,21 @@ body {
     display: none;
 }
 .error-banner.active { display: block; }
+
+/* ─── 打字动画 ─── */
+.typing-indicator {
+    display: inline-flex; gap: 3px; align-items: center; padding: 4px 0;
+}
+.typing-indicator span {
+    width: 6px; height: 6px; border-radius: 50%; background: #7C5CFF;
+    animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typing-bounce {
+    0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; }
+    40% { transform: scale(1); opacity: 1; }
+}
 
 /* ─── 响应式 ─── */
 @media (max-width: 560px) {
@@ -331,6 +408,13 @@ body {
         </div>
     </header>
 
+    <!-- 投票概览（动态） -->
+    <div class="vote-summary" id="voteSummary" style="display:none;">
+        <div class="vote-pill support" id="voteSupport"><span>✅</span> <span>支持 0</span></div>
+        <div class="vote-pill oppose" id="voteOppose"><span>❌</span> <span>反对 0</span></div>
+        <div class="vote-pill neutral" id="voteNeutral"><span>⚖️</span> <span>中立 0</span></div>
+    </div>
+
     <!-- 输入 -->
     <div class="input-area">
         <div class="row">
@@ -344,11 +428,12 @@ body {
 
     <!-- 会议桌 -->
     <div class="boardroom">
-        <div class="label">💬 董事会发言</div>
+        <div class="label">💬 董事会发言 <span class="count" id="speakCount"></span></div>
         <div id="boardroomContainer">
             <div class="empty" id="emptyState">
-                <div class="icon">💬</div>
+                <div class="icon">🏛️</div>
                 <div>输入问题后，AI 将依次发言</div>
+                <div style="font-size:12px;color:#4A5268;margin-top:8px;">7位董事 → 冲突分析 → CEO裁决</div>
             </div>
         </div>
     </div>
@@ -378,7 +463,6 @@ const BOARD = [
     { id: 6, name: 'CEO裁决官', icon: '👑', title: 'CEO', tagClass: 'support' }
 ];
 
-// DOM
 const container = document.getElementById('boardroomContainer');
 const emptyState = document.getElementById('emptyState');
 const ceoSection = document.getElementById('ceoSection');
@@ -391,35 +475,30 @@ const runBtn = document.getElementById('runBtn');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const errorBanner = document.getElementById('errorBanner');
+const voteSummary = document.getElementById('voteSummary');
+const voteSupport = document.getElementById('voteSupport');
+const voteOppose = document.getElementById('voteOppose');
+const voteNeutral = document.getElementById('voteNeutral');
+const speakCount = document.getElementById('speakCount');
 
 let isRunning = false;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// 打字效果
-async function typeText(el, text, speed = 22) {
-    el.textContent = '';
-    for (let i = 0; i < text.length; i++) {
-        el.textContent += text[i];
-        await sleep(speed);
-    }
-}
-
-// 清空会议室
 function clearBoardroom() {
     document.querySelectorAll('.speech').forEach(el => el.remove());
     emptyState.style.display = 'block';
     ceoSection.style.display = 'none';
     errorBanner.classList.remove('active');
+    voteSummary.style.display = 'none';
+    speakCount.textContent = '';
 }
 
-// 显示错误
 function showError(msg) {
     errorBanner.textContent = '⚠️ ' + msg;
     errorBanner.classList.add('active');
 }
 
-// 获取立场标签
 function getStanceTag(stance) {
     if (stance === '支持') return { text: '支持', cls: 'support' };
     if (stance === '反对') return { text: '反对', cls: 'oppose' };
@@ -427,26 +506,66 @@ function getStanceTag(stance) {
     return { text: stance || '—', cls: 'neutral' };
 }
 
+function updateVoteSummary(agents) {
+    if (!agents || agents.length === 0) return;
+    const sup = agents.filter(a => a.stance === '支持').length;
+    const opp = agents.filter(a => a.stance === '反对').length;
+    const neu = agents.filter(a => a.stance === '中立' || a.stance === '—').length;
+    voteSupport.innerHTML = '<span>✅</span> <span>支持 ' + sup + '</span>';
+    voteOppose.innerHTML = '<span>❌</span> <span>反对 ' + opp + '</span>';
+    voteNeutral.innerHTML = '<span>⚖️</span> <span>中立/待决 ' + neu + '</span>';
+    voteSummary.style.display = 'flex';
+    speakCount.textContent = '（' + agents.length + '/7）';
+}
+
 // 添加发言气泡
-function addSpeech(member, text, stance) {
+function addSpeech(member, text, stance, isError) {
     emptyState.style.display = 'none';
     const st = getStanceTag(stance);
+    const isLong = text.length > 120;
+    const displayClass = isLong ? 'text-collapsed' : 'text';
+    const errorCls = isError ? ' error' : '';
     const div = document.createElement('div');
-    div.className = 'speech';
+    div.className = 'speech' + errorCls;
+    div.id = 'speech-' + member.id;
+    
+    const tagHTML = isError 
+        ? '<span class="tag error">暂不可用</span>'
+        : '<span class="tag ' + st.cls + '">' + st.text + '</span>';
+    
+    const expandHTML = isLong && !isError
+        ? '<div class="expand-btn" onclick="this.previousElementSibling.classList.toggle(\'expanded\'); this.textContent=this.previousElementSibling.classList.contains(\'expanded\') ? \\'收起 ▲\\' : \\'展开全文 ▼\\'">展开全文 ▼</div>'
+        : '';
+    
     div.innerHTML = `
-        <div class="avatar">${member.icon}</div>
+        <div class="avatar">${member.icon}<div class="typing" id="typing-${member.id}"></div></div>
         <div class="body">
             <div class="meta">
                 <span class="name">${member.name}</span>
                 <span class="title">${member.title}</span>
-                <span class="tag ${st.cls}">${st.text}</span>
+                ${tagHTML}
             </div>
-            <div class="text" id="t-${Date.now()}"></div>
+            <div class="${displayClass}" id="text-${member.id}">${isError ? '<span class="error-text">' + text + '</span>' : text}</div>
+            ${expandHTML}
         </div>
     `;
     container.appendChild(div);
     div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    return div.querySelector('.text');
+    return div.querySelector('#text-' + member.id);
+}
+
+function setTyping(memberId, active) {
+    const el = document.getElementById('typing-' + memberId);
+    if (el) el.classList.toggle('active', active);
+}
+
+// 打字效果
+async function typeText(el, text, speed = 18) {
+    el.textContent = '';
+    for (let i = 0; i < text.length; i++) {
+        el.textContent += text[i];
+        await sleep(speed);
+    }
 }
 
 // 显示CEO裁决
@@ -466,20 +585,15 @@ function showCEO(decision) {
     setTimeout(() => ceoSection.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
 }
 
-// 运行董事会（调用真实 API）
 async function runBoard() {
     if (isRunning) return;
-
     const topic = topicInput.value.trim();
-    if (!topic) {
-        showError('请输入决策问题');
-        return;
-    }
+    if (!topic) { showError('请输入决策问题'); return; }
 
     isRunning = true;
     runBtn.disabled = true;
-    runBtn.textContent = '⏳ 发言中…';
-    statusDot.className = 'dot active';
+    runBtn.textContent = '⏳ 会议中…';
+    statusDot.className = 'dot speaking';
     statusText.textContent = '会议中';
     errorBanner.classList.remove('active');
 
@@ -491,40 +605,36 @@ async function runBoard() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ topic: topic })
         });
-
-        if (!resp.ok) {
-            throw new Error('API 请求失败 (' + resp.status + ')');
-        }
-
+        if (!resp.ok) throw new Error('API 请求失败 (' + resp.status + ')');
         const data = await resp.json();
         const agents = data.agents || [];
         const decision = data.decision || null;
+        if (agents.length === 0) throw new Error('未收到 AI 董事会回应');
 
-        if (agents.length === 0) {
-            throw new Error('未收到 AI 董事会回应');
-        }
-
-        // 依次显示每位董事发言
-        for (let i = 0; i < Math.min(agents.length, BOARD.length - 1); i++) {
+        // 依次显示
+        for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
             const agent = agents[i];
             const member = BOARD[i];
+            const isError = agent.stance === '—' || (agent.reason && agent.reason.startsWith('API 错误')) || (agent.reason && agent.reason.startsWith('请求失败'));
             const text = agent.reason || agent.output || '分析中…';
-            const el = addSpeech(member, text, agent.stance);
+            
+            setTyping(member.id, true);
+            const el = addSpeech(member, isError ? '模型暂不可用，正在分析中…' : text, agent.stance, isError);
+            updateVoteSummary(agents.slice(0, i + 1));
             await sleep(200);
-            await typeText(el, text, 20);
-            await sleep(250);
+            
+            if (!isError) await typeText(el, text, 16);
+            setTyping(member.id, false);
+            await sleep(300);
         }
 
-        // 显示 CEO 裁决
         if (decision) {
             await sleep(400);
             showCEO(decision);
         }
-
         statusText.textContent = '已结束';
-
     } catch (err) {
-        showError(err.message || '请求失败，请稍后重试');
+        showError(err.message || '请求失败');
         statusText.textContent = '出错了';
     }
 
@@ -534,13 +644,10 @@ async function runBoard() {
     isRunning = false;
 }
 
-// 绑定
 runBtn.addEventListener('click', runBoard);
-topicInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') runBoard();
-});
+topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runBoard(); });
 
-console.log('🏛️ AI Decision Board V3 已加载');
+console.log('🏛️ AI Decision Board V3.5 已加载');
 console.log('🧠 核心模式：结构化冲突 → CEO收敛');
 console.log('❌ 无Graph · 无卡片堆叠 · 无聊天流');
 </script>
@@ -548,8 +655,6 @@ console.log('❌ 无Graph · 无卡片堆叠 · 无聊天流');
 </body>
 </html>
 """
-
-# V1.2 冲突决策引擎
 
 # ════════════════════════════════════════════════════════════
 
