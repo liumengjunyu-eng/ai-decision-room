@@ -9,8 +9,10 @@ import json
 import asyncio
 
 import aiohttp
-
 import os
+
+# V4.1 可信度引擎
+from backend.engine import DecisionEngine
 
 app = FastAPI()
 
@@ -2578,10 +2580,49 @@ init();
 
 
 # ============================================================
+# V4.1 Credibility Engine Instance
+# ============================================================
+_decision_engine = DecisionEngine()
 
+
+# ============================================================
 # ROUTES
 
 # ============================================================
+
+@app.post("/api/evaluate")
+async def api_evaluate(request: Request):
+    """V4.1 可信度引擎评估接口"""
+    try:
+        try:
+            body = await request.json()
+        except UnicodeDecodeError:
+            raw = await request.body()
+            for enc in ['gbk', 'gb2312', 'utf-8']:
+                try:
+                    body = json.loads(raw.decode(enc))
+                    break
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    continue
+            else:
+                body = {"question": raw.decode('utf-8', errors='replace'), "answers": {}}
+        
+        question = body.get("question", "")
+        answers = body.get("answers", {})
+        task_type = body.get("task_type", "general")
+        
+        if not question or not answers or len(answers) < 2:
+            return {"error": "请提供问题及至少2个模型回答"}
+        
+        result = _decision_engine.evaluate(
+            question=question,
+            answers=answers,
+            task_type=task_type
+        )
+        return result
+    except Exception as e:
+        return {"error": f"评估失败: {str(e)[:200]}"}
+
 
 @app.get("/debug/ping")
 async def debug_ping():
