@@ -1217,16 +1217,31 @@ async def api_run(request: Request):
 
 @app.get("/debug/ping")
 async def debug_ping():
-    import sys, aiohttp
-    result = {"python": sys.version[:30]}
+    import sys, aiohttp, json
+    result = {"python": sys.version[:40]}
+    # Test 1: Can we reach SiliconFlow?
     try:
         async with aiohttp.ClientSession() as s:
             async with s.get("https://api.siliconflow.cn/v1/models",
                            headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY},
                            timeout=aiohttp.ClientTimeout(total=10)) as r:
-                result["siliconflow"] = r.status
+                result["siliconflow_models"] = r.status
     except Exception as e:
-        result["siliconflow"] = str(e)[:60]
+        result["siliconflow_models"] = str(e)[:80]
+    # Test 2: Can we call a specific model (with short timeout)?
+    try:
+        async with aiohttp.ClientSession() as s:
+            payload = {"model": "Qwen/Qwen2.5-72B-Instruct", "messages": [{"role":"user","content":"say hi"}], "max_tokens": 5}
+            async with s.post("https://api.siliconflow.cn/v1/chat/completions",
+                           headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY, "Content-Type": "application/json"},
+                           json=payload,
+                           timeout=aiohttp.ClientTimeout(total=15)) as r:
+                result["siliconflow_chat"] = r.status
+                if r.status == 200:
+                    data = await r.json()
+                    result["siliconflow_reply"] = data["choices"][0]["message"]["content"][:30]
+    except Exception as e:
+        result["siliconflow_chat"] = str(e)[:80]
     return result
 
 @app.get("/health")
