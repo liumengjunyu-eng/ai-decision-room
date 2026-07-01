@@ -476,6 +476,34 @@ body {
   margin-top: 2px;
 }
 
+/* ─── 群聊气泡 ─── */
+.chat-container{display:flex;flex-direction:column;gap:12px;padding:4px 0;}
+.chat-bubble{display:flex;gap:10px;align-items:flex-start;opacity:0;animation:bubbleIn .4s ease forwards;}
+.chat-bubble:nth-child(1){animation-delay:0s;}
+.chat-bubble:nth-child(2){animation-delay:.15s;}
+.chat-bubble:nth-child(3){animation-delay:.3s;}
+.chat-bubble:nth-child(4){animation-delay:.45s;}
+.chat-bubble:nth-child(5){animation-delay:.6s;}
+.chat-bubble:nth-child(6){animation-delay:.75s;}
+.chat-bubble:nth-child(7){animation-delay:.9s;}
+@keyframes bubbleIn{to{opacity:1;transform:translateY(0);}}
+.chat-avatar{flex-shrink:0;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid transparent;}
+.chat-body{flex:1;min-width:0;}
+.chat-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.chat-name{font-size:13px;font-weight:600;color:#e5e7eb;}
+.chat-title{font-size:10px;color:#6b7280;padding:1px 6px;border-radius:4px;background:#1f2937;}
+.chat-text{font-size:13px;line-height:1.7;color:#d1d5db;padding:10px 14px;background:#0f172a;border-radius:4px 12px 12px 12px;border:1px solid #1f2937;white-space:pre-wrap;}
+.chat-bubble.conflict .chat-text{border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.04);}
+.chat-bubble.conflict .chat-avatar{border-color:#ef4444;}
+.chat-conflict-badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(239,68,68,0.12);color:#ef4444;margin-left:6px;}
+.chat-attack{font-size:11px;color:#fbbf24;margin-top:4px;padding:4px 8px;background:rgba(251,191,36,0.04);border-radius:6px;display:inline-block;}
+.chat-pending{text-align:center;padding:16px;color:#4a5268;font-size:12px;}
+.chat-typing{display:inline-flex;gap:3px;padding:12px 16px;background:#0f172a;border-radius:12px;border:1px solid #1f2937;}
+.chat-typing .dot{width:6px;height:6px;border-radius:50%;background:#4a5268;animation:typing .8s ease-in-out infinite;}
+.chat-typing .dot:nth-child(2){animation-delay:.15s;}
+.chat-typing .dot:nth-child(3){animation-delay:.3s;}
+@keyframes typing{0%,100%{opacity:.3}50%{opacity:1;}}
+
 /* ─── 决策账本 ─── */
 .ledger-grid {
   display: flex; flex-direction: column; gap: 4px;
@@ -605,25 +633,18 @@ body {
   <!-- 错误 -->
   <div class="error-card" id="errorCard"></div>
 
-  <!-- ═══ 2. 董事会执行 ═══ -->
-  <div class="section"><span>2</span> 董事会执行 <span class="sec-line"></span></div>
+  <!-- ═══ 2. 智囊群聊 ═══ -->
+  <div class="section"><span>2</span> 智囊群聊 <span class="sec-line"></span></div>
   <div class="card" id="boardCard">
-    <div class="board-grid" id="boardGrid"></div>
-  </div>
-
-  <!-- ═══ 3. 冲突时间线 ═══ -->
-  <div class="section"><span>3</span> 冲突时间线 <span class="sec-line"></span></div>
-  <div class="card">
-    <div id="timelineContainer">
-      <div class="empty-state" id="timelineEmpty">
-        <div class="icon">🧠</div>
-        <div>等待董事会分析完成后生成</div>
+    <div id="chatContainer">
+      <div class="empty-state" id="chatEmpty">
+        <div class="icon">💬</div>
+        <div>AI 智囊团正在等待你的问题...</div>
       </div>
     </div>
   </div>
 
-  <!-- ═══ 4. 决策账本 ═══ -->
-  <div class="section"><span>4</span> 决策账本 <span class="sec-line"></span></div>
+  <!-- ═══ 3. 决策账本 ═══ -->
   <div class="card">
     <div id="ledgerContainer">
       <div class="empty-state" id="ledgerEmpty">
@@ -693,8 +714,8 @@ const topicInput = document.getElementById('topicInput');
 const runBtn = document.getElementById('runBtn');
 const boardGrid = document.getElementById('boardGrid');
 const errorCard = document.getElementById('errorCard');
-const timelineContainer = document.getElementById('timelineContainer');
-const timelineEmpty = document.getElementById('timelineEmpty');
+const chatContainer = document.getElementById('chatContainer');
+const chatEmpty = document.getElementById('chatEmpty');
 const ledgerContainer = document.getElementById('ledgerContainer');
 const ledgerEmpty = document.getElementById('ledgerEmpty');
 const finalContainer = document.getElementById('finalContainer');
@@ -721,23 +742,16 @@ function showError(msg) {
 
 // ─── 初始化董事会面板 ───
 function initBoard() {
-  boardGrid.innerHTML = '';
-  BOARD.forEach((m, i) => {
-    const div = document.createElement('div');
-    div.className = 'member';
-    div.id = 'member-' + m.id;
-    div.innerHTML = `
-      <div class="left">
-        <span class="icon">${m.icon}</span>
-        <span class="name">${m.name}</span>
-        <span class="title">${m.title}</span>
+  // 清空并用等待气泡初始化
+  chatContainer.innerHTML = `
+    <div class="chat-container" id="chatBubbles">
+      <div class="chat-pending" id="chatPending">
+        <div class="chat-typing">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:#4a5268;">AI 智囊团正在思考...</div>
       </div>
-      <div class="right">
-        <span class="status-text waiting" id="status-${m.id}">⏳ waiting</span>
-      </div>
-    `;
-    boardGrid.appendChild(div);
-  });
+    </div>`;
 }
 
 // 设置成员状态
@@ -747,35 +761,32 @@ function setMemberStatus(id, status, tagText, tagCls) {
   el.className = 'member ' + (status === 'running' ? 'running' : status === 'done' ? 'done' : status === 'error' ? 'error' : '');
   const st = document.getElementById('status-' + id);
   if (!st) return;
-  const statusMap = {
-    waiting: '⏳ 等待中',
-    thinking: '⏳ 思考中…',
-    done: '✅ 完成',
-    error: '❌ 出错'
-  };
-  st.textContent = statusMap[status] || status;
-  st.className = 'status-text ' + status;
-  if (tagText && tagCls) {
-    st.innerHTML = '<span class="tag ' + tagCls + '">' + tagText + '</span>';
-  }
 }
 
-// ─── 添加时间线事件 ───
-function addTimelineEvent(icon, name, stance, reason, weight) {
-  timelineEmpty.style.display = 'none';
+// ─── 添加群聊气泡 ───
+const AVATAR_COLORS = {strategy:'#6366f1',critic:'#ef4444',risk:'#fbbf24',growth:'#22c55e',insight:'#38bdf8',innovation:'#f472b6',ceo:'#a78bfa'};
+function addChatBubble(roleId, icon, name, title, text, stance, isAttack, attackText) {
+  chatEmpty.style.display = 'none';
+  const pending = document.getElementById('chatPending');
+  if (pending) pending.remove();
+  const container = document.getElementById('chatBubbles');
+  if (!container) return;
   const div = document.createElement('div');
-  div.className = 'event';
-  const st = stance === '支持' ? 'support' : stance === '反对' ? 'oppose' : 'neutral';
+  const isConflict = stance === '反对' || !!isAttack;
+  div.className = 'chat-bubble' + (isConflict ? ' conflict' : '');
+  const ac = AVATAR_COLORS[roleId] || '#6366f1';
   div.innerHTML = `
-    <div class="ev-header">
-      <span class="dot ${st}"></span>
-      <b>${icon} ${name}</b>
-      <span class="tag ${st}" style="font-size:10px;padding:1px 6px;border-radius:6px;display:inline-block;font-weight:600;">${stance || '中立'}</span>
-      ${weight ? '<span style="font-size:11px;color:#6b7280;">weight ×' + weight + '</span>' : ''}
-    </div>
-    <div class="ev-reason">${reason}</div>
-  `;
-  timelineContainer.appendChild(div);
+    <div class="chat-avatar" style="border-color:${ac};background:${ac}22;">${icon}</div>
+    <div class="chat-body">
+      <div class="chat-header">
+        <span class="chat-name">${name}</span>
+        <span class="chat-title">${title}</span>
+        ${stance === '反对' ? '<span class="chat-conflict-badge">⚡ 反对</span>' : stance === '支持' ? '<span style="font-size:10px;color:#22c55e;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.08);">✅ 支持</span>' : ''}
+      </div>
+      <div class="chat-text">${attackText ? '<span style="color:#fbbf24;">' + attackText + '</span><br>' : ''}${text}</div>
+    </div>`;
+  container.appendChild(div);
+  div.scrollIntoView({behavior:'smooth',block:'end'});
 }
 
 // ─── 决策账本 ───
@@ -922,7 +933,7 @@ async function runBoard() {
   document.getElementById('trustScoreBar').style.display = 'none';
   const prem = document.getElementById('premiumPrompt');
   if (prem) prem.style.display = 'none';
-  timelineEmpty.style.display = 'block';
+  chatEmpty.style.display = 'block';
   ledgerEmpty.style.display = 'block';
   initBoard();
 
@@ -941,37 +952,26 @@ async function runBoard() {
 
     if (agents.length === 0) throw new Error('未收到 AI 董事会回应');
 
-    // 执行阶段动画
-    for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
-      const agent = agents[i];
-      const member = BOARD[i];
-      const isError = !agent.stance || agent.stance === '—' ||
-        (agent.reason && (agent.reason.startsWith('API 错误') || agent.reason.startsWith('请求失败')));
-
-      setMemberStatus(member.id, 'thinking');
-      setStatus(member.name + ' 分析中…', 'running');
-      await sleep(800);
-
-      if (isError) {
-        setMemberStatus(member.id, 'error');
-      } else {
-        setMemberStatus(member.id, 'done', agent.stance, agent.stance === '支持' ? 'support' : agent.stance === '反对' ? 'oppose' : 'neutral');
-      }
-    }
-
-    // 构建时间线
-    setStatus('构建冲突时间线', 'running');
-    await sleep(400);
-    
+    // 群聊气泡：逐条显示
     for (let i = 0; i < Math.min(agents.length, BOARD.length); i++) {
       const agent = agents[i];
       const member = BOARD[i];
       const isError = !agent.stance || agent.stance === '—' ||
         (agent.reason && (agent.reason.startsWith('API 错误') || agent.reason.startsWith('请求失败')));
       const text = agent.reason || '';
-      const displayText = isError ? (text.includes('403') ? '模型暂不可用' : text) : text.slice(0, 200);
-      addTimelineEvent(member.icon, member.name, agent.stance || '—', displayText, member.weight);
-      await sleep(100);
+      const displayText = isError ? (text.includes('403') ? '模型暂不可用' : text) : text.slice(0, 300);
+      
+      setStatus(member.name + ' 发言中…', 'running');
+      await sleep(600);
+      
+      // 检查前一个气泡是否有相反立场 → 生成 @挑战
+      let attackText = '';
+      if (i > 0 && agents[i-1] && agent.stance !== agents[i-1].stance && agent.stance !== '中立' && agents[i-1].stance !== '中立') {
+        const prevMember = BOARD[i-1];
+        attackText = '@' + prevMember.name + ' 我不同意你的观点';
+      }
+      
+      addChatBubble(member.id, member.icon, member.name, member.title, displayText, agent.stance || '—', false, attackText);
     }
 
     // 构建决策账本
@@ -984,14 +984,6 @@ async function runBoard() {
       setStatus('CEO 综合裁决中', 'running');
       await sleep(500);
       showFinal(decision);
-      
-      // 更新CEO状态
-      const ceoMember = BOARD[BOARD.length - 1];
-      if (ceoMember) {
-        const ceoAgent = agents.length > BOARD.length - 1 ? agents[BOARD.length - 1] : null;
-        const ceoStance = ceoAgent ? ceoAgent.stance : null;
-        setMemberStatus(ceoMember.id, 'done', decision.decision || 'done', 'support');
-      }
     }
 
     setStatus('✅ 分析完成', 'done');
@@ -3005,6 +2997,139 @@ async def v4_credibility_analyze(request: Request):
         return result
     except Exception as e:
         return {"error": f"分析失败: {str(e)[:200]}"}
+
+
+# ============================================================
+# 群聊重构 + 付费报告 API
+# ============================================================
+
+@app.post("/v1/reconstruct_group_chat")
+async def reconstruct_group_chat(request: Request):
+    """将用户手动粘贴的各模型长文重构为群聊辩论模式"""
+    try:
+        try:
+            body = await request.json()
+        except UnicodeDecodeError:
+            raw = await request.body()
+            for enc in ['gbk', 'gb2312', 'utf-8']:
+                try:
+                    body = json.loads(raw.decode(enc))
+                    break
+                except: continue
+            else:
+                body = {}
+        
+        question = body.get("question", "")
+        pasted_answers = body.get("pasted_answers", {})  # {"DeepSeek": "长文本..."}
+        
+        if not question or not pasted_answers or len(pasted_answers) < 2:
+            return {"error": "请提供问题及至少2个模型的回答"}
+        
+        role_map = {
+            "DeepSeek": {"name": "深度逻辑官", "icon": "🔍", "color": "#38bdf8"},
+            "Claude": {"name": "架构拆解官", "icon": "🏗️", "color": "#a78bfa"},
+            "通义千问": {"name": "本土洞察官", "icon": "🇨🇳", "color": "#22c55e"},
+            "Gemini": {"name": "反共识批判官", "icon": "⚡", "color": "#ef4444"},
+            "GPT-4o": {"name": "战略规划官", "icon": "🧠", "color": "#6366f1"},
+            "Kimi": {"name": "长文分析师", "icon": "📖", "color": "#f472b6"},
+            "default": {"name": "智囊顾问", "icon": "💡", "color": "#6b7280"}
+        }
+        
+        # 构建角色化群聊
+        chat_stream = []
+        models = list(pasted_answers.keys())
+        for i, model in enumerate(models):
+            profile = role_map.get(model, role_map["default"])
+            text = pasted_answers[model][:500]
+            chat_stream.append({
+                "role": model,
+                "display_name": profile["name"],
+                "icon": profile["icon"],
+                "color": profile["color"],
+                "text": text,
+                "is_conflict": False
+            })
+        
+        # 检测冲突：简单基于关键词
+        conflict_notes = []
+        texts = list(pasted_answers.values())
+        for i in range(len(models)):
+            for j in range(i+1, len(models)):
+                if ("风险" in texts[i] and "可行" in texts[j]) or ("支持" in texts[i] and "谨慎" in texts[j]):
+                    conflict_notes.append(f"{models[i]} 与 {models[j]} 在风险评估上存在分歧")
+        
+        # 免费会议纪要
+        free_summary = f"📋 会议纪要\n\n"
+        free_summary += f"✅ 共识点：{len(models)}个模型均认为问题值得深入分析\n"
+        free_summary += f"⚡ 分歧点：{len(conflict_notes)}个\n"
+        for c in conflict_notes[:3]:
+            free_summary += f"  · {c}\n"
+        free_summary += f"\n⚠️ 升级提示：AI 智囊存在分歧，解锁 CEO 最终裁决报告获取确定性方案。"
+        
+        return {
+            "question": question,
+            "chat_stream": chat_stream,
+            "conflict_notes": conflict_notes,
+            "free_summary": free_summary,
+            "upgrade_prompt": "AI 智囊存在 " + str(len(conflict_notes)) + " 个核心分歧。解锁 CEO 最终裁决报告（含执行SOP与风险推演），仅需 9.9 元。"
+        }
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+
+@app.post("/v2/generate_paid_report")
+async def generate_paid_report(request: Request):
+    """付费深度报告生成器（支付验证 + 调用强模型）"""
+    try:
+        body = await request.json()
+        question = body.get("question", "")
+        debate_context = body.get("debate_context", "")
+        
+        if not question:
+            return {"error": "缺少问题"}
+        
+        # 支付验证（占位）
+        payment_verified = body.get("payment_verified", False)
+        if not payment_verified:
+            return {
+                "status": "payment_required",
+                "message": "请先完成支付",
+                "price": 9.9,
+                "price_label": "9.9元/次",
+                "report_preview": "该报告包含：\n1. 最终裁决及置信度\n2. 商业本质解构\n3. 执行路径与财务模型\n4. 生死红线\n5. 反共识风险推演"
+            }
+        
+        # 调用付费模型生成深度报告（占位，对接 Claude 3.5 Sonnet 等付费 API）
+        premium_report = f"""🧠 MindTrust OS · 深度决策报告
+
+## 终极裁决
+建议执行（置信度：78%）
+
+## 底层商业逻辑解构
+{question} 的本质是...
+
+## 可行性路径
+1. 第一阶段：...
+2. 第二阶段：...
+
+## 生死红线
+- 合规红线：
+- 品控红线：
+
+## 反共识推演
+如果半年后失败，最可能原因：
+1. ...
+2. ...
+3. ...
+"""
+        
+        return {
+            "status": "success",
+            "report": premium_report,
+            "report_type": "premium"
+        }
+    except Exception as e:
+        return {"error": str(e)[:200]}
 
 
 @app.get("/debug/ping")
