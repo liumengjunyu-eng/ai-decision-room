@@ -917,6 +917,23 @@ def _ceo_structured_verdict(debate_results: list, conflicts: list, decision_scor
 
 # ============================================================
 
+async def _parse_json_resp(resp):
+    """安全解析 JSON 响应，自动处理编码问题"""
+    try:
+        raw_bytes = await resp.read()
+        for enc in ['utf-8', 'gbk', 'gb2312', 'utf-16']:
+            try:
+                text = raw_bytes.decode(enc)
+                return json.loads(text)
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                continue
+        # 最后兜底：忽略错误解码
+        text = raw_bytes.decode('utf-8', errors='replace')
+        return json.loads(text)
+    except Exception:
+        return {}
+
+
 async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_prompt: str) -> dict:
 
     """调用硅基流动 API"""
@@ -963,7 +980,7 @@ async def call_siliconflow(model_id: str, prompt: str, role_name: str, system_pr
 
                     return {"role": role_name, "model": model_id, "stance": "—", "reason": "API 错误: " + str(resp.status)}
 
-                data = await resp.json()
+                data = await _parse_json_resp(resp)
 
                 raw = data["choices"][0]["message"]["content"].strip()
 
@@ -1049,7 +1066,7 @@ async def call_ceo(debate_results: list, prompt: str) -> dict:
 
                     return {"role": "CEO裁决官", "model": BOARD_MEMBERS["CEO裁决官"]["model"], "stance": "—", "reason": "API 错误"}
 
-                data = await resp.json()
+                data = await _parse_json_resp(resp)
 
                 raw = data["choices"][0]["message"]["content"].strip()
 
