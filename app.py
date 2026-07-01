@@ -170,7 +170,8 @@ p{color:#8A8FA6;font-size:18px;line-height:1.6;margin-bottom:32px;}
 
 <p>输入你正在纠结的真实决策<br>让多个 AI 帮你拆解冲突，得到可执行结论</p>
 
-<a class="btn" href="/room">开始决策 →</a>
+<a class="btn" href="/room">AI 董事会 →</a>
+<a class="btn" href="/compare" style="background:#22c55e;margin-left:12px;">手动编译器 →</a>
 
 </div>
 
@@ -1420,6 +1421,818 @@ async def api_run(request: Request):
         return {"error": str(e), "agents": [], "conflicts": [], "decision": {"decision": "无法裁决", "confidence": 0, "rationale": f"系统错误: {str(e)[:100]}", "steps": [], "risk": "高"}}
 
 # ============================================================
+# SYSTEM 2 — AI Manual Compiler API
+# ============================================================
+
+async def call_compare_model(entries: list) -> dict:
+    """调用免费模型做多回答认知整合分析"""
+    if not SILICONFLOW_API_KEY:
+        return {"error": "API Key 未配置"}
+    
+    # 构造输入文本
+    input_text = ""
+    for i, e in enumerate(entries):
+        label = e.get("label", f"模型{i+1}")
+        content = e.get("content", "")
+        input_text += f"─── {label} ───\n{content}\n\n"
+    
+    system_prompt = """你是一个多模型认知整合分析师。你的任务是把多个AI模型对同一问题的回答进行结构化分析。
+
+请严格按照以下JSON格式输出（只输出JSON，不要有任何其他文字）：
+
+{
+  "consensus": [
+    {"point": "所有模型一致认同的观点描述", "confidence": "high|medium|low"}
+  ],
+  "dissent": [
+    {
+      "topic": "分歧主题",
+      "severity": "high|medium|low",
+      "positions": [
+        {"model": "模型名称", "stance": "立场简述", "summary": "核心论据"}
+      ]
+    }
+  ],
+  "conflict_sources": [
+    {"source": "分歧来源（如数据假设、时间视角、方法论等）", "detail": "具体解释"}
+  ],
+  "recommendation": "综合所有模型观点后的最佳行动建议",
+  "uncertainty": "当前分析中仍然不确定的部分"
+}
+
+要求：
+1. consensus 列出一致观点（至少3条）
+2. dissent 列出所有存在分歧的议题
+3. conflict_sources 分析分歧的根本原因
+4. recommendation 是具体的、可执行的建议
+5. 输出必须是一个合法的JSON对象"""
+
+    user_prompt = f"以下是对同一问题的多个AI模型回答，请进行分析：\n\n{input_text}\n\n请输出结构化JSON分析结果。"
+    
+    payload = {
+        "model": "Qwen/Qwen2.5-72B-Instruct",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 2000,
+        "response_format": {"type": "json_object"}
+    }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                SILICONFLOW_BASE,
+                headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY, "Content-Type": "application/json"},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=90)
+            ) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    return {"error": f"API 错误: {resp.status}", "detail": text[:200]}
+                data = await _parse_json_resp(resp)
+                raw = data["choices"][0]["message"]["content"].strip()
+                # clean markdown code fences if any
+                if raw.startswith("```"):
+                    raw = raw.split("\n", 1)[-1]
+                    if "```" in raw:
+                        raw = raw.rsplit("```", 1)[0]
+                return json.loads(raw)
+    except json.JSONDecodeError:
+        return {"error": "模型返回格式异常", "raw": raw[:300]}
+    except Exception as e:
+        return {"error": f"请求失败: {str(e)[:80]}"}
+
+async def call_second_compare_model(entries: list) -> dict:
+    """用第二个模型做交叉验证分析（DeepSeek-V3）"""
+    if not SILICONFLOW_API_KEY:
+        return None
+    
+    input_text = ""
+    for i, e in enumerate(entries):
+        label = e.get("label", f"模型{i+1}")
+        content = e.get("content", "")
+        input_text += f"─── {label} ───\n{content}\n\n"
+    
+    payload = {
+        "model": "deepseek-ai/DeepSeek-V3",
+        "messages": [
+            {"role": "system", "content": "你是一个AI观点审计分析师。分析多个模型回答的共识与分歧，输出JSON。"},
+            {"role": "user", "content": f"分析以下多个AI回答，输出共识/分歧/建议：\n\n{input_text}"}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 1500,
+        "response_format": {"type": "json_object"}
+    }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                SILICONFLOW_BASE,
+                headers={"Authorization": "Bearer " + SILICONFLOW_API_KEY, "Content-Type": "application/json"},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=90)
+            ) as resp:
+                if resp.status != 200:
+                    return None
+                data = await _parse_json_resp(resp)
+                raw = data["choices"][0]["message"]["content"].strip()
+                if raw.startswith("```"):
+                    raw = raw.split("\n", 1)[-1]
+                    if "```" in raw:
+                        raw = raw.rsplit("```", 1)[0]
+                return json.loads(raw)
+    except Exception:
+        return None
+
+
+@app.post("/api/compare")
+async def api_compare(request: Request):
+    """SYSTEM 2: 手动多模型输入 → 自动决策收敛"""
+    try:
+        body = await request.json()
+        entries = body.get("entries", [])
+        history = body.get("history", None)  # previous round analysis for iteration
+        
+        if not entries or len(entries) < 2:
+            return {"error": "请至少粘贴2个模型的回答"}
+        
+        # 验证entries格式
+        valid_entries = []
+        for e in entries:
+            label = e.get("label", "").strip() or "未命名"
+            content = e.get("content", "").strip()
+            if content:
+                valid_entries.append({"label": label, "content": content})
+        
+        if len(valid_entries) < 2:
+            return {"error": "有效回答不足2个"}
+        
+        # 主分析模型
+        analysis = await call_compare_model(valid_entries)
+        
+        # 第二个模型做交叉验证（提升可靠性）
+        cross_validation = await call_second_compare_model(valid_entries)
+        
+        # 如果历史存在，对比新旧分析的变化
+        delta = None
+        if history:
+            try:
+                prev_consensus = set(p["point"] for p in history.get("consensus", []))
+                curr_consensus = set(p["point"] for p in analysis.get("consensus", []))
+                new_agreements = [p for p in analysis.get("consensus", []) if p["point"] not in prev_consensus]
+                delta = {"new_consensus_points": len(new_agreements), "new_agreements": new_agreements[:3]}
+            except Exception:
+                delta = None
+        
+        return {
+            "analysis": analysis,
+            "cross_validation": cross_validation,
+            "entry_count": len(valid_entries),
+            "entries": [e["label"] for e in valid_entries],
+            "delta": delta
+        }
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+
+        return {"error": str(e)[:200]}
+
+
+# ============================================================
+# SYSTEM 2 PAGE HTML
+# ============================================================
+COMPARE_HTML = r"""<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Compiler · System 2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:#0b0f19;
+  color:#e5e7eb;
+}
+.header{
+  padding:16px 28px;
+  border-bottom:1px solid #1f2937;
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(11,15,25,0.95);position:sticky;top:0;z-index:20;
+}
+.header .brand{
+  font-size:17px;font-weight:700;
+  background:linear-gradient(135deg,#34d399,#22c55e);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.header .sub{font-size:12px;color:#6b7280;margin-left:6px;}
+.header .nav{display:flex;gap:12px;align-items:center;}
+.header .nav a{color:#9ca3af;font-size:13px;text-decoration:none;padding:6px 14px;border-radius:8px;transition:all .15s;}
+.header .nav a:hover{color:#e5e7eb;background:#1f2937;}
+.header .nav a.active{color:#22c55e;background:rgba(34,197,94,0.08);}
+.container{max-width:960px;margin:0 auto;padding:28px 28px 60px;}
+
+/* ─── 页面标题 ─── */
+.page-title{margin-bottom:24px;}
+.page-title h1{font-size:22px;font-weight:600;color:#e5e7eb;}
+.page-title p{font-size:13px;color:#6b7280;margin-top:4px;line-height:1.6;}
+
+/* ─── 卡片 ─── */
+.card{
+  background:#111827;border:1px solid #1f2937;border-radius:14px;
+  padding:24px;margin-bottom:16px;
+}
+
+/* ─── 粘贴区 ─── */
+.paste-area{display:flex;flex-direction:column;gap:12px;}
+.paste-row{
+  display:flex;gap:12px;align-items:flex-start;
+  opacity:1;transition:opacity .3s;
+}
+.paste-row .model-tag{
+  flex-shrink:0;width:110px;
+}
+.paste-row .model-tag select{
+  width:100%;padding:10px 10px;
+  background:#0f172a;border:1px solid #1f2937;border-radius:8px;
+  color:#e5e7eb;font-size:13px;outline:none;cursor:pointer;
+}
+.paste-row .model-tag select:focus{border-color:#22c55e;}
+.paste-row textarea{
+  flex:1;padding:12px 14px;
+  background:#0f172a;border:1px solid #1f2937;border-radius:8px;
+  color:#e5e7eb;font-size:13px;font-family:inherit;
+  resize:vertical;min-height:80px;outline:none;line-height:1.7;
+}
+.paste-row textarea:focus{border-color:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,0.08);}
+.paste-row textarea::placeholder{color:#4a5268;}
+.paste-row .remove-btn{
+  flex-shrink:0;width:32px;height:32px;margin-top:4px;
+  border:none;border-radius:8px;background:#1f2937;color:#6b7280;
+  font-size:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;
+}
+.paste-row .remove-btn:hover{background:#374151;color:#ef4444;}
+
+/* ─── 操作栏 ─── */
+.actions-bar{
+  display:flex;gap:12px;align-items:center;margin-top:8px;
+}
+.actions-bar .btn{
+  padding:10px 24px;border:none;border-radius:10px;
+  font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;
+}
+.btn-primary{background:#22c55e;color:#000;}
+.btn-primary:hover{background:#16a34a;}
+.btn-primary:disabled{opacity:0.3;cursor:not-allowed;}
+.btn-secondary{background:#1f2937;color:#e5e7eb;}
+.btn-secondary:hover{background:#374151;}
+.btn-ghost{background:transparent;color:#6b7280;border:1px dashed #374151;}
+.btn-ghost:hover{background:#1f2937;color:#9ca3af;}
+.actions-bar .hint{font-size:12px;color:#4a5268;margin-left:auto;}
+
+/* ─── 加载动画 ─── */
+.loading-section{display:none;text-align:center;padding:40px 0;}
+.loading-section.open{display:block;}
+.loading-spinner{
+  width:36px;height:36px;border:3px solid #1f2937;
+  border-top-color:#22c55e;border-radius:50%;
+  animation:spin 0.8s linear infinite;margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-section .msg{font-size:14px;color:#9ca3af;}
+.loading-section .sub-msg{font-size:12px;color:#4a5268;margin-top:4px;}
+
+/* ─── 结果区 ─── */
+.results-section{display:none;}
+.results-section.open{display:block;}
+
+.result-block{margin-bottom:20px;}
+.result-block .block-title{
+  font-size:13px;font-weight:600;color:#9ca3af;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.result-block .block-title .badge{
+  font-size:10px;padding:2px 8px;border-radius:6px;
+}
+.badge-green{background:rgba(34,197,94,0.12);color:#22c55e;}
+.badge-yellow{background:rgba(251,191,36,0.12);color:#fbbf24;}
+.badge-red{background:rgba(239,68,68,0.12);color:#ef4444;}
+.badge-blue{background:rgba(59,130,246,0.12);color:#3b82f6;}
+
+/* 共识点 */
+.consensus-item{
+  padding:12px 14px;background:rgba(34,197,94,0.04);
+  border:1px solid rgba(34,197,94,0.1);border-radius:10px;
+  margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;
+}
+.consensus-item .dot{
+  width:8px;height:8px;border-radius:50%;background:#22c55e;
+  margin-top:4px;flex-shrink:0;
+}
+.consensus-item .text{font-size:13px;line-height:1.6;color:#d1d5db;}
+.consensus-item .conf{
+  font-size:11px;color:#6b7280;margin-top:2px;
+}
+
+/* 分歧点 */
+.dissent-item{
+  border:1px solid rgba(251,191,36,0.15);
+  background:rgba(251,191,36,0.03);
+  border-radius:10px;padding:14px;margin-bottom:10px;
+}
+.dissent-item .d-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;
+}
+.dissent-item .d-header .topic{
+  font-size:13px;font-weight:600;color:#e5e7eb;
+}
+.dissent-item .d-body{
+  display:flex;flex-direction:column;gap:6px;
+}
+.dissent-item .position{
+  display:flex;gap:8px;align-items:flex-start;
+  padding:6px 8px;background:#0f172a;border-radius:6px;
+}
+.dissent-item .position .plabel{
+  font-size:11px;font-weight:600;padding:2px 8px;
+  border-radius:4px;flex-shrink:0;margin-top:1px;
+}
+.plabel-a{background:rgba(59,130,246,0.12);color:#3b82f6;}
+.plabel-b{background:rgba(249,115,22,0.12);color:#f97316;}
+.plabel-c{background:rgba(139,92,246,0.12);color:#8b5cf6;}
+.plabel-d{background:rgba(236,72,153,0.12);color:#ec4899;}
+.plabel-e{background:rgba(14,165,233,0.12);color:#0ea5e9;}
+.dissent-item .position .pstance{font-size:12px;color:#9ca3af;flex-shrink:0;}
+.dissent-item .position .psummary{font-size:12px;color:#6b7280;}
+
+/* 冲突来源 */
+.source-item{
+  padding:10px 12px;background:#0f172a;
+  border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;
+  margin-bottom:8px;
+}
+.source-item .s-title{font-size:13px;font-weight:500;color:#e5e7eb;}
+.source-item .s-detail{font-size:12px;color:#6b7280;margin-top:3px;line-height:1.5;}
+
+/* 最终建议 */
+.recommendation-card{
+  background:linear-gradient(135deg,#064e3b,#0f172a);
+  border:1px solid #22c55e;border-radius:14px;
+  padding:20px;margin-bottom:16px;
+}
+.recommendation-card .rc-title{
+  font-size:13px;font-weight:700;color:#22c55e;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.recommendation-card .rc-body{
+  font-size:14px;color:#d1d5db;line-height:1.7;
+}
+.recommendation-card .rc-meta{
+  font-size:12px;color:#6b7280;margin-top:12px;
+  display:flex;gap:16px;
+}
+
+/* 交叉验证 */
+.cross-validate{
+  padding:12px 14px;background:rgba(99,102,241,0.04);
+  border:1px solid rgba(99,102,241,0.1);border-radius:10px;margin-bottom:16px;
+}
+.cross-validate .cv-title{
+  font-size:12px;font-weight:600;color:#6366f1;margin-bottom:6px;
+}
+.cross-validate .cv-body{font-size:12px;color:#6b7280;line-height:1.5;}
+
+/* 空状态 */
+.empty-state{
+  text-align:center;color:#4a5268;padding:32px 0;
+}
+.empty-state .icon{font-size:28px;margin-bottom:6px;opacity:0.4;}
+.empty-state .e-title{font-size:14px;color:#6b7280;margin-bottom:4px;}
+.empty-state .e-sub{font-size:12px;}
+
+/* 错误 */
+.error-card{
+  background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);
+  border-radius:10px;padding:12px;font-size:13px;color:#ef4444;
+  display:none;margin-bottom:12px;
+}
+.error-card.open{display:block;}
+
+/* 入口导航 */
+.system-nav{
+  display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;
+}
+.system-nav .sn-item{
+  padding:8px 16px;border-radius:10px;font-size:12px;font-weight:500;
+  border:1px solid #1f2937;color:#6b7280;text-decoration:none;transition:all .15s;
+}
+.system-nav .sn-item:hover{border-color:#374151;color:#9ca3af;}
+.system-nav .sn-item.active{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,0.06);}
+
+/* 响应式 */
+@media(max-width:640px){
+  .container{padding:16px 14px;}
+  .paste-row{flex-direction:column;}
+  .paste-row .model-tag{width:100%;}
+  .paste-row .remove-btn{align-self:flex-end;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <span class="brand">Decision Compiler</span>
+    <span class="sub">System 2 · 多模型意见手动编译器</span>
+  </div>
+  <div class="nav">
+    <a href="/room">Board</a>
+    <a href="/compare" class="active">Compiler</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="page-title">
+    <h1>🧠 多模型认知编译器</h1>
+    <p>把不同 AI 的回答粘贴到这里。系统会自动找出共识、标出分歧、分析冲突来源，帮你从多个声音中收敛出可执行的结论。</p>
+  </div>
+
+  <!-- 系统选择 -->
+  <div class="system-nav">
+    <a href="/room" class="sn-item">⚡ System 1 · AI 董事会</a>
+    <a href="/compare" class="sn-item active">🧩 System 2 · 手动编译器</a>
+  </div>
+
+  <!-- 粘贴区 -->
+  <div class="card" id="pasteCard">
+    <div class="paste-area" id="pasteArea"></div>
+    <div class="actions-bar">
+      <button class="btn btn-secondary" id="addEntryBtn">+ 添加一个模型回答</button>
+      <button class="btn btn-primary" id="analyzeBtn">▶ 分析认知结构</button>
+      <span class="hint" id="entryHint">至少需要 2 个模型回答</span>
+    </div>
+  </div>
+
+  <!-- 错误 -->
+  <div class="error-card" id="errorCard"></div>
+
+  <!-- 加载 -->
+  <div class="loading-section" id="loadingSection">
+    <div class="loading-spinner"></div>
+    <div class="msg" id="loadingMsg">正在分析多模型认知结构…</div>
+    <div class="sub-msg">提取共识 · 检测分歧 · 溯源冲突</div>
+  </div>
+
+  <!-- 结果区 -->
+  <div class="results-section" id="resultsSection">
+
+    <!-- 交叉验证 -->
+    <div class="cross-validate" id="crossValidBox" style="display:none;">
+      <div class="cv-title">✓ 双模型交叉验证</div>
+      <div class="cv-body" id="crossValidBody">主分析模型与验证模型结论一致，分析结果可靠。</div>
+    </div>
+
+    <!-- 共识 -->
+    <div class="result-block" id="consensusBlock">
+      <div class="block-title">✅ 一致观点 <span class="badge badge-green" id="consensusCount">0</span></div>
+      <div id="consensusList"></div>
+    </div>
+
+    <!-- 分歧 -->
+    <div class="result-block" id="dissentBlock">
+      <div class="block-title">⚡ 分歧观点 <span class="badge badge-yellow" id="dissentCount">0</span></div>
+      <div id="dissentList"></div>
+    </div>
+
+    <!-- 冲突来源 -->
+    <div class="result-block" id="sourceBlock">
+      <div class="block-title">🔍 冲突来源分析</div>
+      <div id="sourceList"></div>
+    </div>
+
+    <!-- 不确定性 -->
+    <div class="result-block" id="uncertaintyBlock" style="display:none;">
+      <div class="block-title">⚠️ 仍有不确定性</div>
+      <div id="uncertaintyBody" style="font-size:13px;color:#6b7280;line-height:1.6;"></div>
+    </div>
+
+    <!-- 最终收敛建议 -->
+    <div class="recommendation-card" id="recCard">
+      <div class="rc-title">🎯 收敛建议</div>
+      <div class="rc-body" id="recBody"></div>
+      <div class="rc-meta">
+        <span id="recEntryCount">基于 — 个模型</span>
+        <span id="recModels"></span>
+      </div>
+    </div>
+
+    <!-- 新一轮 -->
+    <div style="text-align:center;margin-top:8px;">
+      <button class="btn btn-ghost" id="continueBtn" style="padding:10px 28px;">
+        + 贴入新一轮回答继续迭代
+      </button>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// ─── 默认模型列表 ───
+const MODEL_OPTIONS = [
+  'GPT-4o', 'Claude', 'Gemini', 'DeepSeek', 'Qwen',
+  'Perplexity', 'Mistral', 'Grok', 'Kimi', '豆包', '文心一言', '通义千问', '其他'
+];
+
+// ─── 状态 ───
+let entries = [];
+let historyResult = null;
+
+function getLabelColor(idx) {
+  const colors = ['plabel-a','plabel-b','plabel-c','plabel-d','plabel-e'];
+  return colors[idx % colors.length];
+}
+
+function getBadgeColor(severity) {
+  if (severity === 'high') return 'badge-red';
+  if (severity === 'medium') return 'badge-yellow';
+  return 'badge-blue';
+}
+
+// ─── 渲染粘贴行 ───
+function renderEntries() {
+  const area = document.getElementById('pasteArea');
+  area.innerHTML = '';
+  entries.forEach((e, i) => {
+    const row = document.createElement('div');
+    row.className = 'paste-row';
+    
+    const select = document.createElement('select');
+    select.className = 'model-select';
+    select.dataset.index = i;
+    MODEL_OPTIONS.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      if (m === e.label) opt.selected = true;
+    });
+    select.addEventListener('change', () => {
+      entries[i].label = select.value;
+    });
+    
+    const tagDiv = document.createElement('div');
+    tagDiv.className = 'model-tag';
+    tagDiv.appendChild(select);
+    
+    const textarea = document.createElement('textarea');
+    textarea.placeholder = `粘贴 ${e.label || '模型'} 的回答…`;
+    textarea.value = e.content;
+    textarea.dataset.index = i;
+    textarea.addEventListener('input', () => {
+      entries[i].content = textarea.value;
+    });
+    
+    const rmBtn = document.createElement('button');
+    rmBtn.className = 'remove-btn';
+    rmBtn.innerHTML = '×';
+    rmBtn.addEventListener('click', () => {
+      entries.splice(i, 1);
+      renderEntries();
+      updateUI();
+    });
+    
+    row.appendChild(tagDiv);
+    row.appendChild(textarea);
+    row.appendChild(rmBtn);
+    area.appendChild(row);
+  });
+  updateUI();
+}
+
+// ─── 更新界面状态 ───
+function updateUI() {
+  const count = entries.length;
+  document.getElementById('entryHint').textContent = 
+    count < 2 ? `已添加 ${count} 个，至少需要 2 个` : `已添加 ${count} 个模型回答`;
+  document.getElementById('analyzeBtn').disabled = count < 2;
+}
+
+// ─── 添加条目 ───
+function addEntry(label) {
+  entries.push({ label: label || 'GPT-4o', content: '' });
+  renderEntries();
+  // scroll to new entry
+  const rows = document.querySelectorAll('.paste-row');
+  if (rows.length) rows[rows.length-1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ─── 显示错误 ───
+function showError(msg) {
+  const ec = document.getElementById('errorCard');
+  ec.textContent = '⚠️ ' + msg;
+  ec.classList.add('open');
+}
+
+// ─── 分析 ───
+async function runAnalysis() {
+  // 收集有效数据
+  const validEntries = [];
+  for (const e of entries) {
+    const label = e.label.trim() || '未命名';
+    const content = e.content.trim();
+    if (content) validEntries.push({ label, content });
+  }
+  if (validEntries.length < 2) {
+    showError('请至少填写 2 个模型的完整回答');
+    return;
+  }
+  
+  document.getElementById('errorCard').classList.remove('open');
+  document.getElementById('loadingSection').classList.add('open');
+  document.getElementById('resultsSection').classList.remove('open');
+  document.getElementById('continueBtn').style.display = 'none';
+  
+  const msgEl = document.getElementById('loadingMsg');
+  const msgs = ['正在分析多模型认知结构…', '提取共识观点…', '检测分歧点…', '溯源冲突…', '生成收敛建议…'];
+  let msgIdx = 0;
+  const msgTimer = setInterval(() => {
+    msgIdx = (msgIdx + 1) % msgs.length;
+    msgEl.textContent = msgs[msgIdx];
+  }, 1800);
+  
+  try {
+    const resp = await fetch('/api/compare', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ 
+        entries: validEntries,
+        history: historyResult
+      })
+    });
+    const data = await resp.json();
+    clearInterval(msgTimer);
+    document.getElementById('loadingSection').classList.remove('open');
+    
+    if (data.error) { showError(data.error); return; }
+    
+    const analysis = data.analysis;
+    if (!analysis || analysis.error) {
+      showError(analysis?.error || '分析失败');
+      return;
+    }
+    
+    // 显示结果
+    document.getElementById('resultsSection').classList.add('open');
+    document.getElementById('continueBtn').style.display = 'inline-block';
+    historyResult = analysis;
+    
+    // 共识
+    renderConsensus(analysis.consensus || []);
+    
+    // 分歧
+    renderDissent(analysis.dissent || []);
+    
+    // 冲突来源
+    renderSources(analysis.conflict_sources || []);
+    
+    // 不确定性
+    if (analysis.uncertainty) {
+      document.getElementById('uncertaintyBlock').style.display = 'block';
+      document.getElementById('uncertaintyBody').textContent = analysis.uncertainty;
+    }
+    
+    // 收敛建议
+    document.getElementById('recBody').textContent = analysis.recommendation || '暂无建议';
+    document.getElementById('recEntryCount').textContent = `基于 ${data.entry_count || validEntries.length} 个模型`;
+    document.getElementById('recModels').textContent = '来源: ' + (data.entries || []).join(' · ');
+    
+    // 交叉验证
+    if (data.cross_validation) {
+      document.getElementById('crossValidBox').style.display = 'block';
+      const cv = data.cross_validation;
+      const cvConsensus = (cv.consensus || []).length;
+      const cvDissent = (cv.dissent || []).length;
+      document.getElementById('crossValidBody').textContent = 
+        `验证模型（DeepSeek-V3）独立分析结果：共识别 ${cvConsensus} 条共识、${cvDissent} 项分歧。` +
+        (cvConsensus >= (analysis.consensus || []).length * 0.5 ? '与主模型结论基本一致，结果可信。' : '与主模型存在部分差异，建议对照查看。');
+    }
+    
+    // 滚动到结果
+    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+  } catch (err) {
+    clearInterval(msgTimer);
+    document.getElementById('loadingSection').classList.remove('open');
+    showError(err.message || '分析请求失败');
+  }
+}
+
+// ─── 渲染共识 ───
+function renderConsensus(items) {
+  const list = document.getElementById('consensusList');
+  list.innerHTML = '';
+  document.getElementById('consensusCount').textContent = items.length;
+  if (items.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:#4a5268;padding:8px 0;">暂未识别到明显一致观点</div>';
+    return;
+  }
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'consensus-item';
+    div.innerHTML = `
+      <div class="dot"></div>
+      <div>
+        <div class="text">${item.point || ''}</div>
+        <div class="conf">置信度：${item.confidence === 'high' ? '高' : item.confidence === 'medium' ? '中' : '低'}</div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+// ─── 渲染分歧 ───
+function renderDissent(items) {
+  const list = document.getElementById('dissentList');
+  list.innerHTML = '';
+  document.getElementById('dissentCount').textContent = items.length;
+  if (items.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:#4a5268;padding:8px 0;">所有模型观点高度一致，无明显分歧</div>';
+    return;
+  }
+  items.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'dissent-item';
+    let positionsHtml = '';
+    (item.positions || []).forEach((p, pi) => {
+      positionsHtml += `<div class="position">
+        <span class="plabel ${getLabelColor(pi)}">${p.model || '模型'}</span>
+        <span class="pstance">${p.stance || ''}</span>
+        <span class="psummary">${p.summary || ''}</span>
+      </div>`;
+    });
+    div.innerHTML = `
+      <div class="d-header">
+        <span class="topic">${item.topic || '分歧#' + (idx+1)}</span>
+        <span class="badge ${getBadgeColor(item.severity)}">${item.severity === 'high' ? '严重' : item.severity === 'medium' ? '中等' : '轻微'}</span>
+      </div>
+      <div class="d-body">${positionsHtml}</div>`;
+    list.appendChild(div);
+  });
+}
+
+// ─── 渲染冲突来源 ───
+function renderSources(items) {
+  const list = document.getElementById('sourceList');
+  list.innerHTML = '';
+  if (!items || items.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:#4a5268;padding:8px 0;">未识别到深层冲突来源</div>';
+    return;
+  }
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'source-item';
+    div.innerHTML = `<div class="s-title">${item.source || ''}</div>
+      <div class="s-detail">${item.detail || ''}</div>`;
+    list.appendChild(div);
+  });
+}
+
+// ─── 新一轮 ───
+function continueRound() {
+  // 清空文本内容，保留标签
+  entries.forEach(e => e.content = '');
+  renderEntries();
+  document.getElementById('resultsSection').classList.remove('open');
+  document.getElementById('continueBtn').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = true;
+  // 聚焦第一个文本框
+  const firstTextarea = document.querySelector('.paste-row textarea');
+  if (firstTextarea) firstTextarea.focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── 初始化 ───
+function init() {
+  // 默认 3 行
+  addEntry('GPT-4o');
+  addEntry('Claude');
+  addEntry('DeepSeek');
+  
+  document.getElementById('addEntryBtn').addEventListener('click', () => addEntry('GPT-4o'));
+  document.getElementById('analyzeBtn').addEventListener('click', runAnalysis);
+  document.getElementById('continueBtn').addEventListener('click', continueRound);
+}
+
+init();
+</script>
+
+</body>
+</html>
+"""
+
+# ============================================================
 
 # ROUTES
 
@@ -1471,6 +2284,11 @@ def landing():
 def room():
 
     return ROOM_HTML
+
+@app.get("/compare", response_class=HTMLResponse)
+
+def compare():
+    return COMPARE_HTML
 
 # ============================================================
 
