@@ -58,7 +58,7 @@ BOARD_MEMBERS = {
 
     "风险控制官": {
 
-        "model": "THUDM/glm-4-9b-chat",
+        "model": "Qwen/Qwen2-7B-Instruct",
 
         "emoji": "🛡️",
 
@@ -86,7 +86,7 @@ BOARD_MEMBERS = {
 
     "洞察官": {
 
-        "model": "internlm/internlm2_5-7b-chat",
+        "model": "deepseek-ai/DeepSeek-V2.5",
 
         "emoji": "🔍",
 
@@ -100,7 +100,7 @@ BOARD_MEMBERS = {
 
     "创新官": {
 
-        "model": "mistralai/Mistral-7B-Instruct-v0.2",
+        "model": "Qwen/Qwen2.5-72B-Instruct",
 
         "emoji": "💡",
 
@@ -114,7 +114,7 @@ BOARD_MEMBERS = {
 
     "CEO裁决官": {
 
-        "model": "Qwen/Qwen2-7B-Instruct",
+        "model": "deepseek-ai/DeepSeek-V2.5",
 
         "emoji": "👑",
 
