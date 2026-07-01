@@ -3207,6 +3207,12 @@ async def compile_answers(request: Request):
         return {"error": str(e)[:200]}
 
 
+@app.post("/api/compile")
+async def api_compile(request: Request):
+    """/api/compile 别名 → 转发到 /v1/compile_answers"""
+    return await compile_answers(request)
+
+
 @app.get("/debug/ping")
 async def debug_ping():
     import sys, aiohttp, json
