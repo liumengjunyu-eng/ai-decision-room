@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Decision Graph V4</title>
+    <script src="https://d3js.org/d3.v7.min.js">
+    </script>
+    <style>
+        /* ─── 全局 ─── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0B0F1A;
+            color: #E8EDF5;
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── 顶部栏 ─── */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+            background: rgba(11, 15, 26, 0.8);
+            backdrop-filter: blur(12px);
+            z-index: 10;
+        }
+
+        .topbar .logo {
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .topbar .logo span {
+            color: #7C5CFF;
+        }
+
+        .topbar .status {
+            font-size: 12px;
+            color: #5A657A;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .topbar .status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4A5268;
+            transition: background 0.3s;
+        }
+
+        .topbar .status .dot.active {
+            background: #4ADE80;
+            animation: pulse-dot 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.3;
+                transform: scale(0.7);
+            }
+        }
+
+        /* ─── 输入区 ─── */
+        .input-bar {
+            display: flex;
+            gap: 12px;
+            padding: 12px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            flex-shrink: 0;
+            background: rgba(11, 15, 26, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 10;
+        }
+
+        .input-bar input {
+            flex: 1;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            color: #E8EDF5;
+            font-size: 14px;
+            outline: none;
+            transition: border 0.2s;
+            font-family: inherit;
+        }
+
+        .input-bar input:focus {
+            border-color: #7C5CFF;
+        }
+
+        .input-bar input::placeholder {
+            color: #4A5268;
+        }
+
+        .input-bar .btn {
+            padding: 10px 24px;
+            background: #7C5CFF;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .input-bar .btn:hover {
+            background: #6B4DE0;
+        }
+
+        .input-bar .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ─── 图谱容器 ─── */
+        .graph-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .graph-container svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ─── D3 节点样式 ─── */
+        .node-group {
+            cursor: grab;
+        }
+
+        .node-group:active {
+            cursor: grabbing;
+        }
+
+        .node-rect {
+            fill: rgba(255, 255, 255, 0.04);
+            stroke: rgba(255, 255, 255, 0.08);
+            stroke-width: 1px;
+            rx: 12px;
+            ry: 12px;
+            transition: stroke 0.3s;
+        }
+
+        .node-rect:hover {
+            stroke: rgba(124, 92, 255, 0.4);
+        }
+
+        .node-rect.ceo {
+            fill: rgba(124, 92, 255, 0.12);
+            stroke: rgba(124, 92, 255, 0.3);
+            stroke-width: 1.5px;
+        }
+
+        .node-label {
+            font-size: 13px;
+            font-weight: 600;
+            fill: #E8EDF5;
+            dominant-baseline: central;
+            pointer-events: none;
+        }
+
+        .node-sub {
+            font-size: 10px;
+            fill: #5A657A;
+            dominant-baseline: central;
+            pointer-events: none;
+        }
+
+        .node-stance {
+            font-size: 9px;
+            font-weight: 600;
+            dominant-baseline: central;
+            pointer-events: none;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .node-stance.support {
+            fill: #4ADE80;
+        }
+        .node-stance.oppose {
+            fill: #FF6B6B;
+        }
+        .node-stance.neutral {
+            fill: #F59E0B;
+        }
+
+        /* ─── D3 边样式 ─── */
+        .edge-line {
+            stroke-width: 2px;
+            stroke-linecap: round;
+            opacity: 0.4;
+            transition: opacity 0.3s;
+        }
+
+        .edge-line:hover {
+            opacity: 0.8;
+        }
+
+        .edge-line.conflict {
+            stroke: #FF6B6B;
+        }
+
+        .edge-line.support {
+            stroke: #4ADE80;
+        }
+
+        .edge-line.synthesis {
+            stroke: #7C5CFF;
+            stroke-width: 1.5px;
+            stroke-dasharray: 4 4;
+            opacity: 0.2;
+        }
+
+        /* ─── 图例 ─── */
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 24px;
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+            color: #5A657A;
+            background: rgba(11, 15, 26, 0.8);
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .legend .item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend .swatch {
+            width: 16px;
+            height: 2px;
+            border-radius: 2px;
+        }
+
+        .legend .swatch.conflict {
+            background: #FF6B6B;
+        }
+        .legend .swatch.support {
+            background: #4ADE80;
+        }
+        .legend .swatch.synthesis {
+            background: #7C5CFF;
+            opacity: 0.4;
+        }
+
+        /* ─── 空状态 ─── */
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #4A5268;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .empty-state .icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        /* ─── 响应式 ─── */
+        @media (max-width: 600px) {
+            .topbar {
+                padding: 10px 16px;
+            }
+
+            .input-bar {
+                padding: 10px 16px;
+                flex-direction: column;
+            }
+
+            .legend {
+                bottom: 12px;
+                right: 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 8px 12px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ─── 顶部 ─── -->
+    <div class="topbar">
+        <div class="logo">🧠 AI <span>Decision Graph</span></div>
+        <div class="status">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">就绪</span>
+        </div>
+    </div>
+
+    <!-- ─── 输入 ─── -->
+    <div class="input-bar">
+        <input id="topicInput" placeholder="输入决策问题，例如：是否进入五官炎健康赛道？" />
+        <button class="btn" id="runBtn">🚀 生成决策图谱</button>
+    </div>
+
+    <!-- ─── 图谱 ─── -->
+    <div class="graph-container" id="graphContainer">
+        <div class="empty-state" id="emptyState">
+            <div class="icon">🧠</div>
+            <div>输入决策问题，生成 AI 认知图谱</div>
+        </div>
+        <svg id="graphSvg"></svg>
+        <div class="legend">
+            <span class="item"><span class="swatch conflict"></span> 冲突</span>
+            <span class="item"><span class="swatch support"></span> 共识</span>
+            <span class="item"><span class="swatch synthesis"></span> 汇聚</span>
+        </div>
+    </div>
+
+    <script>
+        // ─────────────────────────────────────────────────────────────
+        //  V4: AI Decision Graph Engine (D3 力导向)
+        // ─────────────────────────────────────────────────────────────
+
+        // ─── DOM 引用 ───
+        const topicInput = document.getElementById('topicInput');
+        const runBtn = document.getElementById('runBtn');
+        const graphContainer = document.getElementById('graphContainer');
+        const emptyState = document.getElementById('emptyState');
+        const svg = document.getElementById('graphSvg');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        let currentSimulation = null;
+
+        // ─── 董事会配置 ───
+        const BOARD_MEMBERS = [
+            { id: 'strategy', label: '战略官', icon: '🧙', stance: '支持', color: '#7C5CFF', weight: 1.3 },
+            { id: 'critic', label: '批判官', icon: '⚔️', stance: '反对', color: '#FF6B6B', weight: 1.4 },
+            { id: 'risk', label: '风控官', icon: '🛡️', stance: '中立', color: '#F59E0B', weight: 1.2 },
+            { id: 'growth', label: '增长官', icon: '📈', stance: '支持', color: '#4ADE80', weight: 1.2 },
+            { id: 'insight', label: '洞察官', icon: '🔍', stance: '中立', color: '#38BDF8', weight: 1.0 }
+        ];
+
+        // ─── 生成图谱数据 ───
+        function generateGraphData(topic) {
+            const nodes = [];
+            const edges = [];
+
+            // 节点
+            BOARD_MEMBERS.forEach((m, i) => {
+                nodes.push({
+                    id: m.id,
+                    label: m.label,
+                    icon: m.icon,
+                    stance: m.stance,
+                    color: m.color,
+                    weight: m.weight,
+                    isCEO: false,
+                    group: 'member',
+                    x: 200 + i * 120,
+                    y: 200 + Math.random() * 80
+                });
+            });
+
+            // CEO 节点
+            nodes.push({
+                id: 'ceo',
+                label: 'CEO 裁决',
+                icon: '👑',
+                stance: '裁决',
+                color: '#7C5CFF',
+                weight: 1.8,
+                isCEO: true,
+                group: 'ceo',
+                x: 600,
+                y: 300
+            });
+
+            // 边：立场对立 → 冲突
+            const stances = {};
+            nodes.forEach(n => { if (!n.isCEO) stances[n.id] = n.stance; });
+            const ids = Object.keys(stances);
+
+            for (let i = 0; i < ids.length; i++) {
+                for (let j = i + 1; j < ids.length; j++) {
+                    const a = ids[i],
+                        b = ids[j];
+                    if (stances[a] === '支持' && stances[b] === '反对') {
+                        edges.push({ source: a, target: b, type: 'conflict', weight: 0.8 + Math.random() * 0.2 });
+                    } else if (stances[a] === '反对' && stances[b] === '支持') {
+                        edges.push({ source: b, target: a, type: 'conflict', weight: 0.8 + Math.random() * 0.2 });
+                    } else if (stances[a] === '支持' && stances[b] === '支持') {
+                        edges.push({ source: a, target: b, type: 'support', weight: 0.3 + Math.random() * 0.2 });
+                    } else if (stances[a] === '反对' && stances[b] === '反对') {
+                        edges.push({ source: a, target: b, type: 'support', weight: 0.3 + Math.random() * 0.2 });
+                    } else if (stances[a] === '中立' && stances[b] === '中立') {
+                        edges.push({ source: a, target: b, type: 'support', weight: 0.15 + Math.random() * 0.1 });
+                    }
+                }
+            }
+
+            // 汇聚边：所有节点 → CEO
+            nodes.forEach(n => {
+                if (!n.isCEO) {
+                    edges.push({ source: n.id, target: 'ceo', type: 'synthesis', weight: 0.3 });
+                }
+            });
+
+            return { nodes, edges };
+        }
+
+        // ─── 渲染图谱 ───
+        function renderGraph(data) {
+            const container = graphContainer;
+            const width = container.clientWidth;
+            const height = container.clientHeight || 500;
+
+            emptyState.style.display = 'none';
+            svg.innerHTML = '';
+
+            svg.setAttribute('width', width);
+            svg.setAttribute('height', height);
+
+            // ─── 力导向 ───
+            const simulation = d3.forceSimulation(data.nodes)
+                .force('charge', d3.forceManyBody().strength(-250))
+                .force('link', d3.forceLink(data.edges).id(d => d.id).distance(120).strength(0.3))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(65));
+
+            currentSimulation = simulation;
+
+            // ─── 边 ───
+            const linkGroup = svg.append('g');
+            const link = linkGroup.selectAll('.edge-line')
+                .data(data.edges)
+                .enter()
+                .append('line')
+                .attr('class', d => `edge-line ${d.type}`)
+                .attr('stroke-width', d => d.type === 'synthesis' ? 1.5 : 2);
+
+            // ─── 节点 ───
+            const nodeGroup = svg.append('g');
+            const node = nodeGroup.selectAll('.node-group')
+                .data(data.nodes)
+                .enter()
+                .append('g')
+                .attr('class', 'node-group')
+                .call(d3.drag()
+                    .on('start', (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x;
+                        d.fy = d.y;
+                    })
+                    .on('drag', (event, d) => {
+                        d.fx = event.x;
+                        d.fy = event.y;
+                    })
+                    .on('end', (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0);
+                        d.fx = null;
+                        d.fy = null;
+                    })
+                );
+
+            // 矩形背景
+            node.append('rect')
+                .attr('class', d => `node-rect${d.isCEO ? ' ceo' : ''}`)
+                .attr('width', 140)
+                .attr('height', 64)
+                .attr('x', -70)
+                .attr('y', -32)
+                .attr('rx', 12)
+                .attr('ry', 12);
+
+            // 标签
+            node.append('text')
+                .attr('class', 'node-label')
+                .attr('x', 0)
+                .attr('y', -6)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '14px')
+                .text(d => `${d.icon} ${d.label}`);
+
+            // 立场
+            const stanceMap = {
+                '支持': '支持',
+                '反对': '反对',
+                '中立': '中立',
+                '裁决': '裁决'
+            };
+
+            node.append('text')
+                .attr('class', d => `node-stance ${d.stance === '支持' ? 'support' : d.stance === '反对' ? 'oppose' : 'neutral'}`)
+                .attr('x', 0)
+                .attr('y', 16)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '10px')
+                .text(d => stanceMap[d.stance] || d.stance);
+
+            // 脉冲圈（仅CEO）
+            node.filter(d => d.isCEO)
+                .append('circle')
+                .attr('cx', 0)
+                .attr('cy', 0)
+                .attr('r', 10)
+                .style('fill', 'none')
+                .style('stroke', '#7C5CFF')
+                .style('stroke-width', '2px')
+                .style('opacity', '0.4')
+                .style('animation', 'pulse-ceo 2s ease-in-out infinite');
+
+            // 动态脉冲动画（用 CSS）
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulse-ceo {
+                    0%, 100% { r: 8px; opacity: 0.4; }
+                    50% { r: 20px; opacity: 0.1; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // ─── 模拟更新 ───
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            // ─── 窗口变化 ───
+            const resizeHandler = () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight || 500;
+                svg.setAttribute('width', w);
+                svg.setAttribute('height', h);
+                simulation.force('center', d3.forceCenter(w / 2, h / 2));
+                simulation.alpha(0.3).restart();
+            };
+
+            window.addEventListener('resize', resizeHandler);
+            window.__graphResizeHandler = resizeHandler;
+
+            statusDot.className = 'dot active';
+            statusText.textContent = '图谱已生成 · 可拖拽';
+        }
+
+        // ─── 清理 ───
+        function clearGraph() {
+            if (currentSimulation) {
+                currentSimulation.stop();
+                currentSimulation = null;
+            }
+            if (window.__graphResizeHandler) {
+                window.removeEventListener('resize', window.__graphResizeHandler);
+                window.__graphResizeHandler = null;
+            }
+            svg.innerHTML = '';
+            emptyState.style.display = 'block';
+            statusDot.className = 'dot';
+            statusText.textContent = '就绪';
+        }
+
+        // ─── 运行 ───
+        function runDecision() {
+            const topic = topicInput.value.trim() || '是否进入五官炎健康赛道？';
+
+            clearGraph();
+            statusDot.className = 'dot active';
+            statusText.textContent = '生成中…';
+            runBtn.disabled = true;
+            runBtn.textContent = '⏳ 生成中…';
+
+            setTimeout(() => {
+                const data = generateGraphData(topic);
+                renderGraph(data);
+                runBtn.disabled = false;
+                runBtn.textContent = '🚀 生成决策图谱';
+            }, 500);
+        }
+
+        // ─── 绑定 ───
+        runBtn.addEventListener('click', runDecision);
+        topicInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') runDecision();
+        });
+
+        // ─── 首次加载 ───
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                topicInput.value = '是否进入五官炎健康赛道？';
+                runDecision();
+            }, 300);
+        });
+
+        console.log('🧠 AI Decision Graph V4 已加载');
+        console.log('💡 拖拽节点探索决策结构');
+    </script>
+</body>
+</html>
