@@ -173,15 +173,9 @@ h1{font-size:52px;font-weight:700;letter-spacing:-1px;margin:0;line-height:1.2;}
         Gemini disagrees with DeepSeek.<br>
         <strong style="color:#d4d4d8;">We don't pick one. We resolve them.</strong>
     </div>
-    <a class="btn" href="/explore" id="enterBtn">Enter Decision System</a>
+    <a class="btn" href="/explore">Enter Decision System →</a>
 </div>
 <div class="hint">Ask every AI. Trust one decision.</div>
-<script>
-document.getElementById('enterBtn').addEventListener('click',function(e){
-    var q=prompt('What decision are you facing? (optional)');
-    if(q&&q.trim()){e.preventDefault();sessionStorage.setItem('decision_question',q.trim());window.location.href='/explore';}
-});
-</script>
 </body>
 </html>
 """
