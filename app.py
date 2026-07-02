@@ -141,67 +141,51 @@ DEBATE_ROLES = [k for k in BOARD_MEMBERS if k != "CEO裁决官"]
 # ============================================================
 
 LANDING_HTML = """<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>AI Decision OS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Decision OS · Ask every AI. Trust one decision.</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:#08090d;font-family:Inter,system-ui,-apple-system,sans-serif;color:#e6e6e6;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;}
-.container{display:flex;flex-direction:column;align-items:center;gap:3rem;max-width:800px;width:100%;padding:2rem;}
-.brand{font-size:.75rem;letter-spacing:4px;text-transform:uppercase;color:#6b7280;}
-.slogan{font-size:3rem;font-weight:700;text-align:center;line-height:1.3;background:linear-gradient(135deg,#e6e6e6 0%,#6b7280 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.input-wrapper{width:100%;}
-.main-input{width:100%;background:#0d1117;border:1px solid #1a1f2e;border-radius:16px;padding:1.5rem 2rem;font-size:1.2rem;color:#e6e6e6;outline:none;transition:all .3s ease;font-family:inherit;}
-.main-input:focus{border-color:#3b82f6;box-shadow:0 0 40px rgba(59,130,246,0.08);}
-.main-input::placeholder{color:#374151;}
-.entries{display:flex;gap:1.5rem;width:100%;justify-content:center;flex-wrap:wrap;}
-.entry-card{background:#0d1117;border:1px solid #1a1f2e;border-radius:16px;padding:1.5rem;text-align:center;flex:1;max-width:220px;min-width:160px;cursor:pointer;transition:all .3s ease;text-decoration:none;color:#e6e6e6;}
-.entry-card:hover{border-color:#3b82f6;background:#111620;transform:translateY(-2px);}
-.entry-icon{font-size:1.8rem;margin-bottom:.6rem;}
-.entry-title{font-size:1rem;font-weight:600;margin-bottom:.3rem;}
-.entry-desc{font-size:.75rem;color:#6b7280;line-height:1.4;}
-.footer{font-size:.65rem;color:#374151;position:fixed;bottom:1.5rem;width:100%;text-align:center;}
+body{margin:0;background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;overflow:hidden;height:100vh;}
+.glow{position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(124,58,237,0.25),transparent);top:30%;left:50%;transform:translateX(-50%);filter:blur(60px);pointer-events:none;}
+.center{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);text-align:center;width:90%;max-width:700px;}
+h1{font-size:52px;font-weight:700;letter-spacing:-1px;margin:0;line-height:1.2;}
+.hl{color:#7c3aed;}
+.sub{margin-top:20px;color:#a1a1aa;font-size:18px;line-height:1.7;}
+.btn{margin-top:40px;padding:14px 32px;background:linear-gradient(90deg,#7c3aed,#3b82f6);border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:transform .15s;text-decoration:none;display:inline-block;}
+.btn:hover{transform:translateY(-2px);}
+.hint{position:fixed;bottom:20px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.15);font-size:12px;}
+.tag{position:fixed;top:20px;right:24px;font-size:11px;color:rgba(255,255,255,0.2);letter-spacing:2px;}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="brand">Decision OS</div>
-  <div class="slogan">Ask every AI.<br>Trust one decision.</div>
-  <div class="input-wrapper">
-    <input class="main-input" placeholder="你正在面临什么决策？" id="mainInput">
-  </div>
-  <div class="entries">
-    <a href="/explore" class="entry-card">
-      <div class="entry-icon">🌐</div>
-      <div class="entry-title">Explore</div>
-      <div class="entry-desc">观看全球AI实时辩论</div>
-    </a>
-    <a href="/compile" class="entry-card">
-      <div class="entry-icon">⚡</div>
-      <div class="entry-title">Compile</div>
-      <div class="entry-desc">整理所有AI观点</div>
-    </a>
-    <a href="/decide" class="entry-card">
-      <div class="entry-icon">🧠</div>
-      <div class="entry-title">Decide</div>
-      <div class="entry-desc">获取深度决策报告</div>
-    </a>
-  </div>
+<div class="tag">DECISION OS 1.0</div>
+<div class="glow"></div>
+<div class="center">
+    <h1>AI Decision <span class="hl">OS</span></h1>
+    <div class="sub">
+        The first system that turns<br>
+        <span class="hl">multiple AI opinions</span> into one structured decision.
+    </div>
+    <div class="sub" style="font-size:16px;color:#71717a;">
+        ChatGPT disagrees with Claude.<br>
+        Gemini disagrees with DeepSeek.<br>
+        <strong style="color:#d4d4d8;">We don't pick one. We resolve them.</strong>
+    </div>
+    <a class="btn" href="/explore" id="enterBtn">Enter Decision System</a>
 </div>
-<div class="footer">Decision OS 1.0 · MindTrust</div>
+<div class="hint">Ask every AI. Trust one decision.</div>
 <script>
-document.getElementById('mainInput').addEventListener('keydown',function(e){
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();var v=this.value.trim();if(v){sessionStorage.setItem('decision_question',v);window.location.href='/explore';}}
+document.getElementById('enterBtn').addEventListener('click',function(e){
+    var q=prompt('What decision are you facing? (optional)');
+    if(q&&q.trim()){e.preventDefault();sessionStorage.setItem('decision_question',q.trim());window.location.href='/explore';}
 });
 </script>
 </body>
 </html>
 """
 
-# ============================================================
 
 
 # ============================================================
