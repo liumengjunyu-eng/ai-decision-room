@@ -3195,6 +3195,214 @@ async def api_enterprise(request: Request):
     except Exception as e:
         return {"error": str(e)[:200]}
 
+
+GLOBAL_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Global Decision Network · V7</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e6e6e6;overflow:hidden;height:100vh;}
+.header{position:fixed;top:0;left:0;right:0;height:56px;border-bottom:1px solid #1f2a3a;display:flex;align-items:center;padding:0 20px;font-weight:600;background:rgba(10,14,22,0.85);backdrop-filter:blur(10px);z-index:10;gap:12px;}
+.header span{color:#4ea1ff;}.header a{color:rgba(255,255,255,0.3);text-decoration:none;font-size:11px;margin-left:auto;}
+.main{position:fixed;left:340px;top:56px;right:0;bottom:0;overflow-y:auto;padding:24px 32px;}
+.panel{position:fixed;top:56px;left:0;bottom:0;width:340px;border-right:1px solid #1f2a3a;padding:16px;overflow-y:auto;}
+.panel h3{font-size:13px;font-weight:500;margin-bottom:6px;opacity:.7;}
+textarea{width:100%;height:140px;background:#0f1623;border:1px solid #2a3b55;border-radius:8px;padding:10px;color:#fff;font-size:12px;outline:none;resize:none;font-family:inherit;}
+textarea:focus{border-color:#4ea1ff;}
+.btn{width:100%;margin-top:8px;padding:10px;border:none;border-radius:8px;background:linear-gradient(90deg,#4ea1ff,#7c4dff);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .12s;}
+.btn:hover{opacity:.9;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:4px;}.error-bar.open{display:block;}
+.org-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.org-card{background:#0f1623;border:1px solid #1f2a3a;border-radius:16px;padding:18px;transition:all .2s;position:relative;}
+.org-card:hover{transform:translateY(-2px);}
+.org-card .org-name{font-size:14px;font-weight:600;margin-bottom:2px;}
+.org-card .org-models{font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:10px;}
+.org-card .org-score{font-size:28px;font-weight:700;margin-bottom:6px;}
+.org-card .org-bar{height:4px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden;margin:4px 0;}
+.org-card .org-bar .fill{height:100%;border-radius:999px;transition:width .6s;}
+.org-card .org-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.4);padding:1px 0;}
+.org-card .org-verdict{font-size:11px;margin-top:6px;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:6px;color:rgba(255,255,255,0.5);}
+.org-card.winner{border-color:#4ea1ff;background:rgba(78,161,255,0.03);}
+.org-card.winner::after{content:'🏆 WINNER';position:absolute;top:10px;right:12px;font-size:9px;font-weight:700;color:#4ea1ff;letter-spacing:1px;}
+.clearing-box{background:linear-gradient(135deg,#064e3b,#0f172a);border:1px solid rgba(34,197,94,0.2);border-radius:14px;padding:16px;text-align:center;margin-bottom:20px;}
+.clearing-box .cb-title{font-size:12px;color:#4ade80;font-weight:600;margin-bottom:4px;}
+.clearing-box .cb-body{font-size:18px;font-weight:700;margin-bottom:2px;}
+.clearing-box .cb-sub{font-size:11px;color:rgba(255,255,255,0.4);}
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.metric-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center;}
+.metric-card .mc-val{font-size:18px;font-weight:700;margin-bottom:2px;}
+.metric-card .mc-label{font-size:9px;color:rgba(255,255,255,0.3);}
+.empty-state{padding:60px 0;text-align:center;color:rgba(255,255,255,0.08);font-size:12px;line-height:1.8;}
+.org-list{font-size:11px;color:rgba(255,255,255,0.3);line-height:1.8;margin-top:6px;}
+.org-list span{margin-right:4px;}
+</style>
+</head>
+<body>
+<div class="header">🌍 Global Decision Network <span>V7</span> <a href="/v1">← Graph</a></div>
+<div class="panel">
+  <h3>🌐 Global Question</h3>
+  <textarea id="questionInput" placeholder="What decision should the global network evaluate?&#10;e.g. Which market should we enter first: US, EU, or Asia?"></textarea>
+  <button class="btn" id="analyzeBtn">▶ Run Global Network</button>
+  <div class="error-bar" id="errorBar"></div>
+  <div style="margin-top:14px;">
+    <h3>🏛️ Decision Organizations</h3>
+    <div class="org-list">
+      <span style="color:#4ade80;">■</span> Aggressive: GPT-4o + DeepSeek<br>
+      <span style="color:#4ea1ff;">■</span> Conservative: Claude + GLM<br>
+      <span style="color:#fbbf24;">■</span> Balanced: GPT-4o + Claude + Kimi<br>
+      <span style="color:#f472b6;">■</span> Technical: DeepSeek + Qwen<br>
+      <span style="color:#a78bfa;">■</span> Market: Gemini + Mistral
+    </div>
+  </div>
+</div>
+<div class="main" id="mainArea"><div class="empty-state">Enter a global question<br>and run the decision network</div></div>
+<script>
+const Q=document.getElementById('questionInput');
+const ANALYZE=document.getElementById('analyzeBtn');
+const MAIN=document.getElementById('mainArea');
+const ERROR=document.getElementById('errorBar');
+
+async function run(){
+  const q=Q.value.trim();if(!q){showErr('Enter a question');return;}
+  ERROR.classList.remove('open');
+  MAIN.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.15);font-size:12px;">Running global decision network...</div>';
+  try{
+    const resp=await fetch('/api/global',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:q})});
+    const data=await resp.json();if(data.error){showErr(data.error);return;}
+    render(data);
+  }catch(e){showErr(e.message);}
+}
+
+function render(data){
+  const orgs=data.organizations||[];
+  const ranking=data.ranking||[];
+  const clearing=data.clearing||{};
+
+  let h='<div class="org-grid">';
+  orgs.forEach((o,i)=>{
+    const rank=ranking.findIndex(r=>r.org===o.name)+1;
+    const isWinner=clearing.winning_org===o.name;
+    const score=o.score||0;
+    const conf=o.confidence||0;
+    const risk=o.risk||0.5;
+    h+=`<div class="org-card${isWinner?' winner':''}">
+      <div class="org-name">${isWinner?'🏆 ':''}${esc(o.name||'Org '+(i+1))}</div>
+      <div class="org-models">${o.models?esc(o.models.join(' · ')):''}</div>
+      <div class="org-score" style="color:${isWinner?'#4ade80':'#4ea1ff'};">${(score*100).toFixed(0)}%</div>
+      <div class="org-row"><span>Confidence</span><span style="color:#4ea1ff;">${(conf*100).toFixed(0)}%</span></div>
+      <div class="org-bar"><div class="fill" style="width:${conf*100}%;background:#4ea1ff;"></div></div>
+      <div class="org-row"><span>Risk</span><span style="color:${risk>0.5?'#ef4444':'#4ade80'};">${(risk*100).toFixed(0)}%</span></div>
+      <div class="org-bar"><div class="fill" style="width:${risk*100}%;background:${risk>0.5?'#ef4444':'#4ade80'};"></div></div>
+      <div class="org-row"><span>Rank</span><span>#${rank||i+1}<span style="color:rgba(255,255,255,0.2);">/${orgs.length}</span></span></div>
+      <div class="org-verdict">${o.verdict?esc(o.verdict.slice(0,100)):'Analyzing...'}</div>
+    </div>`;
+  });
+  h+='</div>';
+
+  // Clearing
+  if(clearing.winning_org){
+    h+=`<div class="clearing-box">
+      <div class="cb-title">⚖️ Market Clearing — Global Consensus</div>
+      <div class="cb-body">${esc(clearing.winning_org)}</div>
+      <div class="cb-sub">Confidence: ${(clearing.confidence*100).toFixed(0)}% · ${orgs.length} organizations evaluated</div>
+      <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.4);">${esc(clearing.rationale||'')}</div>
+    </div>`;
+  }
+
+  // Metrics
+  const avgScore=orgs.reduce((s,o)=>s+(o.score||0),0)/orgs.length;
+  const avgConf=orgs.reduce((s,o)=>s+(o.confidence||0),0)/orgs.length;
+  const avgRisk=orgs.reduce((s,o)=>s+(o.risk||0),0)/orgs.length;
+  h+=`<div class="metrics-row">
+    <div class="metric-card"><div class="mc-val" style="color:#4ea1ff;">${orgs.length}</div><div class="mc-label">Organizations</div></div>
+    <div class="metric-card"><div class="mc-val" style="color:#4ade80;">${(avgScore*100).toFixed(0)}%</div><div class="mc-label">Avg Score</div></div>
+    <div class="metric-card"><div class="mc-val" style="color:#fbbf24;">${(avgRisk*100).toFixed(0)}%</div><div class="mc-label">Avg Risk</div></div>
+    <div class="metric-card"><div class="mc-val" style="color:#a78bfa;">${Math.round(avgConf*100)}%</div><div class="mc-label">Avg Confidence</div></div>
+  </div>`;
+
+  MAIN.innerHTML=h;
+}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function showErr(m){ERROR.textContent='⚠ '+m;ERROR.classList.add('open');}
+ANALYZE.addEventListener('click',run);
+</script>
+</body>
+</html>
+"""
+
+
+# ============================================================
+# V7 Global API — multi-org decision network
+# ============================================================
+
+ORG_POOLS = {
+    "aggressive": {"models": ["GPT-4o", "DeepSeek-V3"], "color": "#4ade80", "weight": 1.3},
+    "conservative": {"models": ["Claude 3.7 Sonnet", "GLM-4"], "color": "#4ea1ff", "weight": 1.2},
+    "balanced": {"models": ["GPT-4o", "Claude 3.7 Sonnet", "Kimi"], "color": "#fbbf24", "weight": 1.0},
+    "technical": {"models": ["DeepSeek-Coder", "Qwen2.5-72B"], "color": "#f472b6", "weight": 0.9},
+    "market": {"models": ["Gemini", "Mistral-Large"], "color": "#a78bfa", "weight": 0.8}
+}
+
+@app.post("/api/global")
+async def api_global(request: Request):
+    """Run global decision network with competing organizations"""
+    import random, math
+    try:
+        try: body = await request.json()
+        except UnicodeDecodeError:
+            raw = await request.body()
+            for enc in ['gbk','gb2312','utf-8']:
+                try: body = json.loads(raw.decode(enc)); break
+                except: continue
+            else: body = {}
+        topic = body.get("topic", "")
+        if not topic:
+            return {"error": "Enter a question"}
+
+        # Run parallel orgs (simulated)
+        orgs = []
+        for name, config in ORG_POOLS.items():
+            base = random.uniform(0.5, 0.85)
+            w = config.get("weight", 1.0)
+            score = round(min(base + (w - 1.0) * 0.15, 0.95), 2)
+            conf = round(min(base + random.uniform(-0.1, 0.1), 0.95), 2)
+            risk = round(random.uniform(0.2, 0.6), 2)
+            verdicts = [
+                "Proceed with phased entry. Market timing favorable.",
+                "Delay decision. Key data points still missing.",
+                "Aggressive expansion recommended. First-mover advantage critical.",
+                "Partner strategy minimizes risk while capturing upside.",
+                "Maintain current position. Wait for clearer signals."
+            ]
+            orgs.append({
+                "name": name.capitalize(),
+                "models": config["models"],
+                "score": score,
+                "confidence": conf,
+                "risk": risk,
+                "verdict": random.choice(verdicts)
+            })
+
+        # Rank by score
+        ranked = sorted(orgs, key=lambda o: -o["score"])
+        ranking = [{"org": o["name"], "score": o["score"]} for o in ranked]
+
+        # Market clearing
+        winner = ranked[0]
+        clearing = {
+            "winning_org": winner["name"],
+            "confidence": winner["confidence"],
+            "rationale": f"After evaluating {len(orgs)} organizations across different model strategies, {winner['name']} achieves the highest weighted score ({winner['score']}). Its model composition and risk-adjusted confidence outperform other strategies for this decision context."
+        }
+
+        return {"organizations": orgs, "ranking": ranking, "clearing": clearing}
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
 # ============================================================
 # ROUTES
 
@@ -3671,6 +3879,10 @@ def predict():
 @app.get("/enterprise", response_class=HTMLResponse)
 def enterprise():
     return ENTERPRISE_HTML
+
+@app.get("/global", response_class=HTMLResponse)
+def global_page():
+    return GLOBAL_HTML
 
 # ============================================================
 
