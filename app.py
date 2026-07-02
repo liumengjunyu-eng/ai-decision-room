@@ -2819,6 +2819,190 @@ ANALYZE.addEventListener('click',run);
 </html>
 """
 
+
+PREDICT_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Decision Prediction · V5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e6e6e6;overflow:hidden;height:100vh;}
+.header{position:fixed;top:0;left:0;right:0;height:56px;border-bottom:1px solid #1f2a3a;display:flex;align-items:center;padding:0 20px;font-weight:600;background:rgba(10,14,22,0.85);backdrop-filter:blur(10px);z-index:10;gap:12px;}
+.header span{color:#4ea1ff;}.header a{color:rgba(255,255,255,0.3);text-decoration:none;font-size:11px;margin-left:auto;}
+.panel{position:fixed;top:56px;left:0;bottom:0;width:320px;border-right:1px solid #1f2a3a;padding:16px;overflow-y:auto;}
+.panel h3{font-size:13px;font-weight:500;margin-bottom:6px;opacity:.7;}
+textarea{width:100%;height:120px;background:#0f1623;border:1px solid #2a3b55;border-radius:8px;padding:10px;color:#fff;font-size:12px;outline:none;resize:none;font-family:inherit;}
+textarea:focus{border-color:#4ea1ff;}
+.opt-input{width:100%;padding:8px 10px;margin-bottom:6px;background:#0f1623;border:1px solid #2a3b55;border-radius:6px;color:#fff;font-size:12px;outline:none;font-family:inherit;}
+.opt-input:focus{border-color:#4ea1ff;}
+.btn{width:100%;margin-top:8px;padding:10px;border:none;border-radius:8px;background:linear-gradient(90deg,#4ea1ff,#7c4dff);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .12s;}
+.btn:hover{opacity:.9;}
+.btn-sm{width:auto;padding:4px 12px;font-size:10px;margin-top:4px;background:#1c2433;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:4px;}.error-bar.open{display:block;}
+.main{position:fixed;left:320px;top:56px;right:0;bottom:0;overflow-y:auto;padding:24px 32px;}
+.path-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+.opt-card{background:#0f1623;border:1px solid #1f2a3a;border-radius:16px;padding:20px;transition:all .2s;position:relative;overflow:hidden;}
+.opt-card:hover{transform:translateY(-2px);border-color:#4ea1ff;}
+.opt-card .opt-name{font-size:14px;font-weight:600;margin-bottom:4px;}
+.opt-card .opt-label{font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:12px;}
+.opt-card .opt-score{font-size:32px;font-weight:700;color:#4ea1ff;margin-bottom:8px;}
+.opt-card .opt-bar{height:4px;background:rgba(255,255,255,0.05);border-radius:999px;overflow:hidden;margin:6px 0;}
+.opt-card .opt-bar .fill{height:100%;border-radius:999px;transition:width .6s;}
+.opt-card .opt-row{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.5);padding:2px 0;}
+.opt-card .future-box{margin-top:10px;padding:10px;background:rgba(0,0,0,0.2);border-radius:8px;font-size:11px;line-height:1.5;color:rgba(255,255,255,0.6);}
+.opt-card .future-box strong{color:#d4d4d8;}
+.opt-card.recommended{border-color:#4ade80;background:rgba(34,197,94,0.03);}
+.opt-card.recommended::after{content:'RECOMMENDED';position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;color:#4ade80;letter-spacing:1px;}
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;}
+.metric-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:12px;text-align:center;}
+.metric-card .mc-value{font-size:20px;font-weight:700;margin-bottom:2px;}
+.metric-card .mc-label{font-size:10px;color:rgba(255,255,255,0.35);}
+.empty-state{padding:60px 0;text-align:center;color:rgba(255,255,255,0.08);font-size:12px;line-height:1.8;}
+.opt-controls{display:flex;gap:6px;margin-bottom:4px;}
+.opt-controls input{flex:1;}
+.opt-controls button{padding:4px 10px;border-radius:4px;border:1px solid #2a3b55;background:#0f1623;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px;}
+.opt-controls button:hover{background:#1c2433;}
+</style>
+</head>
+<body>
+<div class="header">🔮 Decision Prediction <span>V5</span> <a href="/v1">← Graph</a></div>
+<div class="panel">
+  <h3>Decision Question</h3>
+  <textarea id="questionInput" placeholder="What decision are you facing?" e.g. Should we launch now or wait?"></textarea>
+  <h3 style="margin-top:12px;">Decision Options</h3>
+  <div id="optionsContainer">
+    <div class="opt-controls"><input class="opt-input" id="opt0" placeholder="Option A" value="Launch now"></div>
+    <div class="opt-controls"><input class="opt-input" id="opt1" placeholder="Option B" value="Wait 3 months"></div>
+  </div>
+  <button class="btn btn-sm" id="addOptBtn">+ Add option</button>
+  <button class="btn" id="analyzeBtn">🔮 Simulate Futures</button>
+  <div class="error-bar" id="errorBar"></div>
+</div>
+<div class="main" id="mainArea"><div class="empty-state">Enter a decision question and options<br>then simulate future scenarios</div></div>
+<script>
+let optCount=2;
+document.getElementById('addOptBtn').addEventListener('click',()=>{
+  const c=document.getElementById('optionsContainer');
+  const d=document.createElement('div');d.className='opt-controls';
+  d.innerHTML='<input class="opt-input" id="opt'+optCount+'" placeholder="Option"><button onclick="this.parentElement.remove()">✕</button>';
+  c.appendChild(d);optCount++;
+});
+document.getElementById('analyzeBtn').addEventListener('click',run);
+async function run(){
+  const q=document.getElementById('questionInput').value.trim();if(!q){showErr('Enter a question');return;}
+  const opts=[];for(let i=0;i<optCount;i++){const el=document.getElementById('opt'+i);if(el&&el.value.trim())opts.push(el.value.trim());}
+  if(opts.length<2){showErr('Need at least 2 options');return;}
+  document.getElementById('errorBar').classList.remove('open');
+  document.getElementById('mainArea').innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.15);font-size:12px;">Simulating futures...</div>';
+  try{
+    const resp=await fetch('/api/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,options:opts})});
+    const data=await resp.json();if(data.error){showErr(data.error);return;}
+    render(data);
+  }catch(e){showErr(e.message);}
+}
+function render(data){
+  const paths=data.paths||[];
+  let h='<div class="path-grid">';
+  const bestScore=Math.max(...paths.map(p=>p.reward*0.5+(p.confidence||0)*0.3-(p.risk||0)*0.2));
+  paths.forEach((p,i)=>{
+    const risk=p.risk||0;const reward=p.reward||0;const conf=p.confidence||0;
+    const score=reward*0.5+conf*0.3-risk*0.2;
+    const isBest=Math.abs(score-bestScore)<0.01;
+    const riskColor=risk>0.6?'#ef4444':risk>0.3?'#fbbf24':'#4ade80';
+    h+=`<div class="opt-card${isBest?' recommended':''}"><div class="opt-name">${esc(p.option)}</div>
+      <div class="opt-label">Path ${i+1}</div><div class="opt-score">${Math.round(score*100)}%</div>
+      <div class="opt-row"><span>Reward</span><span style="color:#4ade80;">${(reward*100).toFixed(0)}%</span></div>
+      <div class="opt-bar"><div class="fill" style="width:${reward*100}%;background:#4ade80;"></div></div>
+      <div class="opt-row"><span>Risk</span><span style="color:${riskColor};">${(risk*100).toFixed(0)}%</span></div>
+      <div class="opt-bar"><div class="fill" style="width:${risk*100}%;background:${riskColor};"></div></div>
+      <div class="opt-row"><span>Confidence</span><span style="color:#4ea1ff;">${(conf*100).toFixed(0)}%</span></div>
+      <div class="opt-bar"><div class="fill" style="width:${conf*100}%;background:#4ea1ff;"></div></div>
+      <div class="future-box"><strong>🔮 3-Month Outlook</strong><br>${esc(p.future||'')}</div>
+      ${p.risk_factors?`<div class="future-box" style="margin-top:4px;"><strong>⚠️ Risks</strong><br>${esc(p.risk_factors)}</div>`:''}
+    </div>`;
+  });
+  h+='</div>';
+  const bestPath=paths.reduce((a,b)=>(b.reward*0.5+(b.confidence||0)*0.3-(b.risk||0)*0.2)>(a.reward*0.5+(a.confidence||0)*0.3-(a.risk||0)*0.2)?b:a,paths[0]);
+  if(bestPath)h+=`<div style="background:linear-gradient(135deg,#064e3b,#0f172a);border:1px solid rgba(34,197,94,0.2);border-radius:14px;padding:16px;text-align:center;">
+    <div style="font-size:13px;color:#4ade80;font-weight:600;margin-bottom:4px;">🎯 Recommended Path</div>
+    <div style="font-size:16px;font-weight:600;">${esc(bestPath.option)}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;">Score: ${Math.round(bestPath.reward*0.5+(bestPath.confidence||0)*0.3-(bestPath.risk||0)*0.2*100)}% · Confidence: ${(bestPath.confidence*100).toFixed(0)}%</div>
+  </div>`;
+  h+=`<div class="metrics-grid">
+    <div class="metric-card"><div class="mc-value" style="color:#4ea1ff;">${paths.length}</div><div class="mc-label">Paths Simulated</div></div>
+    <div class="metric-card"><div class="mc-value" style="color:#4ade80;">${Math.round(paths.reduce((s,p)=>s+p.reward,0)/paths.length*100)}%</div><div class="mc-label">Avg Reward</div></div>
+    <div class="metric-card"><div class="mc-value" style="color:#fbbf24;">${Math.round(paths.reduce((s,p)=>s+p.risk,0)/paths.length*100)}%</div><div class="mc-label">Avg Risk</div></div>
+  </div>`;
+  document.getElementById('mainArea').innerHTML=h;
+}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function showErr(m){document.getElementById('errorBar').textContent='⚠ '+m;document.getElementById('errorBar').classList.add('open');}
+</script>
+</body>
+</html>
+"""
+
+
+# ============================================================
+# V5 Prediction API — decision path simulation
+# ============================================================
+
+@app.post("/api/predict")
+async def api_predict(request: Request):
+    """Simulate future outcomes for each decision option"""
+    try:
+        try: body = await request.json()
+        except UnicodeDecodeError:
+            raw = await request.body()
+            for enc in ['gbk','gb2312','utf-8']:
+                try: body = json.loads(raw.decode(enc)); break
+                except: continue
+            else: body = {}
+        question = body.get('question', '')
+        options = body.get('options', [])
+        if not question or len(options) < 2:
+            return {'error': 'Provide a question and at least 2 options'}
+        paths = []
+        import random
+        for opt in options:
+            base_risk = random.uniform(0.2, 0.6)
+            base_reward = random.uniform(0.3, 0.8)
+            conf = round(min(base_reward + 0.15, 0.95), 2)
+            risk = round(min(base_risk + random.uniform(-0.1, 0.1), 0.9), 2)
+            reward = round(min(base_reward + random.uniform(-0.05, 0.15), 0.95), 2)
+            if 'fast' in opt.lower() or 'launch' in opt.lower() or 'aggressive' in opt.lower():
+                risk = min(risk + 0.15, 0.9)
+                reward = min(reward + 0.1, 0.95)
+            if 'wait' in opt.lower() or 'delay' in opt.lower() or 'slow' in opt.lower() or 'conservative' in opt.lower():
+                risk = max(risk - 0.1, 0.05)
+                reward = max(reward - 0.05, 0.1)
+            risk = round(risk, 2); reward = round(reward, 2)
+            futures = [
+                'Early traction but challenges in scaling. Competition may respond. Revenue starting but unit economics need validation.',
+                'Strong initial execution. Market timing favorable. Need to secure supply chain and manage cash flow.',
+                'Delayed entry allows better preparation but risks losing first-mover advantage. Quality improves.',
+                'Market may shift during waiting period. Better data available but competitors might fill the gap.',
+                'Moderate growth trajectory. Low risk but also limited upside. Safe path with predictable outcomes.',
+            ]
+            risk_factors_list = [
+                'Execution risk · Market timing · Competition response',
+                'Cash flow management · Talent acquisition · Regulatory changes',
+                'Opportunity cost · Team morale · Investor patience',
+                'Technology debt · Customer acquisition cost · Churn rate',
+            ]
+            paths.append({
+                'option': opt, 'risk': risk, 'reward': reward,
+                'confidence': conf,
+                'future': random.choice(futures),
+                'risk_factors': random.choice(risk_factors_list)
+            })
+        return {'question': question, 'paths': paths, 'path_count': len(paths)}
+    except Exception as e:
+        return {'error': str(e)[:200]}
+
 # ============================================================
 # ROUTES
 
@@ -3287,6 +3471,10 @@ def v1_final():
 @app.get("/timeline", response_class=HTMLResponse)
 def timeline():
     return TIMELINE_HTML
+
+@app.get("/predict", response_class=HTMLResponse)
+def predict():
+    return PREDICT_HTML
 
 # ============================================================
 
