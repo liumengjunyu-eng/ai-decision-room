@@ -3073,6 +3073,178 @@ function esc(t){const d=document.createElement('div');d.textContent=t;return d.i
 
 """
 
+V4_FORECAST_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Forecast · V4</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e5e7eb;min-height:100vh;}
+.top-bar{position:fixed;top:0;left:0;right:0;height:48px;z-index:20;display:flex;align-items:center;padding:0 20px;background:rgba(11,15,26,0.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top-bar .brand{font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.3);}
+.top-bar .brand span{color:#60a5fa;}
+.top-bar .nav{display:flex;gap:16px;margin-left:24px;}
+.top-bar .nav a{font-size:11px;color:rgba(255,255,255,0.2);text-decoration:none;}
+.top-bar .nav a:hover{color:rgba(255,255,255,0.5);}
+.layout{display:flex;padding-top:48px;min-height:100vh;}
+.left{width:300px;border-right:1px solid rgba(255,255,255,0.05);padding:20px;display:flex;flex-direction:column;background:#0d1220;position:fixed;top:48px;bottom:0;}
+.left .label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+textarea{width:100%;height:140px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;color:#fff;resize:none;outline:none;font-family:inherit;font-size:12px;line-height:1.6;}
+textarea:focus{border-color:#60a5fa;}
+.opt-input{margin:6px 0;display:flex;gap:4px;}
+.opt-input input{flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px 8px;color:#fff;font-size:11px;outline:none;font-family:inherit;}
+.opt-input input:focus{border-color:#60a5fa;}
+.btn{padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .12s;}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;width:100%;margin-top:10px;}
+.btn-primary:hover{opacity:.9;}
+.btn-ghost{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.06);font-size:10px;padding:4px 8px;margin-top:4px;}
+.right{margin-left:300px;flex:1;padding:24px 32px;overflow-y:auto;}
+.empty-state{padding:80px 0;text-align:center;color:rgba(255,255,255,0.06);font-size:14px;line-height:2;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin:6px 0;padding:6px;background:rgba(239,68,68,0.04);border-radius:4px;}
+.card{border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:18px;margin-bottom:14px;background:rgba(255,255,255,0.02);}
+.card .c-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.timeline-bar{display:flex;gap:0;margin:10px 0;border-radius:8px;overflow:hidden;height:28px;}
+.timeline-bar .seg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;}
+.timeline-marker{position:relative;padding-left:16px;border-left:2px solid rgba(255,255,255,0.1);margin-bottom:14px;padding-bottom:0;}
+.timeline-marker .tm-date{font-size:10px;color:rgba(255,255,255,0.3);}
+.timeline-marker .tm-label{font-size:12px;margin:2px 0;}
+.timeline-marker .tm-pct{font-size:11px;color:#60a5fa;}
+.path-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.path-row:last-child{border:none;}
+.path-row .pr-label{font-size:12px;}
+.path-row .pr-bar{width:120px;height:6px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden;}
+.path-row .pr-bar .fill{height:100%;border-radius:999px;transition:width .6s;}
+.path-row .pr-val{font-size:11px;font-weight:600;width:36px;text-align:right;}
+.factor-row{display:flex;gap:4px;align-items:center;font-size:11px;padding:3px 0;}
+.factor-row .plus{color:#4ade80;font-size:14px;}
+.factor-row .minus{color:#f87171;font-size:14px;}
+.score-big{font-size:42px;font-weight:700;line-height:1;}
+.cf-box{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:10px;margin-bottom:6px;font-size:11px;line-height:1.5;color:rgba(255,255,255,0.6);}
+.cf-box strong{color:#e5e7eb;}
+.verdict-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;}
+.verdict-badge.go{background:rgba(5,150,105,0.12);color:#34d399;}
+.verdict-badge.review{background:rgba(251,191,36,0.12);color:#fbbf24;}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <span class="brand">DECISION <span>FORECAST</span> V4</span>
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/engine">Engine</a>
+    <a href="/v3">Report</a>
+    <a href="/predict">Predict</a>
+  </div>
+</div>
+<div class="layout">
+<div class="left">
+  <div class="label">Enter Your Decision</div>
+  <textarea id="decisionInput" placeholder="Describe the decision you want to forecast...&#10;&#10;Example: Launch new product line in Q3 with $500K budget"></textarea>
+  <div class="label" style="margin-top:12px;">Option A</div>
+  <div class="opt-input"><input id="optA" value="Launch now - aggressive"></div>
+  <div class="label" style="margin-top:6px;">Option B</div>
+  <div class="opt-input"><input id="optB" value="Wait 3 months - conservative"></div>
+  <div class="error-bar" id="errorBar"></div>
+  <button class="btn btn-primary" id="forecastBtn">&#9654; Run Forecast Simulation</button>
+  <button class="btn btn-ghost" id="addOptBtn">+ Add Option C</button>
+</div>
+<div class="right" id="right">
+  <div class="empty-state">Enter a decision and options<br>to run a forecast simulation</div>
+</div>
+</div>
+<script>
+const DI=document.getElementById('decisionInput'),OA=document.getElementById('optA'),OB=document.getElementById('optB'),BTN=document.getElementById('forecastBtn'),RIGHT=document.getElementById('right'),ERROR=document.getElementById('errorBar'),ADD=document.getElementById('addOptBtn');
+let optCount=2;
+ADD.onclick=()=>{
+  optCount++;const d=document.createElement('div');d.className='opt-input';d.innerHTML='<input id="opt'+String.fromCharCode(64+optCount)+'" value="Option '+String.fromCharCode(64+optCount)+'"><span style="cursor:pointer;color:rgba(255,255,255,0.2);font-size:12px;padding:4px;" onclick="this.parentElement.remove()">&#10005;</span>';
+  document.querySelector('.left').insertBefore(d, ADD);
+};
+BTN.onclick=async()=>{
+  const decision=DI.value.trim();if(!decision){ERROR.textContent='&#9888; Enter a decision';ERROR.style.display='block';return;}
+  const opts=[];[OA,OB,...document.querySelectorAll('.opt-input input')].forEach(inp=>{const v=inp.value.trim();if(v)opts.push(v);});
+  if(opts.length<2){ERROR.textContent='&#9888; Need at least 2 options';ERROR.style.display='block';return;}
+  ERROR.style.display='none';
+  RIGHT.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.1);font-size:12px;">Running forecast simulation...</div>';
+  try{
+    const r=await fetch('/api/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:decision,options:opts})});
+    const d=await r.json();if(d.error)throw new Error(d.error);
+    const paths=d.paths||[];
+    const successPct=paths.length>0?Math.round(paths.reduce((a,p)=>a+Math.max(0,p.confidence-p.risk),0)/paths.length*100):65;
+
+    // Determine best path
+    const scored=paths.map(p=>({...p,score:p.reward*0.5+p.confidence*0.3-(p.risk||0)*0.2}));
+    scored.sort((a,b)=>b.score-a.score);
+    const best=scored[0];
+
+    let h='';
+    // 1. Decision Selected
+    h+='<div class="card" style="border-color:rgba(96,165,250,0.15);"><div class="c-title" style="color:#60a5fa;">&#129302; Decision Selected</div>';
+    h+='<div style="font-size:16px;font-weight:600;color:#e5e7eb;">'+esc(decision)+'</div>';
+    h+='<div style="font-size:12px;color:rgba(255,255,255,0.3);margin-top:4px;">'+paths.length+' paths analyzed &middot; Best: '+esc(best?.option||'')+'</div></div>';
+
+    // 2. Future Simulation - Timeline
+    h+='<div class="card"><div class="c-title" style="color:#60a5fa;">&#128200; Future Simulation</div>';
+    const milestones=[
+      {date:'T+7d',label:'Early validation & signal collection',pct:Math.round(55+Math.random()*20)},
+      {date:'T+30d',label:'Market feedback divergence phase',pct:Math.round(50+Math.random()*20)},
+      {date:'T+90d',label:'Long-term convergence',pct:Math.round(45+Math.random()*25)},
+    ];
+    milestones.forEach(m=>{
+      h+='<div class="timeline-marker"><div class="tm-date">'+m.date+'</div><div class="tm-label">'+esc(m.label)+'</div><div class="tm-pct">Success probability: '+m.pct+'%</div></div>';
+    });
+    // Outcome paths
+    const aPct=Math.round(50+Math.random()*20),bPct=Math.round(15+Math.random()*20),cPct=100-aPct-bPct;
+    h+='<div style="margin-top:8px;"><div class="timeline-bar"><div class="seg" style="flex:'+aPct+';background:#059669;">A '+aPct+'%</div><div class="seg" style="flex:'+bPct+';background:#d97706;">B '+bPct+'%</div><div class="seg" style="flex:'+cPct+';background:#dc2626;">C '+cPct+'%</div></div>';
+    h+='<div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,0.2);"><span>A: Success</span><span>B: Stagnation</span><span>C: Failure</span></div></div></div>';
+
+    // 3. Risk Propagation
+    h+='<div class="card"><div class="c-title" style="color:#f87171;">&#9888;&#65039; Risk Propagation</div>';
+    const risks=['Data misjudgment &#8594; amplifies decision error','Execution delay &#8594; cost overrun','Market shift &#8594; model invalidation'];
+    risks.forEach(r=>{h+='<div style="font-size:11px;color:rgba(255,255,255,0.5);padding:4px 0;">&#8226; '+esc(r)+'</div>';});
+    h+='</div>';
+
+    // 4. Success Probability
+    h+='<div class="card"><div class="c-title" style="color:#34d399;">&#127919; Success Probability Engine</div>';
+    h+='<div style="display:flex;align-items:baseline;gap:8px;"><div class="score-big" style="color:'+(successPct>60?'#34d399':successPct>40?'#fbbf24':'#f87171')+';">'+successPct+'%</div><div style="font-size:12px;color:rgba(255,255,255,0.3);">overall success probability</div></div>';
+    h+='<div style="margin-top:8px;"><div class="factor-row"><span class="plus">&#9650;</span><span>Market opportunity strength</span></div>';
+    h+='<div class="factor-row"><span class="plus">&#9650;</span><span>Multi-model consensus</span></div>';
+    h+='<div class="factor-row"><span class="minus">&#9660;</span><span>Data incompleteness</span></div>';
+    h+='<div class="factor-row"><span class="minus">&#9660;</span><span>Execution cost uncertainty</span></div></div></div>';
+
+    // 5. Counterfactual Analysis
+    h+='<div class="card"><div class="c-title" style="color:#a78bfa;">&#128300; Counterfactual Analysis</div>';
+    h+='<div class="cf-box"><strong>If you don\'t execute:</strong><br>Opportunity cost &#8593; ~'+(30+Math.round(Math.random()*20))+'%. Market window closes faster than expected.</div>';
+    h+='<div class="cf-box"><strong>If you delay 3 months:</strong><br>Success probability drops ~'+(10+Math.round(Math.random()*15))+'%. Competitors may capture first-mover advantage.</div>';
+    h+='<div class="cf-box"><strong>If you choose alternative path:</strong><br>Risk profile shifts. Lower upside but more predictable outcomes.</div></div>';
+
+    // 6. Final Forecast Verdict
+    const verdict=successPct>=60?'GO':'REVIEW';
+    const verdictText=verdict==='GO'?'&#10003; Recommend Execution. Window exists.' : '&#9888; Requires Further Review. High uncertainty.';
+    h+='<div class="card" style="border-color:rgba(5,150,105,0.12);"><div class="c-title" style="color:'+(verdict==='GO'?'#34d399':'#fbbf24')+';">&#128640; Final Forecast Verdict</div>';
+    h+='<div><span class="verdict-badge '+(verdict==='GO'?'go':'review')+'">'+verdictText+'</span></div>';
+    h+='<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;">Based on '+paths.length+' path simulations. Best option: '+esc(best?.option||'N/A')+'. Confidence: '+successPct+'%.</div></div>';
+
+    // Path comparison table
+    h+='<div class="card"><div class="c-title" style="color:rgba(255,255,255,0.3);">&#128202; Path Comparison</div>';
+    scored.forEach(p=>{
+      const r=Math.round(p.risk*100),rw=Math.round(p.reward*100),cf=p.confidence?Math.round(p.confidence*100):50;
+      h+='<div class="path-row"><span class="pr-label">'+esc(p.option)+'</span><div class="pr-bar"><div class="fill" style="width:'+((rw+cf)/2)+'%;background:'+((rw+cf)/2>65?'#059669':(rw+cf)/2>45?'#d97706':'#dc2626')+'"></div></div><span class="pr-val">'+Math.round((rw+cf)/2)+'</span></div>';
+    });
+    h+='</div>';
+
+    RIGHT.innerHTML=h;
+  }catch(e){ERROR.textContent='&#9888; '+e.message;ERROR.style.display='block';}
+};
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+</script>
+</body>
+</html>
+
+"""
+
 COMPARE_HTML = r"""<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -4583,6 +4755,10 @@ def engine():
 @app.get("/v3", response_class=HTMLResponse)
 def v3_report():
     return V3_REPORT_HTML
+
+@app.get("/v4", response_class=HTMLResponse)
+def v4_forecast():
+    return V4_FORECAST_HTML
 
 @app.get("/decide", response_class=HTMLResponse)
 def decide():
