@@ -2464,6 +2464,47 @@ async def api_v2_evaluate(request: Request):
         return {"error": str(e)[:200]}
 
 
+@app.post("/api/v3/report")
+async def api_v3_report(request: Request):
+    """V3 Decision Report Generator"""
+    try:
+        body = await request.json()
+        question = body.get("question", "")
+        entries = body.get("entries", [])
+        ranked = body.get("ranked", [])
+        analysis = body.get("analysis", {})
+        v2_results = body.get("v2_results", {})
+        
+        cs = analysis.get("consensus", []) if analysis else []
+        di = analysis.get("dissent", []) if analysis else []
+        rec = analysis.get("recommendation", "Proceed with phased execution.")
+        top_score = ranked[0]["score"] if ranked else 70
+        verdict = "GO" if top_score >= 75 else "NEEDS REVIEW"
+        risks = ["Moderate execution risk", "Market competition", "Resource allocation"]
+        
+        return {
+            "executive_summary": {
+                "decision": rec,
+                "confidence": top_score,
+                "model_count": len(entries),
+                "consensus_count": len(cs)
+            },
+            "consensus": [{"point": c.get("point", "")} for c in cs[:5]],
+            "conflicts": [{"topic": d.get("topic", ""), "positions": d.get("positions", [])} for d in di[:4]],
+            "risks": risks,
+            "execution_plan": [
+                {"step": 1, "action": "Run small-scale validation (2 weeks)"},
+                {"step": 2, "action": "Collect real-world signals and iterate"},
+                {"step": 3, "action": "Scale gradually with risk controls"}
+            ],
+            "final_verdict": verdict,
+            "top_model": ranked[0]["model"] if ranked else "",
+            "top_model_breakdown": v2_results.get(ranked[0]["model"], {}) if ranked else {}
+        }
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+
 # ============================================================
 # V4 — Decision Report Export
 # ============================================================
@@ -2836,6 +2877,195 @@ async function render(entries,a){
   RIGHT.innerHTML=h;
 }
 
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+</script>
+</body>
+</html>
+
+"""
+
+V3_REPORT_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Report · V3</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e5e7eb;min-height:100vh;}
+.top-bar{position:fixed;top:0;left:0;right:0;height:48px;z-index:20;display:flex;align-items:center;padding:0 20px;background:rgba(11,15,26,0.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top-bar .brand{font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.3);}
+.top-bar .brand span{color:#4ade80;}
+.top-bar .nav{display:flex;gap:16px;margin-left:24px;}
+.top-bar .nav a{font-size:11px;color:rgba(255,255,255,0.2);text-decoration:none;}
+.top-bar .nav a:hover{color:rgba(255,255,255,0.5);}
+.layout{display:flex;padding-top:48px;min-height:100vh;}
+.left{width:320px;border-right:1px solid rgba(255,255,255,0.05);padding:20px;display:flex;flex-direction:column;background:#0d1220;position:fixed;top:48px;bottom:0;}
+.left .label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+textarea{width:100%;height:200px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;color:#fff;resize:none;outline:none;font-family:inherit;font-size:12px;line-height:1.6;}
+textarea:focus{border-color:#4ade80;}
+.btn{padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .12s;}
+.btn-primary{background:linear-gradient(135deg,#059669,#10b981);color:#fff;width:100%;margin-top:10px;}
+.btn-primary:hover{opacity:.9;}
+.btn-ghost{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.06);margin-top:4px;}
+.price-badge{margin-top:10px;padding:8px;border-radius:8px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.1);text-align:center;font-size:10px;color:#fbbf24;}
+.price-badge span{font-weight:700;font-size:14px;}
+.right{margin-left:320px;flex:1;padding:24px 32px;overflow-y:auto;}
+.empty-state{padding:80px 0;text-align:center;color:rgba(255,255,255,0.06);font-size:14px;line-height:2;}
+.report-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:20px;margin-bottom:16px;}
+.report-card .rc-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.summary{background:linear-gradient(135deg,rgba(5,150,105,0.04),rgba(16,185,129,0.02));border:1px solid rgba(5,150,105,0.1);}
+.summary .rc-title{color:#34d399;}
+.consensus .rc-title{color:#4ade80;}
+.conflicts .rc-title{color:#fbbf24;}
+.risks .rc-title{color:#f87171;}
+.execution .rc-title{color:#60a5fa;}
+.verdict .rc-title{color:#a78bfa;}
+.rc-body{font-size:13px;line-height:1.7;color:rgba(255,255,255,0.7);}
+.rc-body .point{padding:3px 0;display:flex;gap:6px;}
+.rc-body .point .dot{width:4px;height:4px;border-radius:50%;margin-top:6px;flex-shrink:0;}
+.rc-body .point .dot.g{background:#4ade80;}
+.rc-body .point .dot.y{background:#fbbf24;}
+.rc-body .point .dot.r{background:#f87171;}
+.rc-body .point .dot.b{background:#60a5fa;}
+.step-card{background:rgba(255,255,255,0.02);border-left:3px solid #60a5fa;padding:10px 14px;margin-bottom:6px;border-radius:0 8px 8px 0;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.7);}
+.step-card .step-num{font-size:10px;color:#60a5fa;font-weight:600;}
+.verdict-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;}
+.verdict-badge.go{background:rgba(5,150,105,0.12);color:#34d399;}
+.verdict-badge.pause{background:rgba(251,191,36,0.12);color:#fbbf24;}
+.verdict-badge.no{background:rgba(239,68,68,0.12);color:#f87171;}
+.score-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.score-bar{height:4px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden;margin:2px 0 6px;}
+.score-bar .fill{height:100%;border-radius:999px;transition:width .6s;}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <span class="brand">DECISION <span>REPORT</span> V3</span>
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/engine">Engine</a>
+    <a href="/v1">Graph</a>
+  </div>
+</div>
+<div class="layout">
+<div class="left">
+  <div class="label">Step 1: Paste Model Answers</div>
+  <textarea id="input" placeholder="--- GPT-4o ---&#10;Market expansion is feasible...&#10;&#10;--- Claude ---&#10;Risk is too high...&#10;&#10;--- DeepSeek ---&#10;Balanced approach..."></textarea>
+  <div style="font-size:10px;color:rgba(255,255,255,0.15);margin-top:6px;">Use --- Model Name --- to label each response</div>
+  <div class="error-bar" id="errorBar" style="font-size:10px;color:#ef4444;display:none;margin-top:6px;padding:6px;background:rgba(239,68,68,0.04);border-radius:4px;"></div>
+  <button class="btn btn-primary" id="generateBtn">&#9654; Generate Decision Report</button>
+  <div id="loading" style="display:none;margin-top:8px;text-align:center;font-size:11px;color:rgba(255,255,255,0.2);">Running V2 analysis + building V3 report...</div>
+  <div class="price-badge">&#128176; Premium Report &middot; <span>&yen;9.9</span> per report</div>
+</div>
+<div class="right" id="right">
+  <div class="empty-state">Paste model answers and generate<br>a structured decision report</div>
+</div>
+</div>
+<script>
+const IN=document.getElementById('input'),BTN=document.getElementById('generateBtn'),RIGHT=document.getElementById('right'),ERROR=document.getElementById('errorBar'),LOADING=document.getElementById('loading');
+
+BTN.onclick=async()=>{
+  const raw=IN.value.trim();if(!raw){ERROR.textContent='&#9888; Paste model responses';ERROR.style.display='block';return;}
+  ERROR.style.display='none';LOADING.style.display='block';
+  RIGHT.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.1);font-size:12px;">Analyzing...</div>';
+  try{
+    const entries=[];let cl='',cc=[];
+    for(const l of raw.split('\n')){
+      const t=l.trim(),m=t.match(/^---\s*(.+?)\s*---$/);
+      if(m){if(cl&&cc.length){entries.push({label:cl,content:cc.join('\n').trim()});}cl=m[1];cc=[];}else if(t)cc.push(t);
+    }
+    if(cl&&cc.length)entries.push({label:cl,content:cc.join('\n').trim()});
+    if(entries.length<2){ERROR.textContent='&#9888; Need at least 2 model responses';ERROR.style.display='block';LOADING.style.display='none';return;}
+
+    // Step 1: Get V2 credibility scores
+    const ans={};entries.forEach(e=>{ans[e.label]=e.content;});
+    const v2r=await fetch('/api/credibility/v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answers:ans,task_type:'strategy'})});
+    const v2=await v2r.json();
+    if(v2.error)throw new Error(v2.error);
+
+    // Step 2: Get compare analysis
+    const cr=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries})});
+    const cd=await cr.json();
+    if(cd.error)throw new Error(cd.error);
+    const a=cd.analysis||{};
+
+    // Step 3: Build V3 report
+    const ranked=v2.ranking||[];
+    const results=v2.results||{};
+    const cs=a.consensus||[],di=a.dissent||[],rec=a.recommendation||'Proceed with phased execution and continuous risk monitoring.';
+
+    const topScore=ranked.length>0?ranked[0].score:70;
+    const verdict=topScore>=75?'GO':'NEEDS REVIEW';
+    const verdictCls=verdict==='GO'?'go':verdict==='NEEDS REVIEW'?'pause':'no';
+    const verdictText=verdict==='GO'?'&#10003; Recommended to Proceed':'&#9888; Requires Further Review';
+
+    let h='';
+
+    // 1. Executive Summary
+    h+='<div class="report-card summary"><div class="rc-title">&#128240; Executive Summary</div><div class="rc-body">';
+    h+='<div style="font-size:18px;font-weight:700;color:#34d399;margin-bottom:6px;">'+esc(rec)+'</div>';
+    h+='<div style="display:flex;gap:20px;margin-top:8px;font-size:12px;">';
+    h+='<span>Confidence: <strong style="color:#34d399;">'+topScore.toFixed(0)+'%</strong></span>';
+    h+='<span>Models: <strong>'+entries.length+'</strong></span>';
+    h+='<span>Consensus: <strong>'+cs.length+'</strong></span>';
+    h+='</div></div></div>';
+
+    // 2. Consensus
+    h+='<div class="report-card consensus"><div class="rc-title">&#10003; Consensus</div><div class="rc-body">';
+    if(cs.length===0)h+='<span style="color:rgba(255,255,255,0.15);font-size:12px;">No consensus identified</span>';
+    else cs.slice(0,5).forEach(c=>{h+='<div class="point"><span class="dot g"></span><span>'+esc(c.point||'')+'</span></div>';});
+    h+='</div></div>';
+
+    // 3. Conflicts
+    h+='<div class="report-card conflicts"><div class="rc-title">&#9888; Conflicts</div><div class="rc-body">';
+    if(di.length===0)h+='<span style="color:rgba(255,255,255,0.15);font-size:12px;">No significant conflicts</span>';
+    else di.slice(0,4).forEach(d=>{
+      h+='<div class="point"><span class="dot y"></span><div><span style="color:#fbbf24;">'+esc(d.topic||'')+'</span><br>';
+      (d.positions||[]).forEach(p=>{h+='<span style="font-size:11px;color:rgba(255,255,255,0.35);">'+esc(p.model||'')+': '+esc(p.stance||'')+'</span><br>';});
+      h+='</div></div>';
+    });
+    h+='</div></div>';
+
+    // 4. Risk Analysis
+    h+='<div class="report-card risks"><div class="rc-title">&#9888;&#65039; Risk Analysis</div><div class="rc-body">';
+    const risks=topScore<70?['High execution uncertainty','Market timing risk','Data incompleteness']:['Moderate execution risk','Market competition','Resource allocation'];
+    risks.forEach(r=>{h+='<div class="point"><span class="dot r"></span><span>'+esc(r)+'</span></div>';});
+    h+='</div></div>';
+
+    // 5. Execution Plan
+    h+='<div class="report-card execution"><div class="rc-title">&#128736;&#65039; Execution Plan</div><div class="rc-body">';
+    const steps=['Run small-scale validation (2 weeks)','Collect real-world signals and iterate','Scale gradually with risk controls'];
+    steps.forEach((s,i)=>{h+='<div class="step-card"><div class="step-num">Step '+(i+1)+'</div>'+esc(s)+'</div>';});
+    h+='</div></div>';
+
+    // 6. Final Verdict
+    h+='<div class="report-card verdict"><div class="rc-title">&#129302; Final Verdict</div><div class="rc-body">';
+    h+='<div><span class="verdict-badge '+verdictCls+'">'+verdictText+'</span></div>';
+    h+='<div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.5);">Based on V2 credibility engine evaluation of '+entries.length+' models. Top confidence: '+topScore.toFixed(0)+'%.</div>';
+
+    // V2 credibility breakdown for top model
+    if(ranked.length>0){
+      const top=ranked[0];
+      const rd=results[top.model];
+      h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);"><div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:4px;">&#128202; V2 Credibility Breakdown (Top: '+esc(top.model)+')</div>';
+      if(rd&&rd.breakdown){
+        for(const dim of ['logic','evidence','consistency','robustness','domain']){
+          const b=rd.breakdown[dim];if(!b)continue;
+          h+='<div class="score-row"><span>'+esc(b.label)+'</span><span>'+b.score+'</span></div><div class="score-bar"><div class="fill" style="width:'+b.score+'%"></div></div>';
+        }
+      }
+      if(rd&&rd.verdict)h+='<div style="font-size:11px;color:#a78bfa;margin-top:4px;">&#128220; Verdict: '+esc(rd.verdict)+'</div>';
+      h+='</div>';
+    }
+
+    h+='</div></div>';
+
+    RIGHT.innerHTML=h;
+    LOADING.style.display='none';
+  }catch(e){ERROR.textContent='&#9888; '+e.message;ERROR.style.display='block';LOADING.style.display='none';}
+};
 function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 </script>
 </body>
@@ -4349,6 +4579,10 @@ def system2():
 @app.get("/engine", response_class=HTMLResponse)
 def engine():
     return ENGINE_HTML
+
+@app.get("/v3", response_class=HTMLResponse)
+def v3_report():
+    return V3_REPORT_HTML
 
 @app.get("/decide", response_class=HTMLResponse)
 def decide():
