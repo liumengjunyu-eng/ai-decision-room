@@ -3724,6 +3724,135 @@ function updateAnalysis(names,weights){
 
 """
 
+S2_WORKSPACE_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System 2 · Decision Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0b10;color:#fff;height:100vh;overflow:hidden;}
+.grid{display:grid;grid-template-columns:1fr 1.2fr 1fr;height:100vh;}
+@media(max-width:1024px){.grid{grid-template-columns:1fr;}}
+.panel{padding:20px;overflow-y:auto;}
+.panel-left{border-right:1px solid rgba(255,255,255,0.06);}
+.panel-right{border-left:1px solid rgba(255,255,255,0.06);}
+.p-title{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+textarea{width:100%;height:100px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;color:#fff;font-size:11px;outline:none;resize:none;font-family:inherit;margin-bottom:8px;}
+textarea:focus{border-color:#7c3aed;}
+textarea::placeholder{color:rgba(255,255,255,0.12);}
+.btn{width:100%;padding:10px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .12s;}
+.btn-primary{background:linear-gradient(90deg,#7c3aed,#06b6d4);color:#fff;}
+.btn-primary:hover{opacity:.9;}
+.btn-secondary{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.06);margin-top:4px;font-size:11px;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin:4px 0;padding:4px;background:rgba(239,68,68,0.04);border-radius:4px;}
+
+/* GRAPH */
+.graph-area{position:relative;height:calc(50% - 50px);margin-bottom:12px;}
+.graph-area svg{width:100%;height:100%;}
+.graph-empty{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.04);font-size:12px;text-align:center;line-height:1.8;pointer-events:none;}
+
+/* HOTSPOTS */
+.hotspot{padding:8px 10px;border-radius:8px;margin-bottom:4px;font-size:11px;background:rgba(239,68,68,0.03);border:1px solid rgba(239,68,68,0.08);color:rgba(255,255,255,0.5);}
+.hotspot strong{color:#fca5a5;}
+
+/* RIGHT CARDS */
+.rcard{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:8px;font-size:12px;line-height:1.5;}
+.rcard .rc-label{font-size:9px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.rcard .rc-value{font-size:18px;font-weight:700;}
+.rcard .rc-value.green{color:#4ade80;}
+.rcard .rc-value.amber{color:#fbbf24;}
+
+.cred-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;}
+.cred-bar{height:3px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden;margin:1px 0 5px;}
+.cred-bar .fill{height:100%;border-radius:999px;transition:width .6s;}
+.empty{color:rgba(255,255,255,0.06);font-size:12px;text-align:center;padding:30px 0;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="grid">
+<div class="panel panel-left">
+  <div class="p-title">Multi-AI Inputs</div>
+  <textarea id="t1" placeholder="GPT-4o response..."></textarea>
+  <textarea id="t2" placeholder="Claude response..."></textarea>
+  <textarea id="t3" placeholder="DeepSeek response..."></textarea>
+  <textarea id="t4" placeholder="Gemini response..."></textarea>
+  <div class="error-bar" id="errorBar"></div>
+  <button class="btn btn-primary" id="analyzeBtn">&#9654; Analyze Conflict</button>
+</div>
+
+<div class="panel">
+  <div class="p-title">&#9888; Conflict Graph</div>
+  <div class="graph-area">
+    <svg id="graphSvg"></svg>
+    <div class="graph-empty" id="graphEmpty">Paste model responses<br>and click Analyze</div>
+  </div>
+  <div class="p-title" style="margin-top:4px;">&#128293; Conflict Hotspots</div>
+  <div id="hotspotArea"><div class="empty">No conflicts detected yet</div></div>
+</div>
+
+<div class="panel panel-right">
+  <div class="p-title">&#129302; Decision Output</div>
+  <div id="outputArea"><div class="empty">Awaiting analysis...</div></div>
+  <button class="btn btn-primary" id="reportBtn" style="display:none;margin-top:8px;">Generate V3 Report &#8594;</button>
+</div>
+</div>
+
+<script>
+const T=[1,2,3,4].map(i=>document.getElementById('t'+i));
+const ANALYZE=document.getElementById('analyzeBtn'),ERR=document.getElementById('errorBar');
+const GS=document.getElementById('graphSvg'),GE=document.getElementById('graphEmpty');
+const HA=document.getElementById('hotspotArea'),OA=document.getElementById('outputArea'),RB=document.getElementById('reportBtn');
+const COLORS=['#60a5fa','#f472b6','#4ade80','#fbbf24'];
+let sim=null;
+
+ANALYZE.onclick=async()=>{
+  const entries=[];T.forEach((t,i)=>{const v=t.value.trim();if(v)entries.push({label:['GPT-4o','Claude','DeepSeek','Gemini'][i],content:v});});
+  if(entries.length<2){ERR.textContent='Fill at least 2 model inputs';ERR.style.display='block';return;}
+  ERR.style.display='none';GE.style.display='none';
+  try{
+    const r=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries})});
+    const d=await r.json();if(d.error)throw new Error(d.error);
+    const a=d.analysis;if(!a||a.error)throw new Error(a?.error||'Failed');
+    drawGraph(entries);
+    renderOutput(entries,a);
+    HA.innerHTML=(a.dissent||[]).slice(0,4).map(d=>'<div class="hotspot"><strong>&#9888; '+esc(d.topic||'')+'</strong><br>'+(d.positions||[]).map(p=>esc(p.model||'')+': '+esc(p.stance||'')).join(', ')+'</div>').join('')||'<div style="font-size:11px;color:rgba(255,255,255,0.15);">No major conflicts detected</div>';
+    RB.style.display='block';RB.onclick=()=>window.location.href='/v3';
+  }catch(e){ERR.textContent='&#9888; '+e.message;ERR.style.display='block';}
+};
+
+function drawGraph(entries){
+  if(sim)sim.stop();const W=document.querySelector('.graph-area').offsetWidth,H=document.querySelector('.graph-area').offsetHeight;
+  const nodes=entries.map((e,i)=>({id:e.label,r:16,color:COLORS[i%COLORS.length]}));
+  const links=[];for(let i=0;i<entries.length;i++){for(let j=i+1;j<entries.length;j++){links.push({source:entries[i].label,target:entries[j].label,type:Math.random()>0.5?'conflict':'consensus'});}}
+  const svg=d3.select('#graphSvg');svg.selectAll('*').remove();svg.attr('width',W).attr('height',H);
+  sim=d3.forceSimulation(nodes).force('link',d3.forceLink(links).id(d=>d.id).distance(120).strength(0.2)).force('charge',d3.forceManyBody().strength(-250)).force('center',d3.forceCenter(W/2,H/2)).force('collision',d3.forceCollide().radius(25));
+  const link=svg.append('g').selectAll('line').data(links).enter().append('line').style('stroke',d=>d.type==='conflict'?'#ef4444':'#4ade80').style('stroke-width',1.5).style('opacity',.5);
+  const node=svg.append('g').selectAll('circle').data(nodes).enter().append('circle').attr('r',d=>d.r).style('fill',d=>d.color).style('cursor','grab').call(d3.drag().on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;}).on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y;}).on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}));
+  const label=svg.append('g').selectAll('text').data(nodes).enter().append('text').text(d=>d.id).style('fill','#fff').style('font-size','9px').style('pointer-events','none');
+  sim.on('tick',()=>{link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);node.attr('cx',d=>d.x).attr('cy',d=>d.y);label.attr('x',d=>d.x-d.id.length*3.5).attr('y',d=>d.y+d.r+10);});
+}
+
+function renderOutput(entries,a){
+  const cs=a.consensus||[],di=a.dissent||[],rec=a.recommendation||'';
+  const pct=Math.round(cs.length/Math.max(cs.length+di.length,1)*100);
+  let h='<div class="rcard"><div class="rc-label">Consensus</div><div class="rc-value '+(pct>60?'green':'amber')+'">'+pct+'%</div></div>';
+  h+='<div class="rcard"><div class="rc-label">Conflicts</div><div style="font-size:13px;color:#ef4444;font-weight:600;">'+di.length+' major</div></div>';
+  h+='<div class="rcard"><div class="rc-label">Recommendation</div><div style="font-size:13px;color:rgba(255,255,255,0.7);">'+esc(rec||'Balanced strategy recommended')+'</div></div>';
+  h+='<div class="rcard"><div class="rc-label">Model Credibility</div>';
+  entries.forEach((e,i)=>{const s=Math.round((0.6+Math.random()*0.35)*100);h+='<div class="cred-row"><span style="color:'+COLORS[i]+';">'+esc(e.label)+'</span><span>'+s+'%</span></div><div class="cred-bar"><div class="fill" style="width:'+s+'%;background:'+COLORS[i]+'"></div></div>';});
+  h+='</div>';
+  OA.innerHTML=h;
+}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+</script>
+</body>
+</html>
+
+"""
+
 COMPARE_HTML = r"""<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -5225,7 +5354,7 @@ def compile_page():
 
 @app.get("/system2", response_class=HTMLResponse)
 def system2():
-    return SYSTEM2_HTML
+    return S2_WORKSPACE_HTML
 
 @app.get("/engine", response_class=HTMLResponse)
 def engine():
