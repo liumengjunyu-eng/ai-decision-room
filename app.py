@@ -268,6 +268,10 @@ textarea:focus{border-color:#4ea1ff;}
     <h3>📊 Decision Confidence</h3>
     <div id="confidenceArea"><div class="score">—</div><div id="credArea"></div></div>
   </div>
+  <div class="r-section" id="metricsSection" style="display:none;">
+    <h3>🧠 Decision Metrics</h3>
+    <div id="metricsArea"></div>
+  </div>
   <button class="btn-premium" id="premiumBtn">Generate Final Report (¥9.9)</button>
 </div>
 
@@ -288,13 +292,13 @@ async function run(){
   if(entries.length<2){showErr('Need at least 2 models');return;}
   ERROR.classList.remove('open');
   try{
-    const resp=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries})});
+    const resp=await fetch('/api/graph',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answers:entries.map(e=>({model:e.label,content:e.content}))})});
     const data=await resp.json();
     if(data.error){showErr(data.error);return;}
-    const a=data.analysis;
-    if(!a||a.error){showErr(a?.error||'Failed');return;}
-    lastAnalysis=a;renderGraph(entries,a);renderLedger(entries,a);
-    CHALLENGE.style.display=(a.consensus&&a.consensus.length>=2)?'inline-block':'none';
+    lastAnalysis=data;
+    renderGraph(data.graph||{nodes:[],edges:[]},entries);
+    renderLedger(data,entries);
+    CHALLENGE.style.display='none';
   }catch(e){showErr(e.message);}
 }
 
@@ -341,25 +345,56 @@ function renderGraph(entries,analysis){
   });
 }
 
-function renderLedger(entries,analysis){
-  const consensus=analysis.consensus||[];const dissent=analysis.dissent||[];
-  const total=Math.max(consensus.length+dissent.length,1);const ratio=consensus.length/total;
+function renderLedger(data,entries){
+  const graph=data.graph||{nodes:[],edges:[]};
+  const analysis=data.analysis||{};
+  const nodes=graph.nodes||[];
+  const edges=graph.edges||[];
+  const consensus=edges.filter(e=>e.type==='consensus');
+  const conflicts=edges.filter(e=>e.type==='conflict');
+
+  // Consensus tags
   let conHtml='';
   if(consensus.length===0)conHtml='<span style="font-size:11px;color:rgba(255,255,255,0.1);">None</span>';
-  else consensus.slice(0,3).forEach(c=>{conHtml+='<span class="tag tag-ok">'+esc(c.point||'')+'</span>';});
+  else consensus.slice(0,4).forEach(e=>{conHtml+='<span class="tag tag-ok">'+e.from+' ↔ '+e.to+'</span>';});
   document.getElementById('consensusArea').innerHTML=conHtml;
+
+  // Conflict tags
   let disHtml='';
-  if(dissent.length===0)disHtml='<span style="font-size:11px;color:rgba(255,255,255,0.1);">None</span>';
-  else dissent.slice(0,3).forEach(d=>{
-    disHtml+='<div style="font-size:11px;margin-bottom:4px;"><span style="color:rgba(255,255,255,0.7);">'+esc(d.topic||'')+'</span><br>';
-    (d.positions||[]).forEach(p=>{disHtml+='<span class="tag tag-warn">'+esc(p.model||'')+': '+esc(p.stance||'')+'</span>';});
-    disHtml+='</div>';
-  });
+  if(conflicts.length===0)disHtml='<span style="font-size:11px;color:rgba(255,255,255,0.1);">None</span>';
+  else conflicts.slice(0,4).forEach(e=>{disHtml+='<div style="font-size:10px;margin:2px 0;"><span class="tag tag-warn">'+e.from+' ⚡ '+e.to+'</span> <span style="color:rgba(255,255,255,0.3);">'+e.weight+'</span></div>';});
   document.getElementById('conflictArea').innerHTML=disHtml;
-  document.querySelector('#confidenceArea .score').textContent=Math.round(ratio*100)+'%';
+
+  // Confidence
+  const avgConf=analysis.avg_confidence||0;
+  document.querySelector('#confidenceArea .score').textContent=Math.round(avgConf*100)+'%';
+
+  // Model credibility bars
   let credHtml='';
-  entries.forEach((e,i)=>{const s=Math.round((0.6+Math.random()*0.35)*100);credHtml+='<div class="model-row"><span>'+esc(e.label)+'</span><span>'+s+'%</span></div><div class="score-bar"><div class="fill" style="width:'+s+'%"></div></div>';});
+  nodes.forEach(n=>{
+    const pct=Math.round((n.confidence||0.5)*100);
+    credHtml+='<div class="model-row"><span>'+esc(n.id)+'</span><span>'+pct+'%</span></div><div class="score-bar"><div class="fill" style="width:'+pct+'%"></div></div>';
+  });
   document.getElementById('credArea').innerHTML=credHtml;
+
+  // Metrics section
+  const metrics=document.getElementById('metricsSection');
+  metrics.style.display='block';
+  const cd=analysis.conflict_density||0;
+  const cs=analysis.consensus_strength||0;
+  const ds=analysis.decision_stability||0;
+  const status=analysis.status||'unknown';
+  const stColor=ds>0.5?'#4ade80':ds>0.3?'#fbbf24':'#ef4444';
+  document.getElementById('metricsArea').innerHTML=
+    '<div style="font-size:11px;line-height:1.8;">'+
+    '<div style="display:flex;justify-content:space-between;"><span>Avg Confidence</span><span style="color:#4ea1ff;">'+(avgConf*100).toFixed(0)+'%</span></div>'+
+    '<div style="display:flex;justify-content:space-between;"><span>Conflict Density</span><span style="color:#ef4444;">'+(cd*100).toFixed(0)+'%</span></div>'+
+    '<div style="display:flex;justify-content:space-between;"><span>Consensus Strength</span><span style="color:#4ade80;">'+(cs*100).toFixed(0)+'%</span></div>'+
+    '<hr style="border-color:rgba(255,255,255,0.05);margin:6px 0;">'+
+    '<div style="display:flex;justify-content:space-between;font-weight:600;"><span>📊 Decision Stability</span><span style="color:'+stColor+';">'+(ds*100).toFixed(0)+'%</span></div>'+
+    '<div style="margin-top:6px;font-size:10px;padding:6px;border-radius:6px;background:'+stColor+'15;color:'+stColor+';text-align:center;">'+
+    (ds>0.5?'✅ Stable Decision Path':ds>0.3?'⚠️ Moderate Uncertainty':'🔴 High Uncertainty')+
+    '</div></div>';
 }
 
 function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
@@ -379,7 +414,8 @@ function reset(){
   document.getElementById('consensusArea').innerHTML='<span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting...</span>';
   document.getElementById('conflictArea').innerHTML='<span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting...</span>';
   document.querySelector('#confidenceArea .score').textContent='—';
-  document.getElementById('credArea').innerHTML='';CHALLENGE.style.display='none';ERROR.classList.remove('open');
+  document.getElementById('credArea').innerHTML='';document.getElementById('metricsSection').style.display='none';
+  CHALLENGE.style.display='none';ERROR.classList.remove('open');
 }
 ANALYZE.addEventListener('click',run);
 CHALLENGE.addEventListener('click',challengeConsensus);
@@ -2960,6 +2996,114 @@ async def compile_answers(request: Request):
 async def api_compile(request: Request):
     """/api/compile 别名 → 转发到 /v1/compile_answers"""
     return await compile_answers(request)
+
+
+# ============================================================
+# V3.1 Graph API — semantic conflict + decision metrics
+# ============================================================
+
+@app.post("/api/graph")
+async def api_graph(request: Request):
+    """Build decision graph with nodes, edges, and analysis metrics"""
+    try:
+        try:
+            body = await request.json()
+        except UnicodeDecodeError:
+            raw = await request.body()
+            for enc in ['gbk', 'gb2312', 'utf-8']:
+                try: body = json.loads(raw.decode(enc)); break
+                except: continue
+            else: body = {}
+
+        question = body.get("question", "")
+        answers = body.get("answers", [])
+        if not answers or len(answers) < 2:
+            return {"error": "至少需要2个模型回答"}
+
+        # Build nodes
+        nodes = []
+        for a in answers:
+            model = a.get("model", "unknown")
+            content = a.get("content", "")
+            # Simple confidence heuristic
+            base = 0.7
+            if "gpt" in model.lower() or "GPT" in model: base += 0.15
+            elif "claude" in model.lower(): base += 0.12
+            elif "deep" in model.lower(): base += 0.10
+            elif "qwen" in model.lower(): base += 0.08
+            elif "kimi" in model.lower(): base += 0.06
+            elif "gemini" in model.lower(): base += 0.08
+            if len(content) > 300: base += 0.05
+            if any(w in content for w in ["%","数据","根据","研究表明"]): base += 0.05
+            confidence = round(min(base, 0.99), 3)
+            
+            nodes.append({
+                "id": model,
+                "type": "model",
+                "content": content[:200],
+                "confidence": confidence
+            })
+
+        # Build edges with semantic conflict detection
+        edges = []
+        from backend.engine import DecisionEngine
+        de = DecisionEngine()
+        
+        for i in range(len(nodes)):
+            for j in range(i+1, len(nodes)):
+                # Use TF-IDF cosine similarity from engine
+                sim = 0.5
+                try:
+                    vectors = de._tfidf([nodes[i]["content"], nodes[j]["content"]])
+                    if len(vectors) >= 2:
+                        sim = de._cosine_similarity(vectors[0], vectors[1])
+                except:
+                    pass
+                
+                # Stance detection
+                texts = [nodes[i]["content"], nodes[j]["content"]]
+                stance_diff = 0.0
+                opp_kw = [("支持","反对"), ("可行","风险"), ("快速","谨慎"), ("乐观","保守")]
+                for kw_a, kw_b in opp_kw:
+                    if (kw_a in texts[0] and kw_b in texts[1]) or (kw_a in texts[1] and kw_b in texts[0]):
+                        stance_diff += 0.3
+                
+                conflict_score = round((1 - sim) * 0.6 + min(stance_diff, 0.4), 3)
+                
+                if conflict_score > 0.4:
+                    edges.append({
+                        "from": nodes[i]["id"], "to": nodes[j]["id"],
+                        "type": "conflict", "weight": conflict_score
+                    })
+                else:
+                    edges.append({
+                        "from": nodes[i]["id"], "to": nodes[j]["id"],
+                        "type": "consensus", "weight": round(1 - conflict_score, 3)
+                    })
+
+        # Graph analysis
+        n = len(nodes)
+        avg_conf = round(sum(n["confidence"] for n in nodes) / n, 3) if n > 0 else 0
+        conflict_edges = [e for e in edges if e["type"] == "conflict"]
+        consensus_edges = [e for e in edges if e["type"] == "consensus"]
+        e_total = len(edges)
+        conflict_density = round(sum(e["weight"] for e in conflict_edges) / e_total, 3) if e_total > 0 else 0
+        consensus_strength = round(sum(e["weight"] for e in consensus_edges) / e_total, 3) if e_total > 0 else 0
+        stability = round(avg_conf * (1 - conflict_density), 3)
+
+        return {
+            "question": question,
+            "graph": {"nodes": nodes, "edges": edges},
+            "analysis": {
+                "avg_confidence": avg_conf,
+                "conflict_density": conflict_density,
+                "consensus_strength": consensus_strength,
+                "decision_stability": stability,
+                "status": "stable" if stability > 0.5 else "unstable"
+            }
+        }
+    except Exception as e:
+        return {"error": str(e)[:200]}
 
 
 @app.get("/debug/ping")
