@@ -3003,6 +3003,198 @@ async def api_predict(request: Request):
     except Exception as e:
         return {'error': str(e)[:200]}
 
+
+ENTERPRISE_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Enterprise Decision OS · V6</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e6e6e6;overflow:hidden;height:100vh;}
+.header{position:fixed;top:0;left:0;right:0;height:56px;border-bottom:1px solid #1f2a3a;display:flex;align-items:center;padding:0 20px;font-weight:600;background:rgba(10,14,22,0.85);backdrop-filter:blur(10px);z-index:10;gap:12px;}
+.header span{color:#4ea1ff;}.header a{color:rgba(255,255,255,0.3);text-decoration:none;font-size:11px;margin-left:auto;}
+.main{position:fixed;left:360px;top:56px;right:0;bottom:0;overflow-y:auto;padding:24px 32px;}
+.panel{position:fixed;top:56px;left:0;bottom:0;width:360px;border-right:1px solid #1f2a3a;padding:16px;overflow-y:auto;}
+.panel h3{font-size:13px;font-weight:500;margin-bottom:6px;opacity:.7;}
+textarea{width:100%;height:150px;background:#0f1623;border:1px solid #2a3b55;border-radius:8px;padding:10px;color:#fff;font-size:12px;outline:none;resize:none;font-family:inherit;}
+textarea:focus{border-color:#4ea1ff;}
+.btn{width:100%;margin-top:8px;padding:10px;border:none;border-radius:8px;background:linear-gradient(90deg,#4ea1ff,#7c4dff);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .12s;}
+.btn:hover{opacity:.9;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:4px;}.error-bar.open{display:block;}
+.layer-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.layer{background:#0f1623;border:1px solid #1f2a3a;border-radius:14px;padding:16px;}
+.layer .layer-title{font-size:12px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.role-card{background:#121a2a;border:1px solid rgba(255,255,255,0.04);border-radius:10px;padding:10px;margin-bottom:8px;}
+.role-card .rc-name{font-size:11px;font-weight:600;margin-bottom:2px;}
+.role-card .rc-opinion{font-size:11px;color:rgba(255,255,255,0.6);line-height:1.5;}
+.role-card .rc-stance{font-size:9px;display:inline-block;padding:1px 6px;border-radius:4px;margin-top:4px;}
+.role-card .rc-stance.support{background:rgba(34,197,94,0.1);color:#4ade80;}
+.role-card .rc-stance.oppose{background:rgba(239,68,68,0.1);color:#ef4444;}
+.role-card .rc-stance.neutral{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);}
+.role-card.conflict{border-color:rgba(239,68,68,0.2);}
+.stress-test{background:rgba(239,68,68,0.03);border:1px solid rgba(239,68,68,0.1);border-radius:12px;padding:14px;margin-bottom:16px;}
+.stress-test .st-title{font-size:12px;color:#ef4444;font-weight:600;margin-bottom:6px;}
+.stress-test .st-item{font-size:11px;color:rgba(255,255,255,0.6);padding:3px 0;border-bottom:1px solid rgba(239,68,68,0.05);}
+.decision-box{background:linear-gradient(135deg,#064e3b,#0f172a);border:1px solid rgba(34,197,94,0.2);border-radius:14px;padding:16px;text-align:center;margin-top:16px;}
+.decision-box .db-title{font-size:12px;color:#4ade80;font-weight:600;margin-bottom:4px;}
+.decision-box .db-body{font-size:20px;font-weight:700;margin-bottom:4px;}
+.decision-box .db-sub{font-size:11px;color:rgba(255,255,255,0.4);}
+.empty-state{padding:60px 0;text-align:center;color:rgba(255,255,255,0.08);font-size:12px;line-height:1.8;}
+.model-links{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.model-links a{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid #1f2a3a;color:rgba(255,255,255,0.3);text-decoration:none;}
+.model-links a:hover{color:rgba(255,255,255,0.6);}
+.verdict{font-size:11px;padding:2px 10px;border-radius:10px;display:inline-block;margin-left:6px;}
+.pulse{animation:pulse 2s ease infinite;}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+</style>
+</head>
+<body>
+<div class="header">🏢 Enterprise Decision OS <span>V6</span> <a href="/v1">← Graph</a></div>
+<div class="panel">
+  <h3>🧠 Decision Question</h3>
+  <textarea id="questionInput" placeholder="What strategic decision is your organization facing?&#10;e.g. Should we acquire the competitor or build in-house?"></textarea>
+  <button class="btn" id="analyzeBtn">▶ Run Enterprise Simulation</button>
+  <div class="error-bar" id="errorBar"></div>
+  <div style="margin-top:14px;">
+    <h3>🏛️ Organization Structure</h3>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3);line-height:1.8;margin-top:6px;">
+      <span style="color:#4ea1ff;">■</span> Strategy: CEO · CSO<br>
+      <span style="color:#22c55e;">■</span> Execution: CTO · PM<br>
+      <span style="color:#ef4444;">■</span> Risk: CRO · Audit<br>
+      <span style="color:#fbbf24;">■</span> Growth: CMO · Growth Lead
+    </div>
+  </div>
+</div>
+<div class="main" id="mainArea"><div class="empty-state">Enter a strategic decision<br>and run the enterprise simulation</div></div>
+<script>
+const Q=document.getElementById('questionInput');
+const ANALYZE=document.getElementById('analyzeBtn');
+const MAIN=document.getElementById('mainArea');
+const ERROR=document.getElementById('errorBar');
+
+async function run(){
+  const q=Q.value.trim();if(!q){showErr('Enter a question');return;}
+  ERROR.classList.remove('open');
+  MAIN.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.15);font-size:12px;">Running enterprise simulation...</div>';
+  try{
+    const resp=await fetch('/api/enterprise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:q})});
+    const data=await resp.json();if(data.error){showErr(data.error);return;}
+    render(data);
+  }catch(e){showErr(e.message);}
+}
+
+function render(data){
+  const agents=data.agents||[];const decision=data.decision||{};
+  const conflicts=data.conflicts||[];
+
+  const layers={strategy:[],execution:[],risk:[],growth:[]};
+  const roleMap={
+    '首席战略官':'strategy',CEO裁决官:'strategy',
+    'CTO':'execution',增长策略官:'growth',
+    '风险控制官':'risk',批判分析官:'risk',
+    '洞察官':'execution',创新官:'growth',
+    '增长官':'growth'
+  };
+  agents.forEach(a=>{
+    const l=roleMap[a.role]||'execution';
+    layers[l].push(a);
+  });
+  if(layers.strategy.length===0&&agents.length>0){
+    agents.slice(0,2).forEach(a=>layers.strategy.push(a));
+    agents.slice(2,4).forEach(a=>layers.execution.push(a));
+    agents.slice(4,6).forEach(a=>layers.risk.push(a));
+    agents.slice(6).forEach(a=>layers.growth.push(a));
+  }
+
+  const layerConfig={
+    strategy:{title:'🧠 Strategy',color:'#4ea1ff',bg:'rgba(78,161,255,0.03)'},
+    execution:{title:'⚙️ Execution',color:'#4ade80',bg:'rgba(34,197,94,0.03)'},
+    risk:{title:'⚠️ Risk',color:'#ef4444',bg:'rgba(239,68,68,0.03)'},
+    growth:{title:'📈 Growth',color:'#fbbf24',bg:'rgba(251,191,36,0.03)'}
+  };
+
+  let h='<div class="layer-grid">';
+  Object.entries(layers).forEach(([key,items])=>{
+    const cfg=layerConfig[key];
+    h+=`<div class="layer" style="border-color:${cfg.color}20;">
+      <div class="layer-title" style="color:${cfg.color};">${cfg.title}</div>`;
+    if(items.length===0)h+='<div style="font-size:11px;color:rgba(255,255,255,0.15);">No members</div>';
+    else items.forEach(a=>{
+      const isError=!a.stance||a.stance==='—'||(a.reason||'').startsWith('API');
+      const c=a.stance==='支持'?'support':a.stance==='反对'?'oppose':'neutral';
+      const hasConflict=conflicts.some(cf=>{const p=cf.pair||[];return p.includes(a.role)||cf.a===a.role||cf.b===a.role||cf.source===a.role||cf.target===a.role;});
+      h+=`<div class="role-card${hasConflict?' conflict':''}">
+        <div class="rc-name" style="color:${cfg.color};">${esc(a.role)} <span class="rc-stance ${c}">${a.stance||'—'}</span></div>
+        <div class="rc-opinion">${isError?'<span style="color:#ef4444;">Model unavailable</span>':esc((a.reason||'').slice(0,200))}</div>
+        ${hasConflict?'<div style="font-size:9px;color:#ef4444;margin-top:2px;">⚡ Conflict detected</div>':''}
+      </div>`;
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+
+  // Stress test
+  if(conflicts.length>0){
+    h+=`<div class="stress-test"><div class="st-title">⚠️ Conflict Stress Test — ${conflicts.length} conflicts detected</div>`;
+    conflicts.slice(0,5).forEach(c=>{
+      const src=c.source||c.a||c.from||'';
+      const tgt=c.target||c.b||c.to||'';
+      const sev=c.severity||c.conflict_score||0.5;
+      h+=`<div class="st-item">⚡ ${esc(src)} vs ${esc(tgt)} <span style="color:#ef4444;">(severity: ${typeof sev==='number'?sev.toFixed(2):sev})</span></div>`;
+    });
+    h+='</div>';
+  }
+
+  // Decision
+  if(decision){
+    const dec=decision.decision||'Pending';
+    const conf=decision.confidence||0;
+    const risk=decision.risk||'medium';
+    h+=`<div class="decision-box">
+      <div class="db-title">🎯 Enterprise Decision</div>
+      <div class="db-body">${esc(dec)}</div>
+      <div class="db-sub">Confidence: ${conf}% · Risk rating: ${esc(risk)}</div>
+      <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.5);">${esc(decision.rationale||'').slice(0,200)}</div>
+    </div>`;
+  }
+
+  MAIN.innerHTML=h;
+}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function showErr(m){ERROR.textContent='⚠ '+m;ERROR.classList.add('open');}
+ANALYZE.addEventListener('click',run);
+</script>
+</body>
+</html>
+"""
+
+
+# ============================================================
+# V6 Enterprise API — org-layer simulation
+# ============================================================
+
+@app.post("/api/enterprise")
+async def api_enterprise(request: Request):
+    """Run enterprise-level decision simulation with org layers"""
+    try:
+        try: body = await request.json()
+        except UnicodeDecodeError:
+            raw = await request.body()
+            for enc in ['gbk','gb2312','utf-8']:
+                try: body = json.loads(raw.decode(enc)); break
+                except: continue
+            else: body = {}
+        topic = body.get("topic", "")
+        if not topic:
+            return {"error": "Enter a question"}
+        # Call api_run directly
+        from app import api_run as run_endpoint
+        return await run_endpoint(request)
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
 # ============================================================
 # ROUTES
 
@@ -3475,6 +3667,10 @@ def timeline():
 @app.get("/predict", response_class=HTMLResponse)
 def predict():
     return PREDICT_HTML
+
+@app.get("/enterprise", response_class=HTMLResponse)
+def enterprise():
+    return ENTERPRISE_HTML
 
 # ============================================================
 
