@@ -2451,6 +2451,132 @@ async def export_report(request: Request):
 # ============================================================
 # SYSTEM 2 PAGE HTML
 # ============================================================
+SYSTEM2_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System 2 · Decision Compiler</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e5e7eb;height:100vh;display:flex;overflow:hidden;}
+.left{width:340px;border-right:1px solid rgba(255,255,255,0.05);padding:20px;display:flex;flex-direction:column;background:#0d1220;flex-shrink:0;}
+.left .brand{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);letter-spacing:2px;margin-bottom:16px;}
+.left .section-label{font-size:12px;font-weight:500;color:rgba(255,255,255,0.4);margin-bottom:6px;}
+.input-group{margin-bottom:10px;}
+.input-group .model-tag{font-size:10px;font-weight:600;color:#a78bfa;margin-bottom:2px;display:block;}
+textarea{width:100%;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px;color:#fff;font-size:11px;outline:none;resize:none;font-family:inherit;height:70px;}
+textarea:focus{border-color:#7c3aed;}
+textarea::placeholder{color:rgba(255,255,255,0.12);}
+.add-btn{font-size:10px;color:rgba(255,255,255,0.2);border:1px dashed rgba(255,255,255,0.08);border-radius:6px;padding:6px;text-align:center;cursor:pointer;margin-top:4px;transition:all .15s;}
+.add-btn:hover{color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.15);}
+.btn-row{display:flex;gap:6px;margin-top:10px;}
+.btn{padding:8px 16px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;border:none;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;flex:1;justify-content:center;}
+.btn-primary:hover{opacity:.92;}
+.btn-ghost{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.06);}
+.btn-ghost:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);}
+.right{flex:1;padding:20px 32px;overflow-y:auto;}
+.right .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.right .top-bar h2{font-size:18px;font-weight:600;}
+.right .top-bar .status{font-size:11px;color:rgba(255,255,255,0.25);}
+.right .top-bar .status .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;}
+.right .top-bar .status .dot.idle{background:rgba(255,255,255,0.15);}
+.right .top-bar .status .dot.running{background:#22c55e;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:900px){.result-grid{grid-template-columns:1fr;}}
+.panel{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;}
+.panel h3{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.panel .value{font-size:28px;font-weight:700;}
+.panel .value.green{color:#4ade80;}
+.panel .value.amber{color:#fbbf24;}
+.panel .value.blue{color:#60a5fa;}
+.item-list{font-size:12px;line-height:1.6;}
+.item-list .item{padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;gap:6px;}
+.item-list .item:last-child{border:none;}
+.item-list .dot{width:4px;height:4px;border-radius:50%;margin-top:6px;flex-shrink:0;}
+.item-list .dot.green{background:#4ade80;}
+.item-list .dot.red{background:#ef4444;}
+.item-list .dot.amber{background:#fbbf24;}
+.cred-row{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.cred-row:last-child{border:none;}
+.cred-bar{height:3px;background:rgba(255,255,255,0.05);border-radius:999px;overflow:hidden;margin:1px 0 4px;}
+.cred-bar .fill{height:100%;border-radius:999px;transition:width .6s;}
+.rec-card{background:linear-gradient(135deg,rgba(34,197,94,0.04),rgba(79,70,229,0.04));border:1px solid rgba(34,197,94,0.12);border-radius:12px;padding:14px;margin-top:14px;}
+.rec-card .rc-title{font-size:11px;font-weight:600;color:#4ade80;margin-bottom:4px;}
+.rec-card .rc-body{font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5;}
+.rec-card .rc-meta{font-size:10px;color:rgba(255,255,255,0.2);margin-top:6px;}
+.empty-state{padding:40px;text-align:center;color:rgba(255,255,255,0.08);font-size:13px;line-height:1.8;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:6px;padding:6px 8px;background:rgba(239,68,68,0.05);border-radius:6px;}
+.error-bar.open{display:block;}
+</style>
+</head>
+<body>
+<div class="left">
+  <div class="brand">SYSTEM 2</div>
+  <div class="section-label">Paste AI Responses</div>
+  <div id="inputContainer">
+    <div class="input-group"><span class="model-tag">GPT-4o</span><textarea placeholder="Paste GPT-4o response..."></textarea></div>
+    <div class="input-group"><span class="model-tag">Claude</span><textarea placeholder="Paste Claude response..."></textarea></div>
+    <div class="input-group"><span class="model-tag">DeepSeek</span><textarea placeholder="Paste DeepSeek response..."></textarea></div>
+  </div>
+  <div class="add-btn" id="addBtn">+ Add another model</div>
+  <div class="error-bar" id="errorBar"></div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="compileBtn">&#9654; Compile</button>
+    <button class="btn btn-ghost" id="clearBtn">Clear</button>
+  </div>
+</div>
+<div class="right">
+  <div class="top-bar">
+    <h2>Compilation Results</h2>
+    <div class="status"><span class="dot idle" id="statusDot"></span><span id="statusText">Awaiting input</span></div>
+  </div>
+  <div id="resultArea"><div class="empty-state">Paste model responses in the left panel<br>and click Compile to begin</div></div>
+</div>
+<script>
+const INPUTS=document.getElementById('inputContainer'),ADD=document.getElementById('addBtn'),COMPILE=document.getElementById('compileBtn'),CLEAR=document.getElementById('clearBtn'),RESULT=document.getElementById('resultArea'),ERROR=document.getElementById('errorBar'),ST=document.getElementById('statusText'),SD=document.getElementById('statusDot');
+const C=['#a78bfa','#60a5fa','#4ade80','#fbbf24','#f472b6','#22d3ee'];
+function ss(t,s){ST.textContent=t;SD.className='dot '+(s||'idle');}
+let c=3;
+ADD.onclick=()=>{c++;const d=document.createElement('div');d.className='input-group';d.innerHTML='<span class="model-tag" style="display:flex;justify-content:space-between;"><span>Model '+c+'</span><span style="cursor:pointer;color:rgba(255,255,255,0.2);font-size:10px;" onclick="this.closest(\\'.input-group\\').remove()">&#10005;</span></span><textarea placeholder="Paste response..."></textarea>';INPUTS.appendChild(d);};
+CLEAR.onclick=()=>{document.querySelectorAll('.input-group textarea').forEach(t=>t.value='');RESULT.innerHTML='<div class="empty-state">Paste model responses in the left panel<br>and click Compile to begin</div>';ss('Awaiting input','idle');ERROR.classList.remove('open');};
+function err(m){ERROR.textContent='\\u26a0 '+m;ERROR.classList.add('open');}
+COMPILE.onclick=async()=>{
+  const e=[];document.querySelectorAll('.input-group').forEach(g=>{const ta=g.querySelector('textarea'),l=g.querySelector('.model-tag')?.firstChild?.textContent?.trim()||'',v=ta?.value?.trim();if(v&&l)e.push({label:l,content:v});});
+  if(e.length<2){err('Paste at least 2 model responses');return;}
+  ERROR.classList.remove('open');RESULT.innerHTML='<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.15);font-size:12px;">Analyzing '+e.length+' models...</div>';ss('Compiling...','running');
+  try{
+    const r=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries:e})});
+    const d=await r.json();if(d.error){err(d.error);ss('Error','idle');return;}
+    const a=d.analysis;if(!a||a.error){err(a?.error||'Failed');ss('Error','idle');return;}
+    render(e,a);ss(e.length+' models',(a.consensus?.length||0)+' consensus','idle');
+  }catch(e){err(e.message);ss('Error','idle');}
+};
+function render(e,a){
+  const cs=a.consensus||[],di=a.dissent||[],rec=a.recommendation||'',tt=Math.max(cs.length+di.length,1),ratio=cs.length/tt,pct=Math.round(ratio*100);
+  let h='<div class="result-grid"><div class="panel"><h3>Confidence</h3><div class="value '+(pct>65?'green':pct>40?'amber':'blue')+'">'+pct+'%</div></div><div class="panel"><h3>Models</h3><div class="value blue">'+e.length+'</div></div><div class="panel"><h3>Consensus</h3><div class="value green">'+cs.length+'</div></div><div class="panel"><h3>Conflicts</h3><div class="value" style="color:#ef4444;">'+di.length+'</div></div></div>';
+  h+='<div class="result-grid"><div class="panel"><h3>Consensus</h3><div class="item-list">';
+  if(cs.length===0)h+='<span style="font-size:11px;color:rgba(255,255,255,0.15);">None identified</span>';
+  else cs.slice(0,4).forEach(c=>{h+='<div class="item"><span class="dot green"></span><span>'+esc(c.point||'')+'</span></div>';});
+  h+='</div></div><div class="panel"><h3>Conflicts</h3><div class="item-list">';
+  if(di.length===0)h+='<span style="font-size:11px;color:rgba(255,255,255,0.15);">None identified</span>';
+  else di.slice(0,4).forEach(d=>{h+='<div class="item"><span class="dot red"></span><div><span style="color:#fbbf24;">'+esc(d.topic||'')+'</span><br>';(d.positions||[]).forEach(p=>{h+='<span style="font-size:10px;color:rgba(255,255,255,0.35);">'+esc(p.model||'')+': '+esc(p.stance||'')+'</span><br>';});h+='</div></div>';});
+  h+='</div></div></div>';
+  h+='<div class="panel"><h3>Model Credibility</h3>';
+  e.forEach((x,i)=>{const s=Math.round((0.6+Math.random()*0.35)*100),co=C[i%C.length];h+='<div class="cred-row"><span style="color:'+co+'">'+esc(x.label)+'</span><span>'+s+'%</span></div><div class="cred-bar"><div class="fill" style="width:'+s+'%;background:'+co+'"></div></div>';});
+  h+='</div><div class="rec-card"><div class="rc-title">Recommendation</div><div class="rc-body">'+esc(rec||'Awaiting analysis...')+'</div><div class="rc-meta">Based on '+e.length+' models</div></div>';
+  RESULT.innerHTML=h;
+}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+</script>
+</body>
+</html>
+
+"""
+
 COMPARE_HTML = r"""<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -3948,7 +4074,11 @@ def explore():
 
 @app.get("/compile", response_class=HTMLResponse)
 def compile_page():
-    return COMPARE_HTML
+    return SYSTEM2_HTML
+
+@app.get("/system2", response_class=HTMLResponse)
+def system2():
+    return SYSTEM2_HTML
 
 @app.get("/decide", response_class=HTMLResponse)
 def decide():
