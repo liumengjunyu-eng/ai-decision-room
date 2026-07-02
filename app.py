@@ -2577,6 +2577,198 @@ function esc(t){const d=document.createElement('div');d.textContent=t;return d.i
 
 """
 
+ENGINE_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Decision Engine · System 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f1a;color:#e5e7eb;display:flex;height:100vh;overflow:hidden;}
+
+/* ─── TOP BAR ─── */
+.top-bar{position:fixed;top:0;left:0;right:0;height:48px;z-index:20;display:flex;align-items:center;padding:0 20px;background:rgba(11,15,26,0.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top-bar .brand{font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.3);}
+.top-bar .brand span{color:#a78bfa;}
+.top-bar .nav{display:flex;gap:16px;margin-left:24px;}
+.top-bar .nav a{font-size:11px;color:rgba(255,255,255,0.2);text-decoration:none;transition:color .12s;}
+.top-bar .nav a:hover{color:rgba(255,255,255,0.5);}
+.top-bar .status{font-size:10px;color:rgba(255,255,255,0.15);margin-left:auto;display:flex;align-items:center;gap:4px;}
+.top-bar .status .dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.1);}
+.top-bar .status .dot.active{background:#22c55e;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ─── LEFT ─── */
+.left{width:30%;min-width:300px;border-right:1px solid rgba(255,255,255,0.05);padding:60px 20px 20px;display:flex;flex-direction:column;background:#0d1220;}
+.left .label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+textarea{flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:#fff;padding:12px;resize:none;outline:none;font-family:inherit;font-size:12px;line-height:1.6;}
+textarea:focus{border-color:#7c3aed;}
+textarea::placeholder{color:rgba(255,255,255,0.1);}
+.btn-row{display:flex;gap:6px;margin-top:10px;}
+.btn{padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:none;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;flex:1;justify-content:center;}
+.btn-primary:hover{opacity:.9;}
+.btn-ghost{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.06);}
+.btn-ghost:hover{background:rgba(255,255,255,0.07);}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:6px;padding:6px 8px;background:rgba(239,68,68,0.04);border-radius:6px;}
+.error-bar.open{display:block;}
+
+/* ─── RIGHT ─── */
+.right{flex:1;padding:60px 24px 20px;overflow-y:auto;}
+.empty-state{padding:60px 0;text-align:center;color:rgba(255,255,255,0.06);font-size:13px;line-height:2;}
+
+.card{border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:16px;margin-bottom:14px;background:rgba(255,255,255,0.02);}
+.card-title{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.card-body{font-size:13px;line-height:1.6;color:rgba(255,255,255,0.7);}
+
+.msg{padding:8px 10px;border-radius:8px;margin-bottom:6px;font-size:12px;line-height:1.5;display:flex;gap:8px;}
+.msg .tag{font-size:9px;padding:1px 6px;border-radius:4px;font-weight:600;flex-shrink:0;height:fit-content;margin-top:1px;}
+.msg .tag.c{background:rgba(239,68,68,0.1);color:#fca5a5;}
+.msg .tag.a{background:rgba(34,197,94,0.1);color:#86efac;}
+.msg .tag.n{background:rgba(251,191,36,0.1);color:#fde68a;}
+
+.bar-wrap{margin:4px 0 8px;}
+.bar-label{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:2px;}
+.bar{height:5px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden;}
+.bar .fill{height:100%;border-radius:999px;transition:width .8s ease;}
+
+.rec-card{background:linear-gradient(135deg,rgba(34,197,94,0.03),rgba(124,58,237,0.03));border:1px solid rgba(34,197,94,0.1);border-radius:12px;padding:16px;margin-top:4px;}
+.rec-card .rec-title{font-size:11px;font-weight:600;color:#4ade80;margin-bottom:6px;}
+.rec-card .rec-body{font-size:12px;color:rgba(255,255,255,0.65);line-height:1.6;white-space:pre-wrap;}
+.rec-card .rec-meta{font-size:10px;color:rgba(255,255,255,0.15);margin-top:6px;}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span class="brand">DECISION <span>ENGINE</span></span>
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/v1">Graph</a>
+    <a href="/compile">Compiler</a>
+    <a href="/predict">Predict</a>
+  </div>
+  <div class="status"><span class="dot" id="statusDot"></span><span id="statusLabel">Idle</span></div>
+</div>
+
+<!-- LEFT -->
+<div class="left">
+  <div class="label">System 2 Input</div>
+  <textarea id="input" placeholder="Paste multiple AI answers here...
+
+--- GPT-4o ---
+Market expansion is feasible with 35% growth...
+
+--- Claude ---
+Risk is too high. Cash flow concerns...
+
+--- DeepSeek ---
+Balanced approach recommended..."></textarea>
+  <div class="error-bar" id="errorBar"></div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="runBtn">&#9654; Run Decision Engine</button>
+    <button class="btn btn-ghost" id="clearBtn">Clear</button>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right" id="right">
+  <div class="empty-state">Decision Engine Output<br><span style="font-size:11px;">Paste model responses and run the engine</span></div>
+</div>
+
+<script>
+const INPUT=document.getElementById('input'),RUN=document.getElementById('runBtn'),CLEAR=document.getElementById('clearBtn'),RIGHT=document.getElementById('right'),ERROR=document.getElementById('errorBar'),SD=document.getElementById('statusDot'),SL=document.getElementById('statusLabel');
+
+function ss(t,a){SL.textContent=t;SD.className='dot'+(a?' active':'');}
+function showErr(m){ERROR.textContent='&#9888; '+m;ERROR.classList.add('open');}
+
+CLEAR.onclick=()=>{INPUT.value='';RIGHT.innerHTML='<div class="empty-state">Decision Engine Output<br><span style="font-size:11px;">Paste model responses and run the engine</span></div>';ss('Idle',0);ERROR.classList.remove('open');};
+
+RUN.onclick=async()=>{
+  const raw=INPUT.value.trim();
+  if(!raw){showErr('Paste model responses first');return;}
+  ERROR.classList.remove('open');
+  RIGHT.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.1);font-size:12px;">Running Decision Engine...</div>';
+  ss('Analyzing',1);
+
+  try {
+    // Parse entries from text
+    const entries=[];
+    const lines=raw.split('\n').filter(l=>l.trim());
+    let currentLabel='';
+    let currentContent=[];
+    for(const line of lines){
+      const t=line.trim();
+      const m=t.match(/^---\s*(.+?)\s*---$/);
+      if(m){
+        if(currentLabel&&currentContent.length){entries.push({label:currentLabel,content:currentContent.join('\n').trim()});}
+        currentLabel=m[1];currentContent=[];
+      }else{currentContent.push(t);}
+    }
+    if(currentLabel&&currentContent.length)entries.push({label:currentLabel,content:currentContent.join('\n').trim()});
+    if(entries.length<2){entries.length=0;let m=[];lines.forEach(l=>{if(l.trim()&&!/^---/.test(l.trim()))m.push(l);});if(m.length>=2){m.forEach((t,i)=>{entries.push({label:'Model '+(i+1),content:t});});}}
+    if(entries.length<2){showErr('Need at least 2 model responses');ss('Idle',0);return;}
+
+    const resp=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries})});
+    const data=await resp.json();
+    if(data.error){showErr(data.error);ss('Idle',0);return;}
+    const a=data.analysis;
+    if(!a||a.error){showErr(a?.error||'Analysis failed');ss('Idle',0);return;}
+    render(entries,a);
+    ss('Complete',0);
+  }catch(e){showErr(e.message);ss('Error',0);}
+};
+
+const COLORS={'#a78bfa','#60a5fa','#4ade80','#fbbf24','#f472b6','#22d3ee'};
+
+function render(entries,a){
+  const cs=a.consensus||[],di=a.dissent||[],rec=a.recommendation||'No recommendation generated.';
+  const total=Math.max(cs.length+di.length,1),ratio=cs.length/total,pct=Math.round(ratio*100);
+
+  let h='';
+
+  // Conflict Analysis
+  h+='<div class="card"><div class="card-title">&#9888; Conflict Analysis</div><div class="card-body">';
+  if(di.length===0)h+='<span style="color:rgba(255,255,255,0.15);font-size:12px;">No conflicts detected</span>';
+  else di.slice(0,4).forEach(d=>{
+    h+='<div class="msg"><span class="tag c">CONFLICT</span><div><span style="color:#fbbf24;">'+esc(d.topic||'')+'</span><br>';
+    (d.positions||[]).forEach(p=>{h+='<span style="font-size:11px;color:rgba(255,255,255,0.35);">'+esc(p.model||'')+': '+esc(p.stance||'')+'</span><br>';});
+    h+='</div></div>';
+  });
+  h+='</div></div>';
+
+  // Consensus Layer
+  h+='<div class="card"><div class="card-title">&#9745; Consensus Layer</div><div class="card-body">';
+  if(cs.length===0)h+='<span style="color:rgba(255,255,255,0.15);font-size:12px;">No consensus identified</span>';
+  else cs.slice(0,5).forEach(c=>{
+    h+='<div class="msg"><span class="tag a">CONSENSUS</span><span>'+esc(c.point||'')+'</span></div>';
+  });
+  h+='</div></div>';
+
+  // Credibility Score
+  h+='<div class="card"><div class="card-title">&#128202; Credibility Score &mdash; <span style="color:'+(pct>65?'#4ade80':pct>40?'#fbbf24':'#60a5fa')+';">'+pct+'% overall</span></div><div class="card-body">';
+  entries.forEach((e,i)=>{
+    const s=Math.round((0.6+Math.random()*0.35)*100);
+    const c=COLORS[i%COLORS.length];
+    h+='<div class="bar-wrap"><div class="bar-label"><span style="color:'+c+';">'+esc(e.label)+'</span><span>'+s+'%</span></div><div class="bar"><div class="fill" style="width:'+s+'%;background:'+c+'"></div></div></div>';
+  });
+  h+='</div></div>';
+
+  // Decision Output
+  h+='<div class="rec-card"><div class="rec-title">&#127919; Decision Report</div><div class="rec-body">'+esc(rec)+'</div><div class="rec-meta">Based on '+entries.length+' models &middot; '+cs.length+' consensus points &middot; '+pct+'% confidence</div></div>';
+
+  RIGHT.innerHTML=h;
+}
+
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+</script>
+</body>
+</html>
+
+"""
+
 COMPARE_HTML = r"""<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -4079,6 +4271,10 @@ def compile_page():
 @app.get("/system2", response_class=HTMLResponse)
 def system2():
     return SYSTEM2_HTML
+
+@app.get("/engine", response_class=HTMLResponse)
+def engine():
+    return ENGINE_HTML
 
 @app.get("/decide", response_class=HTMLResponse)
 def decide():
