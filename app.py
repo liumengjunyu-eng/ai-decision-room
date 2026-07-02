@@ -2829,6 +2829,11 @@ def compile_page():
 def decide():
     return REPORT_HTML
 
+@app.get("/pitch", response_class=HTMLResponse)
+def pitch_deck():
+    with open("pitch.html", "r", encoding="utf-8") as f:
+        return f.read()
+
 # ============================================================
 
 # 启动

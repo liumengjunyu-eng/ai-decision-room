@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Decision OS · Pitch Deck</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,-apple-system,sans-serif;background:#0a0a0f;color:#fff;overflow:hidden;height:100vh;}
+.slides{height:100vh;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-behavior:smooth;}
+.slide{height:100vh;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;padding:60px;position:relative;}
+.slide-inner{max-width:800px;width:100%;}
+h1{font-size:52px;font-weight:700;letter-spacing:-1px;line-height:1.2;}
+h2{font-size:36px;font-weight:600;margin-bottom:20px;}
+p{font-size:18px;color:#a1a1aa;line-height:1.7;margin-bottom:12px;}
+.hl{color:#7c3aed;}.green{color:#4ade80;}.red{color:#ef4444;}.yellow{color:#fbbf24;}
+.tag{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,0.15);}
+.nav{position:fixed;right:20px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:10;}
+.nav a{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:all .15s;}
+.nav a:hover,.nav a.active{background:#7c3aed;transform:scale(1.3);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:20px;}
+.layer-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:20px;}
+.layer-card p{font-size:13px;color:#6b7280;margin:0;}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;margin-bottom:8px;}
+.badge-free{background:rgba(59,130,246,0.1);color:#3b82f6;}
+.badge-core{background:rgba(124,58,237,0.1);color:#7c3aed;}
+.badge-paid{background:rgba(251,191,36,0.1);color:#fbbf24;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.slide-inner>*{animation:fadeUp .5s ease both;}
+</style>
+</head>
+<body>
+<div class="nav" id="slideNav"></div>
+<div class="slides" id="slides">
+
+<div class="slide"><div class="slide-inner" style="text-align:center;">
+  <div style="font-size:11px;color:rgba(255,255,255,0.2);letter-spacing:3px;margin-bottom:16px;">DECISION OS 1.0</div>
+  <h1>AI Decision <span class="hl">OS</span></h1>
+  <p style="font-size:20px;margin-top:20px;color:#d4d4d8;">The Operating System for Human Decisions<br>in the Age of Multiple AIs</p>
+  <p style="font-size:15px;color:#52525b;margin-top:24px;font-style:italic;">"Turn AI disagreement into structured decision intelligence."</p>
+</div></div>
+
+<div class="slide"><div class="slide-inner">
+  <h2><span class="red">The Problem</span></h2>
+  <p>We don't lack AI. <strong>We lack judgment.</strong></p>
+  <div class="two-col" style="margin-top:20px;">
+    <div class="layer-card" style="border-color:rgba(59,130,246,0.15);"><p style="color:#60a5fa;">ChatGPT says A</p></div>
+    <div class="layer-card" style="border-color:rgba(244,114,182,0.15);"><p style="color:#f472b6;">Claude says B</p></div>
+    <div class="layer-card" style="border-color:rgba(251,191,36,0.15);"><p style="color:#fbbf24;">Gemini says C</p></div>
+    <div class="layer-card" style="border-color:rgba(239,68,68,0.15);"><p style="color:#ef4444;">DeepSeek disagrees with all</p></div>
+  </div>
+  <p style="margin-top:20px;">The user's new question: <strong>"Who do I trust?"</strong></p>
+  <p style="margin-top:12px;font-size:14px;color:#6b7280;">Decision paralysis · Information anxiety · Verification cost explosion</p>
+</div></div>
+
+<div class="slide"><div class="slide-inner" style="text-align:center;">
+  <h2>The <span class="hl">Insight</span></h2>
+  <p style="font-size:24px;font-weight:600;color:#d4d4d8;margin-top:24px;">The problem is not intelligence.</p>
+  <p style="font-size:24px;font-weight:600;color:#7c3aed;">It is <em>conflicting intelligence.</em></p>
+  <p style="margin-top:40px;font-size:16px;color:#6b7280;">For the first time, humans face<br>multiple "near-correct" answers simultaneously<br>with no system to align, compare, or converge them.</p>
+</div></div>
+
+<div class="slide"><div class="slide-inner">
+  <h2><span class="green">The Solution</span></h2>
+  <h1 style="font-size:36px;margin-bottom:20px;">AI Decision <span class="hl">OS</span></h1>
+  <p>Not a chat tool. Not a model aggregator.</p>
+  <p><strong>A multi-model conflict convergence system.</strong></p>
+  <div class="grid2" style="margin-top:20px;">
+    <div class="layer-card" style="border-color:rgba(59,130,246,0.2);"><div class="badge badge-free">Input</div><p>Multiple AI responses pasted or generated</p></div>
+    <div class="layer-card" style="border-color:rgba(124,58,237,0.2);"><div class="badge badge-core">Output</div><p>Structured decision report: Consensus · Conflict · Risk · Action</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="slide-inner">
+  <h2>3-Layer <span class="hl">Architecture</span></h2>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
+    <div class="layer-card"><div class="badge badge-free">SYSTEM 1 · Free</div><h3>🌐 AI Debate Room</h3><p>Multi-model public debate — watch 7 AI roles argue in real time</p></div>
+    <div class="layer-card" style="border-color:rgba(124,58,237,0.2);"><div class="badge badge-core">SYSTEM 2 · Core</div><h3>⚡ Decision Compiler</h3><p>Human + AI = structured decision. Outputs: Decision Ledger · Conflict Map · Consensus View</p></div>
+    <div class="layer-card" style="border-color:rgba(251,191,36,0.2);"><div class="badge badge-paid">SYSTEM 3 · Paid</div><h3>🧠 Global Intelligence Report</h3><p>McKinsey-grade decision report: SOP · Risk · Scenario · Confidence Score</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="slide-inner">
+  <h2>Why <span class="hl">Now</span></h2>
+  <p>The age of multi-agent conflict has arrived.</p>
+  <div class="two-col" style="margin-top:20px;">
+    <div class="layer-card"><p style="font-size:14px;color:#6b7280;">Before</p><p style="color:#d4d4d8;">One Google → One answer</p></div>
+    <div class="layer-card" style="border-color:rgba(124,58,237,0.2);"><p style="font-size:14px;color:#6b7280;">Now</p><p style="color:#d4d4d8;">10+ AIs → All "looks correct" → Contradiction</p></div>
+  </div>
+  <p style="margin-top:20px;font-size:15px;color:#fbbf24;">New problem: "Correct answers are no longer unique."</p>
+</div></div>
+
+<div class="slide"><div class="slide-inner">
+  <h2>Our <span class="hl">Moat</span></h2>
+  <p style="font-size:14px;color:#6b7280;margin-bottom:20px;">Not models. Not UI.</p>
+  <div><p style="font-size:20px;font-weight:600;color:#7c3aed;">🧠 Decision Structuring Engine</p><p style="font-size:14px;color:#a1a1aa;">Free text → Decision structure<br>Conflict → Visual ledger<br>Opinions → Executable paths</p></div>
+  <p style="margin-top:24px;color:#a1a1aa;">The moat is not in AI. <strong>It's in modeling relationships between AIs.</strong></p>
+</div></div>
+
+<div class="slide"><div class="slide-inner">
+  <h2><span class="green">Business Model</span></h2>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+    <div class="layer-card"><div class="badge badge-free">Free</div><p style="margin:0;">AI navigation + limited System 2</p></div>
+    <div class="layer-card" style="border-color:rgba(251,191,36,0.15);"><div class="badge" style="background:rgba(251,191,36,0.1);color:#fbbf24;">Growth</div><p style="margin:0;">Ad unlock + usage limits</p></div>
+    <div class="layer-card" style="border-color:rgba(34,197,94,0.15);"><div class="badge" style="background:rgba(34,197,94,0.1);color:#4ade80;">Paid</div><p style="margin:0;">Decision Report ¥9.9 / report or ¥39/mo</p></div>
+    <div class="layer-card" style="border-color:rgba(124,58,237,0.15);"><div class="badge badge-core">Enterprise</div><p style="margin:0;">API · Private deployment · Custom models</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="slide-inner">
+  <h2>The <span class="hl">Market</span></h2>
+  <p>We are not in the AI tools market.</p>
+  <p style="font-size:20px;font-weight:600;margin-top:16px;">We are in the <span class="hl">Decision Intelligence Market.</span></p>
+  <div class="two-col" style="margin-top:20px;">
+    <div class="layer-card"><p style="font-size:14px;color:#6b7280;">Replaces</p><p>Consulting firms (McKinsey, BCG)</p></div>
+    <div class="layer-card"><p style="font-size:14px;color:#6b7280;">Replaces</p><p>Analysts & decision software</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="slide-inner" style="text-align:center;">
+  <h2>Our <span class="hl">Vision</span></h2>
+  <p style="font-size:22px;color:#d4d4d8;margin-top:24px;">We are building</p>
+  <p style="font-size:32px;font-weight:700;color:#fff;margin-top:8px;">the operating system</p>
+  <p style="font-size:32px;font-weight:700;color:#7c3aed;">for human decision-making.</p>
+  <p style="margin-top:40px;color:#6b7280;font-size:15px;">AI will not reduce decision complexity.<br>AI will increase decision conflict.<br><strong style="color:#d4d4d8;">We build the resolution layer.</strong></p>
+  <div style="margin-top:40px;font-size:14px;color:#52525b;">Decision OS 1.0 · MindTrust · Ask every AI. Trust one decision.</div>
+</div></div>
+
+</div>
+<script>
+const slides=document.querySelectorAll('.slide');const nav=document.getElementById('slideNav');
+slides.forEach((_,i)=>{const a=document.createElement('a');a.href='#';a.dataset.i=i;a.addEventListener('click',e=>{e.preventDefault();document.getElementById('slides').children[i].scrollIntoView({behavior:'smooth'});});nav.appendChild(a);});
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){nav.querySelectorAll('a').forEach(a=>a.classList.remove('active'));const a=nav.querySelector('a:nth-child('+(Array.from(slides).indexOf(e.target)+1)+')');if(a)a.classList.add('active');}});},{threshold:0.5});
+slides.forEach(s=>obs.observe(s));
+</script>
+</body>
+</html>
