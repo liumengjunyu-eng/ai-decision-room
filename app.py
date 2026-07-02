@@ -3379,6 +3379,165 @@ function esc(t){const d=document.createElement('div');d.textContent=t;return d.i
 
 """
 
+V6_ENTERPRISE_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Board · V6</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e5e7eb;min-height:100vh;}
+.top-bar{position:fixed;top:0;left:0;right:0;height:48px;z-index:20;display:flex;align-items:center;padding:0 20px;background:rgba(11,15,26,0.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top-bar .brand{font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.3);}
+.top-bar .brand span{color:#22d3ee;}
+.top-bar .nav{display:flex;gap:16px;margin-left:24px;}
+.top-bar .nav a{font-size:11px;color:rgba(255,255,255,0.2);text-decoration:none;}
+.top-bar .nav a:hover{color:rgba(255,255,255,0.5);}
+.layout{display:flex;padding-top:48px;min-height:100vh;}
+.left{width:240px;border-right:1px solid rgba(255,255,255,0.05);padding:16px;background:#0d1220;position:fixed;top:48px;bottom:0;}
+.left .label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.role-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;margin-bottom:2px;font-size:11px;cursor:pointer;transition:all .1s;}
+.role-item:hover{background:rgba(34,211,238,0.04);}
+.role-item .r-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.role-item .r-name{font-weight:500;}
+.role-item .r-title{font-size:9px;color:rgba(255,255,255,0.25);}
+.center{margin-left:240px;margin-right:340px;padding:20px 24px;overflow-y:auto;}
+.right{width:340px;border-left:1px solid rgba(255,255,255,0.05);padding:16px;background:#0d1220;position:fixed;top:48px;right:0;bottom:0;overflow-y:auto;}
+textarea{width:100%;height:80px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px;color:#fff;resize:none;outline:none;font-family:inherit;font-size:11px;}
+textarea:focus{border-color:#22d3ee;}
+.btn{padding:8px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .12s;}
+.btn-primary{background:linear-gradient(135deg,#0891b2,#22d3ee);color:#000;width:100%;margin-top:6px;}
+.btn-primary:hover{opacity:.9;}
+.empty-state{padding:40px 0;text-align:center;color:rgba(255,255,255,0.06);font-size:13px;line-height:2;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin:4px 0;padding:4px;background:rgba(239,68,68,0.04);border-radius:4px;}
+.bubble{display:flex;gap:10px;margin-bottom:12px;opacity:0;animation:fadeIn .35s ease forwards;}
+@keyframes fadeIn{to{opacity:1}}
+.bubble .av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.bubble .bd{flex:1;min-width:0;}
+.bubble .bd .hdr{font-size:10px;font-weight:600;margin-bottom:2px;}
+.bubble .bd .txt{font-size:11px;line-height:1.5;color:rgba(255,255,255,0.6);padding:8px 10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:4px 10px 10px 10px;}
+.bubble.conflict .bd .txt{border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.03);}
+.bubble.sys .bd .txt{background:rgba(34,211,238,0.04);border-color:rgba(34,211,238,0.1);text-align:center;font-size:10px;color:rgba(255,255,255,0.3);}
+.verdict-card{background:linear-gradient(135deg,rgba(5,150,105,0.03),rgba(34,211,238,0.03));border:1px solid rgba(5,150,105,0.1);border-radius:10px;padding:12px;margin-bottom:10px;}
+.verdict-card .v-title{font-size:10px;font-weight:600;color:#34d399;margin-bottom:4px;}
+.verdict-card .v-body{font-size:11px;color:rgba(255,255,255,0.6);line-height:1.5;}
+.r-section{margin-bottom:14px;}
+.r-section .rs-title{font-size:10px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.r-item{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.r-item .ri-vote{font-size:10px;font-weight:600;}
+.vote-y{color:#4ade80;}.vote-n{color:#ef4444;}.vote-m{color:#fbbf24;}.vote-u{color:rgba(255,255,255,0.2);}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <span class="brand">ENTERPRISE <span>BOARD</span> V6</span>
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/v3">Report</a>
+    <a href="/v4">Forecast</a>
+    <a href="/v5">Execute</a>
+  </div>
+</div>
+<div class="layout">
+<div class="left">
+  <div class="label">Board Members</div>
+  <div id="roleList"></div>
+  <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);">
+    <div class="label">Meeting Topic</div>
+    <textarea id="topicInput" placeholder="What decision should the board discuss?"></textarea>
+    <div class="error-bar" id="errorBar"></div>
+    <button class="btn btn-primary" id="meetingBtn">▶ Convene Board</button>
+  </div>
+</div>
+<div class="center" id="centerArea">
+  <div class="empty-state" id="emptyState">Enter a topic and convene<br>the AI board of directors</div>
+  <div id="chatArea"></div>
+</div>
+<div class="right" id="rightPanel">
+  <div class="r-section">
+    <div class="rs-title">Voting Results</div>
+    <div id="voteArea"><span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting board meeting...</span></div>
+  </div>
+  <div class="r-section">
+    <div class="rs-title">Decision Verdict</div>
+    <div id="verdictArea"><span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting board meeting...</span></div>
+  </div>
+</div>
+</div>
+<script>
+const BOARD_ROLES=[
+  {id:'ceo',name:'CEO',title:'Strategic Director',emoji:'🧠',color:'#22d3ee'},
+  {id:'cfo',name:'CFO',title:'Financial Controller',emoji:'⚖️',color:'#fbbf24'},
+  {id:'coo',name:'COO',title:'Operations Executive',emoji:'⚙️',color:'#4ade80'},
+  {id:'cto',name:'CTO',title:'Technology Officer',emoji:'💻',color:'#60a5fa'},
+  {id:'cmo',name:'CMO',title:'Market Director',emoji:'📊',color:'#f472b6'},
+  {id:'risk',name:'Risk',title:'Risk Assessment',emoji:'🛡️',color:'#ef4444'},
+  {id:'analyst',name:'Analyst',title:'Data Analytics',emoji:'🔍',color:'#a78bfa'},
+];
+const STANCES=['Support','Oppose','Neutral'];
+const STANCE_VOTES={'Support':'vote-y','Oppose':'vote-n','Neutral':'vote-m'};
+const ROLE_COLORS={ceo:'#22d3ee',cfo:'#fbbf24',coo:'#4ade80',cto:'#60a5fa',cmo:'#f472b6',risk:'#ef4444',analyst:'#a78bfa'};
+const VERDICTS=[
+  '✅ Decision Approved. Proceed with execution plan.',
+  '✅ Approved with Conditions. Monitor risk factors closely.',
+  '⏸ Decision Deferred. Requires more data before voting.',
+  '❌ Decision Rejected. Current risk profile unacceptable.',
+];
+const REASONS={
+  ceo:['Strategic alignment is strong. Market timing favorable.','Long-term vision supports this direction.','Competitive positioning will improve.'],
+  cfo:['Cash flow analysis shows acceptable risk.','Capital allocation needs optimization.','ROI projections are within target range.'],
+  coo:['Operational capacity sufficient for execution.','Process integration will require 4-6 weeks.','Resource allocation is feasible.'],
+  cto:['Technology stack compatible. Implementation feasible.','Technical debt concerns need addressing.','Architecture review completed. No blockers.'],
+  cmo:['Market demand validated. Timing is optimal.','Competitor analysis shows gap opportunity.','Customer acquisition cost within target.'],
+  risk:['Risk exposure is moderate. Controllable.','Regulatory compliance requires attention.','Mitigation strategies identified.'],
+  analyst:['Data supports this direction. Confidence high.','Trend analysis shows positive trajectory.','Key metrics aligned with targets.'],
+};
+
+const RL=document.getElementById('roleList'),TI=document.getElementById('topicInput'),BTN=document.getElementById('meetingBtn'),CA=document.getElementById('chatArea'),ES=document.getElementById('emptyState'),VA=document.getElementById('voteArea'),VDA=document.getElementById('verdictArea'),ERR=document.getElementById('errorBar');
+
+BOARD_ROLES.forEach(r=>{
+  const d=document.createElement('div');d.className='role-item';d.id='role-'+r.id;
+  d.innerHTML='<span class="r-dot" style="background:'+r.color+'"></span><span class="r-name">'+r.emoji+' '+r.name+'</span><span class="r-title">'+r.title+'</span>';
+  RL.appendChild(d);
+});
+
+BTN.onclick=async()=>{
+  const topic=TI.value.trim();if(!topic){ERR.textContent='Enter a board meeting topic';ERR.style.display='block';return;}
+  ERR.style.display='none';ES.style.display='none';CA.innerHTML='';VA.innerHTML='';VDA.innerHTML='';
+  // Simulate board responses
+  const votes={};let support=0,oppose=0,neutral=0;
+  BOARD_ROLES.forEach((r,i)=>{
+    setTimeout(()=>{
+      const stance=STANCES[Math.floor(Math.random()*STANCES.length)];
+      if(stance==='Support')support++;else if(stance==='Oppose')oppose++;else neutral++;
+      votes[r.name]={stance,reason:REASONS[r.id]?REASONS[r.id][Math.floor(Math.random()*REASONS[r.id].length)]:'Analysis complete.'};
+      const isConflict=stance==='Oppose';
+      const bubble=document.createElement('div');bubble.className='bubble'+(isConflict?' conflict':'');
+      bubble.innerHTML='<div class="av" style="background:'+r.color+'20;border:2px solid '+r.color+'40;">'+r.emoji+'</div><div class="bd"><div class="hdr" style="color:'+r.color+';">'+r.name+' &middot; '+r.title+' <span style="font-size:9px;color:rgba(255,255,255,0.2);">'+stance+'</span></div><div class="txt">'+votes[r.name].reason+'</div></div>';
+      CA.appendChild(bubble);
+      // Update votes
+      let vhtml='';BOARD_ROLES.forEach(role=>{
+        const v=votes[role.name];const s=v?v.stance:'Waiting...';const cls=v?STANCE_VOTES[s]||'vote-u':'vote-u';
+        vhtml+='<div class="r-item"><span>'+role.emoji+' '+role.name+'</span><span class="ri-vote '+cls+'">'+s+'</span></div>';
+      });VA.innerHTML=vhtml;
+      // Verdict after all votes
+      if(i===BOARD_ROLES.length-1){
+        const total=BOARD_ROLES.length;const approved=support>total/2;
+        const vi=approved?Math.floor(Math.random()*2):2+Math.floor(Math.random()*2);
+        const vhtml='<div class="verdict-card"><div class="v-title">Board Verdict</div><div class="v-body">'+VERDICTS[vi]+'</div><div style="margin-top:4px;font-size:10px;color:rgba(255,255,255,0.2);">'+support+' support · '+oppose+' oppose · '+neutral+' neutral</div></div>';
+        VDA.innerHTML=vhtml;
+      }
+    },(i+1)*600);
+  });
+};
+</script>
+</body>
+</html>
+
+"""
+
 COMPARE_HTML = r"""<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -4897,6 +5056,10 @@ def v4_forecast():
 @app.get("/v5", response_class=HTMLResponse)
 def v5_execution():
     return V5_EXECUTION_HTML
+
+@app.get("/v6", response_class=HTMLResponse)
+def v6_enterprise():
+    return V6_ENTERPRISE_HTML
 
 @app.get("/decide", response_class=HTMLResponse)
 def decide():
