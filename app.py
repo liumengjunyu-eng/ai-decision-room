@@ -2425,6 +2425,45 @@ async def api_credibility_v2(request: Request):
         return {"error": str(e)[:200]}
 
 
+@app.post("/api/v2/evaluate")
+async def api_v2_evaluate(request: Request):
+    """V2 evaluate alias — accepts list format"""
+    try:
+        body = await request.json()
+        inputs = body if isinstance(body, list) else body.get("inputs", [])
+        if not inputs:
+            return {"error": "Provide a list of model inputs"}
+        answers = {}
+        for item in inputs:
+            name = item.get("model_name", item.get("model", ""))
+            content = item.get("content", "")
+            if name and content:
+                answers[name] = content
+        task_type = inputs[0].get("task_type", "general") if inputs else "general"
+        from backend.engine import DecisionEngine
+        de = DecisionEngine()
+        v2 = de.credibility_v2("", answers, task_type)
+        ranked = v2.get("ranking", [])
+        results = []
+        for r in ranked:
+            m = r["model"]
+            rd = v2["results"].get(m, {})
+            bd = rd.get("breakdown", {})
+            results.append({
+                "model": m,
+                "score": r["score"],
+                "breakdown": {k: v["score"] for k, v in bd.items()},
+                "verdict": r["verdict"]
+            })
+        return {
+            "ranked_models": results,
+            "top_model": results[0] if results else None,
+            "summary": "Models ranked by credibility score (V2 Engine)"
+        }
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+
 # ============================================================
 # V4 — Decision Report Export
 # ============================================================
