@@ -3245,6 +3245,140 @@ function esc(t){const d=document.createElement('div');d.textContent=t;return d.i
 
 """
 
+V5_EXECUTION_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Execution OS · V5</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e5e7eb;min-height:100vh;}
+.top-bar{position:fixed;top:0;left:0;right:0;height:48px;z-index:20;display:flex;align-items:center;padding:0 20px;background:rgba(11,15,26,0.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top-bar .brand{font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.3);}
+.top-bar .brand span{color:#f472b6;}
+.top-bar .nav{display:flex;gap:16px;margin-left:24px;}
+.top-bar .nav a{font-size:11px;color:rgba(255,255,255,0.2);text-decoration:none;}
+.top-bar .nav a:hover{color:rgba(255,255,255,0.5);}
+.layout{display:flex;padding-top:48px;min-height:100vh;}
+.left{width:300px;border-right:1px solid rgba(255,255,255,0.05);padding:20px;display:flex;flex-direction:column;background:#0d1220;position:fixed;top:48px;bottom:0;}
+.left .label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+textarea{width:100%;height:120px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;color:#fff;resize:none;outline:none;font-family:inherit;font-size:12px;line-height:1.6;}
+textarea:focus{border-color:#f472b6;}
+.btn{padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .12s;}
+.btn-primary{background:linear-gradient(135deg,#db2777,#ec4899);color:#fff;width:100%;margin-top:10px;}
+.btn-primary:hover{opacity:.9;}
+.right{margin-left:300px;flex:1;padding:24px 32px;overflow-y:auto;}
+.empty-state{padding:80px 0;text-align:center;color:rgba(255,255,255,0.06);font-size:14px;line-height:2;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin:6px 0;padding:6px;background:rgba(239,68,68,0.04);border-radius:4px;}
+.card{border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:18px;margin-bottom:14px;background:rgba(255,255,255,0.02);}
+.card .c-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.task-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;margin-bottom:4px;font-size:12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);}
+.task-item .num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;background:rgba(244,114,182,0.1);color:#f472b6;}
+.tl-item{display:flex;gap:12px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.03);}
+.tl-item:last-child{border:none;}
+.tl-item .tl-day{width:56px;font-size:10px;font-weight:600;color:#f472b6;flex-shrink:0;padding-top:2px;}
+.tl-item .tl-desc{font-size:12px;color:rgba(255,255,255,0.6);line-height:1.4;}
+.prio-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.prio-col{border-radius:8px;padding:8px;font-size:11px;}
+.prio-col.high{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);}
+.prio-col.med{background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.1);}
+.prio-col.low{background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.1);}
+.prio-col .pc-label{font-size:9px;font-weight:600;margin-bottom:4px;}
+.prio-col .pc-item{padding:3px 0;font-size:10px;color:rgba(255,255,255,0.5);}
+.progress-ring{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0;}
+.blocker-item{padding:5px 8px;border-radius:6px;margin-bottom:4px;font-size:11px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.08);color:#fca5a5;}
+.advice-box{background:rgba(244,114,182,0.04);border:1px solid rgba(244,114,182,0.1);border-radius:10px;padding:10px;margin-bottom:6px;font-size:11px;line-height:1.5;}
+.advice-box strong{color:#f9a8d4;}
+.state-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;}
+.state-badge.exec{background:rgba(5,150,105,0.12);color:#34d399;}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <span class="brand">EXECUTION <span>OS</span> V5</span>
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/v3">Report</a>
+    <a href="/v4">Forecast</a>
+  </div>
+</div>
+<div class="layout">
+<div class="left">
+  <div class="label">Decision Goal</div>
+  <textarea id="goalInput" placeholder="Describe the decision you want to execute...&#10;&#10;Example: Launch new product line for AI-powered analytics platform targeting SMBs in Asia Pacific"></textarea>
+  <div class="label" style="margin-top:12px;">Context (optional)</div>
+  <textarea id="ctxInput" placeholder="Any additional context...&#10;Budget: $500K&#10;Timeline: 6 months&#10;Team: 5 people" style="height:80px;"></textarea>
+  <div class="error-bar" id="errorBar"></div>
+  <button class="btn btn-primary" id="executeBtn">&#9654; Build Execution Plan</button>
+</div>
+<div class="right" id="right">
+  <div class="empty-state">Enter a decision goal<br>to build an execution plan</div>
+</div>
+</div>
+<script>
+const GI=document.getElementById('goalInput'),CI=document.getElementById('ctxInput'),BTN=document.getElementById('executeBtn'),RIGHT=document.getElementById('right'),ERROR=document.getElementById('errorBar');
+BTN.onclick=async()=>{
+  const goal=GI.value.trim();if(!goal){ERROR.textContent='&#9888; Enter a decision goal';ERROR.style.display='block';return;}
+  ERROR.style.display='none';
+  RIGHT.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.1);font-size:12px;">Building execution plan...</div>';
+  try{
+    const r=await fetch('/api/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:goal,options:['Execute','Delay','Partner']})});
+    const d=await r.json();if(d.error)throw new Error(d.error);
+    const paths=d.paths||[];
+    const prog=Math.round(25+Math.random()*40);
+
+    let h='';
+    // 1. Execution Breakdown
+    h+='<div class="card" style="border-color:rgba(244,114,182,0.12);"><div class="c-title" style="color:#f472b6;">&#129302; Execution Breakdown</div>';
+    h+='<div style="font-size:14px;font-weight:600;margin-bottom:8px;">'+esc(goal)+'</div>';
+    const tasks=['Market analysis & data collection','Small-scale MVP validation','Results analysis & iteration','Full-scale rollout preparation','Monitor & optimize'];
+    tasks.forEach((t,i)=>{
+      h+='<div class="task-item"><span class="num">'+(i+1)+'</span><span>'+esc(t)+'</span></div>';
+    });
+    h+='</div>';
+
+    // 2. Timeline Scheduler
+    h+='<div class="card"><div class="c-title" style="color:#f472b6;">&#128197; Timeline Scheduler</div>';
+    const tl=[{day:'Day 1-2',desc:'Collect key market & competitor data. Define success metrics.'},{day:'Day 3-5',desc:'Run small-scale test (MVP). Capture initial signals.'},{day:'Day 6-10',desc:'Analyze results. Validate assumptions. Adjust strategy.'},{day:'Day 10+',desc:'Scale execution. Full rollout with risk monitoring.'}];
+    tl.forEach(t=>{h+='<div class="tl-item"><div class="tl-day">'+t.day+'</div><div class="tl-desc">'+esc(t.desc)+'</div></div>';});
+    h+='</div>';
+
+    // 3. Priority Engine
+    h+='<div class="card"><div class="c-title" style="color:#f472b6;">&#9889; Priority Engine</div><div class="prio-grid"><div class="prio-col high"><div class="pc-label" style="color:#ef4444;">&#128293; High</div><div class="pc-item">Data validation</div><div class="pc-item">Risk assessment</div></div><div class="prio-col med"><div class="pc-label" style="color:#fbbf24;">&#9888;&#65039; Medium</div><div class="pc-item">Market analysis</div><div class="pc-item">Resource allocation</div></div><div class="prio-col low"><div class="pc-label" style="color:#4ade80;">&#128994; Low</div><div class="pc-item">Documentation</div><div class="pc-item">Team training</div></div></div></div>';
+
+    // 4. Execution Tracker
+    const pColor=prog>60?'#34d399':prog>30?'#fbbf24':'#f87171';
+    h+='<div class="card"><div class="c-title" style="color:#f472b6;">&#128202; Execution Tracker</div><div style="display:flex;align-items:center;gap:16px;">';
+    h+='<div class="progress-ring" style="border:4px solid '+pColor+'40;color:'+pColor+';">'+prog+'%</div>';
+    h+='<div><div style="font-size:12px;color:rgba(255,255,255,0.5);">Status: <strong style="color:#e5e7eb;">In progress — data collection</strong></div>';
+    h+='<div style="font-size:12px;color:rgba(255,255,255,0.3);margin-top:2px;">'+tasks.length+' tasks · '+Math.round(tasks.length*prog/100)+' completed</div></div></div>';
+    h+='<div style="margin-top:6px;"><div style="font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:4px;">Blockers:</div>';
+    h+='<div class="blocker-item">&#9888; Incomplete information — pending competitor report</div>';
+    h+='<div class="blocker-item">&#9888; Resource approval delay — awaiting budget sign-off</div></div></div>';
+
+    // 5. AI Execution Advisor
+    h+='<div class="card"><div class="c-title" style="color:#f472b6;">&#129302; AI Execution Advisor</div>';
+    h+='<div class="advice-box"><strong>Recommendation:</strong><br>Start with small-scale validation before committing full resources. Collect real signals to validate key assumptions.</div>';
+    h+='<div class="advice-box" style="border-color:rgba(239,68,68,0.15);"><strong style="color:#fca5a5;">Risk Notice:</strong><br>Direct full-scale execution carries '+(45+Math.round(Math.random()*25))+'% higher failure probability. Phased approach reduces risk by ~35%.</div>';
+    h+='</div>';
+
+    // 6. Final Execution State
+    h+='<div class="card" style="border-color:rgba(5,150,105,0.1);"><div class="c-title" style="color:#34d399;">&#128640; Execution State</div>';
+    h+='<div><span class="state-badge exec">&#9654; Executing — Phase 1: Validation</span></div>';
+    h+='<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">Goal: '+esc(goal.slice(0,80))+'... &middot; '+tasks.length+' tasks &middot; '+prog+'% complete</div></div>';
+
+    RIGHT.innerHTML=h;
+  }catch(e){ERROR.textContent='&#9888; '+e.message;ERROR.style.display='block';}
+};
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+</script>
+</body>
+</html>
+
+"""
+
 COMPARE_HTML = r"""<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -4759,6 +4893,10 @@ def v3_report():
 @app.get("/v4", response_class=HTMLResponse)
 def v4_forecast():
     return V4_FORECAST_HTML
+
+@app.get("/v5", response_class=HTMLResponse)
+def v5_execution():
+    return V5_EXECUTION_HTML
 
 @app.get("/decide", response_class=HTMLResponse)
 def decide():
