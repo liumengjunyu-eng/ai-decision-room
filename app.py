@@ -144,38 +144,145 @@ LANDING_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AI Decision OS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Decision OS — Resolve Multi-AI Conflict</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;overflow:hidden;height:100vh;}
-.glow{position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(124,58,237,0.25),transparent);top:30%;left:50%;transform:translateX(-50%);filter:blur(60px);pointer-events:none;}
-.center{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);text-align:center;width:90%;max-width:700px;}
-h1{font-size:52px;font-weight:700;letter-spacing:-1px;margin:0;line-height:1.2;}
-.hl{color:#7c3aed;}
-.sub{margin-top:20px;color:#a1a1aa;font-size:18px;line-height:1.7;}
-.btn{margin-top:40px;padding:14px 32px;background:linear-gradient(90deg,#7c3aed,#3b82f6);border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:transform .15s;text-decoration:none;display:inline-block;}
-.btn:hover{transform:translateY(-2px);}
-.hint{position:fixed;bottom:20px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.15);font-size:12px;}
-.tag{position:fixed;top:20px;right:24px;font-size:11px;color:rgba(255,255,255,0.2);letter-spacing:2px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#070A12;color:#e6e9f2;font-family:Inter,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;}
+
+/* ─── BG GLOW ─── */
+.bg-glow{position:fixed;top:-30%;left:50%;transform:translateX(-50%);width:900px;height:900px;background:radial-gradient(circle,rgba(124,58,237,0.12),transparent 70%);filter:blur(80px);pointer-events:none;z-index:0;}
+.bg-glow-2{position:fixed;bottom:-20%;right:-10%;width:600px;height:600px;background:radial-gradient(circle,rgba(59,130,246,0.08),transparent 70%);filter:blur(60px);pointer-events:none;z-index:0;}
+
+/* ─── FLOATING ORBS ─── */
+@keyframes float1{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-30px) translateX(20px)}}
+@keyframes float2{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(20px) translateX(-30px)}}
+@keyframes float3{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-15px) translateX(-10px)}}
+.orb{position:fixed;border-radius:50%;opacity:0.15;pointer-events:none;z-index:0;}
+.orb-1{width:120px;height:120px;background:radial-gradient(circle,#ef4444,transparent);top:20%;left:10%;animation:float1 8s ease-in-out infinite;}
+.orb-2{width:100px;height:100px;background:radial-gradient(circle,#3b82f6,transparent);bottom:25%;right:15%;animation:float2 10s ease-in-out infinite;}
+.orb-3{width:80px;height:80px;background:radial-gradient(circle,#22c55e,transparent);top:55%;left:60%;animation:float3 7s ease-in-out infinite;}
+
+/* ─── TOP BAR ─── */
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:rgba(7,10,18,0.6);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top-bar .logo{font-size:13px;font-weight:600;letter-spacing:3px;color:rgba(255,255,255,0.5);}
+.top-bar .nav{display:flex;gap:24px;font-size:13px;}
+.top-bar .nav a{color:rgba(255,255,255,0.3);text-decoration:none;transition:color .15s;}
+.top-bar .nav a:hover{color:rgba(255,255,255,0.7);}
+
+/* ─── HERO ─── */
+.hero{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:100px 32px 80px;text-align:center;}
+.tagline{font-size:12px;font-weight:500;letter-spacing:4px;color:rgba(124,58,237,0.6);margin-bottom:24px;text-transform:uppercase;}
+.conflict-line{font-size:16px;color:rgba(255,255,255,0.25);line-height:1.8;margin-bottom:8px;max-width:600px;}
+.conflict-line strong{color:rgba(255,255,255,0.6);font-weight:500;}
+.conflict-resolve{font-size:14px;color:#7c3aed;font-weight:600;margin-top:4px;margin-bottom:40px;}
+h1{font-size:56px;font-weight:800;letter-spacing:-2px;line-height:1.1;margin-bottom:18px;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+/* ─── FEATURE CARDS ─── */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;width:100%;margin:32px auto 40px;}
+@media(max-width:768px){.cards{grid-template-columns:1fr;}}
+.card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;backdrop-filter:blur(10px);transition:all .3s ease;text-align:left;}
+.card:hover{transform:translateY(-4px);border-color:rgba(124,58,237,0.2);background:rgba(124,58,237,0.03);box-shadow:0 8px 40px rgba(124,58,237,0.05);}
+.card .icon{font-size:24px;margin-bottom:12px;}
+.card h3{font-size:13px;font-weight:600;margin-bottom:6px;color:#e6e9f2;}
+.card p{font-size:12px;color:rgba(255,255,255,0.35);line-height:1.6;}
+.card .card-flow{font-size:11px;color:rgba(124,58,237,0.5);font-weight:500;margin-top:10px;font-family:monospace;}
+
+/* ─── BUTTONS ─── */
+.btn-group{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;}
+.btn{padding:14px 32px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;box-shadow:0 4px 20px rgba(124,58,237,0.2);}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 30px rgba(124,58,237,0.3);}
+.btn-secondary{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.08);}
+.btn-secondary:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.8);}
+.btn-ghost{background:transparent;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.04);font-size:13px;}
+.btn-ghost:hover{color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);}
+
+/* ─── FOOTER ─── */
+.footer{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:12px 32px;background:rgba(7,10,18,0.5);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,0.03);}
+.footer .f-left{font-size:11px;color:rgba(255,255,255,0.15);}
+.footer .f-right{display:flex;gap:16px;font-size:11px;color:rgba(255,255,255,0.15);}
+.footer .f-right a{color:rgba(255,255,255,0.15);text-decoration:none;transition:color .15s;}
+.footer .f-right a:hover{color:rgba(255,255,255,0.4);}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero>*{animation:fadeUp .6s ease both;}
+.hero>*:nth-child(1){animation-delay:.05s}
+.hero>*:nth-child(2){animation-delay:.1s}
+.hero>*:nth-child(3){animation-delay:.15s}
+.hero>*:nth-child(4){animation-delay:.2s}
+.hero>*:nth-child(5){animation-delay:.25s}
+.hero>*:nth-child(6){animation-delay:.3s}
+.hero>*:nth-child(7){animation-delay:.35s}
 </style>
 </head>
 <body>
-<div class="tag">DECISION OS 1.0</div>
-<div class="glow"></div>
-<div class="center">
-    <h1>AI Decision <span class="hl">OS</span></h1>
-    <div class="sub">
-        The first system that turns<br>
-        <span class="hl">multiple AI opinions</span> into one structured decision.
-    </div>
-    <div class="sub" style="font-size:16px;color:#71717a;">
-        ChatGPT disagrees with Claude.<br>
-        Gemini disagrees with DeepSeek.<br>
-        <strong style="color:#d4d4d8;">We don't pick one. We resolve them.</strong>
-    </div>
-    <a class="btn" href="/explore">Enter Decision System →</a>
+
+<div class="bg-glow"></div>
+<div class="bg-glow-2"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="top-bar">
+  <span class="logo">DECISION OS</span>
+  <div class="nav">
+    <a href="/v1">Graph</a>
+    <a href="/timeline">Timeline</a>
+    <a href="/predict">Predict</a>
+    <a href="/global">Global</a>
+    <a href="/pitch">Pitch</a>
+  </div>
 </div>
-<div class="hint">Ask every AI. Trust one decision.</div>
+
+<div class="hero">
+  <div class="tagline">Decision Intelligence System</div>
+
+  <h1>AI Decision OS</h1>
+
+  <div class="conflict-line">ChatGPT disagrees with Claude.</div>
+  <div class="conflict-line">Gemini disagrees with DeepSeek.</div>
+  <div class="conflict-resolve">We don't choose models. We resolve them.</div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="icon">⚡</div>
+      <h3>Conflict Layer</h3>
+      <p>Multiple AI opinions → disagreement detected, structured, and visualized.</p>
+      <div class="card-flow">AI inputs → conflict graph</div>
+    </div>
+    <div class="card">
+      <div class="icon">🎯</div>
+      <h3>Credibility Engine</h3>
+      <p>We don't vote. We weight trust — by evidence, consensus, and domain fit.</p>
+      <div class="card-flow">scoring → weighting → convergence</div>
+    </div>
+    <div class="card">
+      <div class="icon">🧠</div>
+      <h3>Decision Output</h3>
+      <p>One structured report. Not an answer. A complete decision infrastructure.</p>
+      <div class="card-flow">ledger → recommendation → report</div>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <a class="btn btn-primary" href="/v1">Enter Decision System →</a>
+    <a class="btn btn-secondary" href="/explore">Try Multi-AI Conflict Demo</a>
+    <a class="btn btn-ghost" href="/pitch">View Pitch Deck</a>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="f-left">AI Decision OS 1.0 · MindTrust</span>
+  <span class="f-right">
+    <span>Ask every AI. Trust one decision.</span>
+    <a href="/pitch">Pitch</a>
+    <a href="/global">Global</a>
+  </span>
+</div>
+
 </body>
 </html>
 """
