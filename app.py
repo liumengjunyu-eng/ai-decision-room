@@ -3538,6 +3538,182 @@ BTN.onclick=async()=>{
 
 """
 
+V7_NETWORK_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Network · V7</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#05060A;color:#e5e7eb;height:100vh;overflow:hidden;}
+.top-bar{position:fixed;top:0;left:0;right:0;height:48px;z-index:20;display:flex;align-items:center;padding:0 20px;background:rgba(5,6,10,0.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top-bar .brand{font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.3);}
+.top-bar .brand span{color:#f59e0b;}
+.top-bar .nav{display:flex;gap:16px;margin-left:24px;}
+.top-bar .nav a{font-size:11px;color:rgba(255,255,255,0.2);text-decoration:none;}
+.top-bar .nav a:hover{color:rgba(255,255,255,0.5);}
+.left{position:fixed;top:48px;left:0;bottom:0;width:280px;padding:16px;border-right:1px solid rgba(255,255,255,0.05);background:rgba(5,6,10,0.5);overflow-y:auto;}
+.left .label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+textarea{width:100%;height:100px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px;color:#fff;resize:none;outline:none;font-family:inherit;font-size:11px;}
+textarea:focus{border-color:#f59e0b;}
+.btn{padding:8px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .12s;}
+.btn-primary{background:linear-gradient(135deg,#d97706,#f59e0b);color:#000;width:100%;margin-top:6px;}
+.btn-primary:hover{opacity:.9;}
+.center{position:fixed;top:48px;left:280px;right:320px;bottom:0;}
+.right{position:fixed;top:48px;right:0;bottom:0;width:320px;padding:16px;border-left:1px solid rgba(255,255,255,0.05);background:rgba(5,6,10,0.5);overflow-y:auto;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin:4px 0;padding:4px;background:rgba(239,68,68,0.04);border-radius:4px;}
+.r-section{margin-bottom:14px;}
+.r-section .rs-title{font-size:10px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.net-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:8px;margin-bottom:4px;font-size:10px;line-height:1.5;}
+.net-card strong{font-size:11px;color:#fbbf24;}
+.hot-label{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:600;}
+.hot-risk{background:rgba(239,68,68,0.1);color:#fca5a5;}
+.hot-opp{background:rgba(34,197,94,0.1);color:#86efac;}
+.graph-ui{position:absolute;top:8px;left:8px;z-index:10;display:flex;gap:4px;}
+.graph-ui .g-btn{padding:4px 10px;border-radius:4px;font-size:9px;cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.3);}
+.graph-ui .g-btn:hover{background:rgba(255,255,255,0.07);}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <span class="brand">DECISION <span>NETWORK</span> V7</span>
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/v5">Execute</a>
+    <a href="/v6">Board</a>
+  </div>
+</div>
+<div class="left">
+  <div class="label">Add Decisions to Network</div>
+  <div id="decInputs">
+    <div style="display:flex;gap:4px;margin-bottom:4px;">
+      <input id="d1" style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px;color:#fff;font-size:10px;outline:none;font-family:inherit;" placeholder="Decision A" value="Market Entry">
+      <input id="c1" style="width:40px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px;color:#fff;font-size:10px;outline:none;font-family:inherit;text-align:center;" placeholder="Wt" value="1.0">
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:4px;">
+      <input id="d2" style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px;color:#fff;font-size:10px;outline:none;font-family:inherit;" placeholder="Decision B" value="Investment">
+      <input id="c2" style="width:40px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px;color:#fff;font-size:10px;outline:none;font-family:inherit;text-align:center;" placeholder="Wt" value="0.8">
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:4px;">
+      <input id="d3" style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px;color:#fff;font-size:10px;outline:none;font-family:inherit;" placeholder="Decision C" value="Hiring">
+      <input id="c3" style="width:40px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px;color:#fff;font-size:10px;outline:none;font-family:inherit;text-align:center;" placeholder="Wt" value="0.6">
+    </div>
+  </div>
+  <button class="btn btn-ghost" style="width:100%;font-size:10px;padding:4px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);" id="addDecBtn">+ Add Decision</button>
+  <div class="error-bar" id="errorBar"></div>
+  <button class="btn btn-primary" id="buildBtn">&#9654; Build Decision Network</button>
+  <div style="margin-top:8px;">
+    <div class="label">Legend</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.2);line-height:1.8;">
+      <span style="display:inline-block;width:12px;height:2px;background:#f59e0b;vertical-align:middle;margin-right:4px;"></span> Influence Edge<br>
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;vertical-align:middle;margin-right:4px;"></span> Decision Node<br>
+      <span style="color:#ef4444;">&#9632;</span> Risk Cluster<br>
+      <span style="color:#4ade80;">&#9632;</span> Opportunity Cluster
+    </div>
+  </div>
+</div>
+<div class="center">
+  <svg id="graphSvg" width="100%" height="100%"></svg>
+  <div id="graphEmpty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.04);font-size:13px;text-align:center;line-height:2;pointer-events:none;">Add decisions and build<br>the decision network</div>
+</div>
+<div class="right">
+  <div class="r-section">
+    <div class="rs-title">Network Analysis</div>
+    <div id="analysisArea"><span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting network...</span></div>
+  </div>
+  <div class="r-section">
+    <div class="rs-title">Influence Map</div>
+    <div id="influenceArea"><span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting network...</span></div>
+  </div>
+  <div class="r-section">
+    <div class="rs-title">Network Memory</div>
+    <div id="memoryArea"><span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting network...</span></div>
+  </div>
+</div>
+<script>
+const SV=document.getElementById('graphSvg'),GE=document.getElementById('graphEmpty'),BTN=document.getElementById('buildBtn'),AD=document.getElementById('addDecBtn'),ERR=document.getElementById('errorBar');
+const AA=document.getElementById('analysisArea'),IA=document.getElementById('influenceArea'),MA=document.getElementById('memoryArea');
+let sim=null;let memCount=0;
+
+AD.onclick=()=>{
+  const idx=document.querySelectorAll('#decInputs input').length/2+1;
+  const d=document.createElement('div');d.style.cssText='display:flex;gap:4px;margin-bottom:4px;';
+  d.innerHTML='<input id="d'+idx+'" style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px;color:#fff;font-size:10px;outline:none;font-family:inherit;" placeholder="Decision '+String.fromCharCode(64+idx)+'" value="Decision '+String.fromCharCode(64+idx)+'"><input id="c'+idx+'" style="width:40px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px;color:#fff;font-size:10px;outline:none;font-family:inherit;text-align:center;" placeholder="Wt" value="'+(Math.max(0.5,1-idx*0.15).toFixed(1))+'">';
+  document.getElementById('decInputs').appendChild(d);
+};
+
+BTN.onclick=()=>{
+  const decNames=[];const decWeights=[];
+  document.querySelectorAll('#decInputs input').forEach((inp,i)=>{
+    if(i%2===0){const v=inp.value.trim();if(v)decNames.push(v);}
+    else{const v=parseFloat(inp.value)||0.5;decWeights.push(v);}
+  });
+  if(decNames.length<2){ERR.textContent='Add at least 2 decisions';ERR.style.display='block';return;}
+  ERR.style.display='none';GE.style.display='none';
+  drawGraph(decNames,decWeights);
+  updateAnalysis(decNames,decWeights);
+};
+
+function drawGraph(names,weights){
+  if(sim)sim.stop();
+  const W=document.querySelector('.center').offsetWidth,H=document.querySelector('.center').offsetHeight;
+  const nodes=names.map((n,i)=>({id:n,r:14+weights[i]*8,weight:weights[i],color:weights[i]>0.8?'#f59e0b':weights[i]>0.6?'#22d3ee':'#6b7280'}));
+  const links=[];
+  for(let i=0;i<names.length;i++){
+    for(let j=i+1;j<names.length;j++){
+      const strength=(weights[i]+weights[j])/2;
+      if(strength>0.5)links.push({source:names[i],target:names[j],type:'influence',weight:strength});
+    }
+  }
+  const svg=d3.select('#graphSvg');svg.selectAll('*').remove();
+  svg.attr('width',W).attr('height',H);
+  sim=d3.forceSimulation(nodes)
+    .force('link',d3.forceLink(links).id(d=>d.id).distance(140).strength(0.3))
+    .force('charge',d3.forceManyBody().strength(-300))
+    .force('center',d3.forceCenter(W/2,H/2))
+    .force('collision',d3.forceCollide().radius(d=>d.r+10));
+  const link=svg.append('g').selectAll('line').data(links).enter().append('line')
+    .style('stroke',d=>d.type==='influence'?'#f59e0b':'rgba(255,255,255,0.08)')
+    .style('stroke-width',d=>d.weight*2+0.5)
+    .style('opacity',d=>Math.min(d.weight+0.2,0.8));
+  const node=svg.append('g').selectAll('circle').data(nodes).enter().append('circle')
+    .attr('r',d=>d.r).style('fill',d=>d.color).style('stroke','rgba(255,255,255,0.1)').style('stroke-width',1)
+    .style('cursor','grab')
+    .call(d3.drag().on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;}).on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y;}).on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}));
+  const label=svg.append('g').selectAll('text').data(nodes).enter().append('text').text(d=>d.id)
+    .style('fill','#fff').style('font-size','10px').style('font-weight','500').style('pointer-events','none');
+  sim.on('tick',()=>{
+    link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    node.attr('cx',d=>d.x).attr('cy',d=>d.y);
+    label.attr('x',d=>d.x-d.id.length*4).attr('y',d=>d.y+d.r+12);
+  });
+}
+
+function updateAnalysis(names,weights){
+  memCount++;
+  const avg=weights.reduce((a,b)=>a+b,0)/weights.length;
+  const risk=Math.round((1-avg)*70+15);
+  const opp=Math.round(avg*60+20);
+  const stable=avg>0.7?'Stable':avg>0.5?'Moderate':'Volatile';
+
+  AA.innerHTML='<div class="net-card"><strong>System Stability:</strong> '+stable+'</div><div class="net-card"><strong>Avg Influence:</strong> '+(avg*100).toFixed(0)+'%</div><div class="net-card"><span class="hot-label hot-risk">Risk Cluster</span> Level: '+risk+'%</div><div class="net-card"><span class="hot-label hot-opp">Opportunity</span> Level: '+opp+'%</div>';
+
+  let ih='';names.forEach((n,i)=>{
+    const infos=[];
+    for(let j=0;j<names.length;j++){if(i!==j)infos.push(names[j]+' ('+(weights[j]>0.7?'strong':weights[j]>0.5?'moderate':'weak')+' influence)');}
+    ih+='<div class="net-card"><strong>'+n+'</strong><br><span style="color:rgba(255,255,255,0.3);font-size:9px;">Affects: '+infos.slice(0,3).join(', ')+'</span></div>';
+  });IA.innerHTML=ih;
+  MA.innerHTML='<div class="net-card">Network Sessions: '+memCount+'<br>Decisions Tracked: '+names.join(', ')+'<br><span style="color:rgba(255,255,255,0.2);font-size:9px;">Cross-decision memory active</span></div>';
+}
+</script>
+</body>
+</html>
+
+"""
+
 COMPARE_HTML = r"""<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -5060,6 +5236,10 @@ def v5_execution():
 @app.get("/v6", response_class=HTMLResponse)
 def v6_enterprise():
     return V6_ENTERPRISE_HTML
+
+@app.get("/v7", response_class=HTMLResponse)
+def v7_network():
+    return V7_NETWORK_HTML
 
 @app.get("/decide", response_class=HTMLResponse)
 def decide():
