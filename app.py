@@ -201,51 +201,46 @@ V1_FINAL_HTML = r"""<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Inter,-apple-system,sans-serif;background:#08090d;color:#e6e6e6;height:100vh;overflow:hidden;}
-.grid{display:grid;grid-template-columns:300px 1fr 340px;height:100vh;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e6e6e6;overflow:hidden;height:100vh;}
+.grid{display:grid;grid-template-columns:260px 1fr 360px;height:100vh;}
 @media(max-width:1024px){.grid{grid-template-columns:1fr;grid-template-rows:auto 400px auto;}}
-.panel{padding:16px;border-right:1px solid rgba(255,255,255,0.05);overflow-y:auto;}
-.panel.right{border-right:none;}
-.p-title{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
-textarea{width:100%;height:calc(100vh-100px);background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;color:#fff;font-size:12px;outline:none;resize:none;font-family:inherit;line-height:1.6;}
-textarea:focus{border-color:#7c3aed;}textarea::placeholder{color:rgba(255,255,255,0.15);}
-.btn-bar{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
-.btn{padding:6px 14px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;transition:all .12s;border:none;}
-.btn-primary{background:linear-gradient(90deg,#7c3aed,#3b82f6);color:#fff;}
-.btn-primary:hover{transform:translateY(-1px);}
-.btn-ghost{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.06);}
-.btn-ghost:hover{background:rgba(255,255,255,0.08);}
-.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:4px;}.error-bar.open{display:block;}
+.left{background:#0f1522;padding:16px;border-right:1px solid #1c2433;display:flex;flex-direction:column;}
+.logo{font-size:14px;font-weight:600;margin-bottom:16px;opacity:.8;}
+.model-list{font-size:12px;opacity:.5;line-height:1.8;margin-bottom:16px;}
+.model-list span{color:#4ea1ff;}
+textarea{flex:1;background:#0b0f17;border:1px solid #2a3550;border-radius:8px;padding:10px;color:#fff;font-size:12px;outline:none;resize:none;font-family:inherit;}
+textarea:focus{border-color:#4ea1ff;}
+.btn-bar{display:flex;gap:4px;margin-top:8px;}
+.btn{padding:8px 16px;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;transition:all .12s;border:none;}
+.btn-primary{background:linear-gradient(90deg,#4ea1ff,#7c4dff);color:#fff;}
+.btn-primary:hover{opacity:.9;}
+.btn-ghost{background:#1c2433;color:rgba(255,255,255,0.5);border:1px solid #2a3550;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:4px;}
+.error-bar.open{display:block;}
 
-/* Chat bubbles */
-.chat-flow{display:flex;flex-direction:column;gap:8px;padding:4px 0;}
-.bubble{display:flex;gap:8px;align-items:flex-start;opacity:0;animation:fadeIn .35s ease forwards;}
-@keyframes fadeIn{to{opacity:1}}
-.bubble-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-.bubble-body{flex:1;min-width:0;}
-.bubble-hdr{font-size:10px;font-weight:600;color:#6b7280;margin-bottom:2px;}
-.bubble-txt{font-size:12px;line-height:1.6;color:#d4d4d8;padding:8px 10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:4px 10px 10px 10px;}
-.bubble.conflict .bubble-txt{border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.03);}
-.bubble .conflict-badge{font-size:9px;padding:1px 6px;border-radius:4px;background:rgba(239,68,68,0.1);color:#ef4444;margin-left:4px;}
-.typing{display:flex;gap:3px;padding:10px 12px;background:rgba(255,255,255,0.02);border-radius:10px;width:50px;}
-.typing .d{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.15);animation:typing 1s ease infinite;}
-.typing .d:nth-child(2){animation-delay:.15s;}.typing .d:nth-child(3){animation-delay:.3s;}
-@keyframes typing{0%,100%{opacity:.3}50%{opacity:1}}
-.empty-chat{color:rgba(255,255,255,0.08);font-size:11px;text-align:center;padding:40px 0;line-height:1.8;}
+.center{padding:20px;overflow-y:auto;}
+.room-title{font-size:16px;font-weight:600;margin-bottom:12px;opacity:.9;}
+.chat-flow{display:flex;flex-direction:column;gap:8px;}
+.bubble{padding:12px;border-radius:12px;max-width:85%;font-size:13px;line-height:1.55;}
+.bubble .name{font-size:10px;opacity:.45;margin-bottom:3px;}
+.bg-gpt{background:#1a2a44;}
+.bg-claude{background:#2a1f3d;}
+.bg-ds{background:#1c2f2a;}
+.bg-other{background:rgba(255,255,255,0.03);}
+.bubble.conflict{border-left:3px solid #ff4d4d;padding-left:10px;}
+.bubble .cb{font-size:9px;color:#ff4d4d;margin-left:4px;}
 
-/* Ledger */
-.ledger-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:10px;margin-bottom:8px;font-size:11px;}
-.ledger-card .tag{display:inline-block;padding:1px 7px;border-radius:12px;font-size:9px;font-weight:500;margin-bottom:4px;}
-.ledger-card .bar{height:3px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden;margin:3px 0;}
-.ledger-card .bar .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#22d3ee,#7c3aed);transition:width .6s;}
-.ledger-card .score-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.4);padding:2px 0;}
-.ledger-empty{color:rgba(255,255,255,0.08);font-size:11px;text-align:center;padding:30px 0;}
-
-.top-bar{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
-.top-bar .brand{font-size:11px;font-weight:600;color:#7c3aed;letter-spacing:1px;}
-.top-bar .links{display:flex;gap:4px;margin-left:auto;}
-.top-bar .links a{font-size:9px;text-decoration:none;padding:2px 6px;border-radius:4px;color:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.05);}
-.top-bar .links a:hover{color:rgba(255,255,255,0.5);}
+.right{background:#0f1522;border-left:1px solid #1c2433;padding:16px;overflow-y:auto;}
+.r-section{margin-bottom:18px;}
+.r-section h3{font-size:12px;opacity:.6;margin-bottom:6px;}
+.tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;margin:2px;}
+.tag-ok{background:#1f3b2a;color:rgba(255,255,255,0.7);}
+.tag-warn{background:#3b2a2a;color:rgba(255,255,255,0.6);}
+.score{font-size:28px;font-weight:700;color:#4ea1ff;}
+.score-bar{height:4px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;margin:4px 0;}
+.score-bar .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#4ea1ff,#7c4dff);transition:width .6s;}
+.model-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.4);padding:2px 0;}
+.btn-premium{width:100%;margin-top:6px;padding:10px;background:linear-gradient(90deg,#4ea1ff,#7c4dff);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -253,17 +248,13 @@ textarea:focus{border-color:#7c3aed;}textarea::placeholder{color:rgba(255,255,25
 
 <!-- LEFT INPUT -->
 <div class="panel" style="display:flex;flex-direction:column;">
-  <div class="top-bar">
-    <span class="brand">Decision OS</span>
-    <div class="links">
-      <a href="/">Home</a>
-      <a href="/pitch">Pitch</a>
-    </div>
+  <div class="logo">🧠 AI Decision OS</div>
+  <div class="model-list">
+    <span>GPT-4o</span> · <span>Claude</span> · <span>DeepSeek</span> · <span>Kimi</span> · <span>Qwen</span>
   </div>
-  <div class="p-title">Paste AI Responses</div>
-  <textarea id="pasteInput" style="flex:1;" placeholder="&#x2501;&#x2501;&#x2501; GPT-4o &#x2501;&#x2501;&#x2501;&#10;...&#10;&#10;&#x2501;&#x2501;&#x2501; Claude &#x2501;&#x2501;&#x2501;&#10;...&#10;&#10;&#x2501;&#x2501;&#x2501; DeepSeek &#x2501;&#x2501;&#x2501;&#10;..."></textarea>
+  <textarea id="pasteInput" placeholder="Paste multi-model answers here...&#10;&#10;━━━ GPT-4o ━━━&#10;...&#10;&#10;━━━ Claude ━━━&#10;..."></textarea>
   <div class="btn-bar">
-    <button class="btn btn-primary" id="analyzeBtn">Compile</button>
+    <button class="btn btn-primary" id="analyzeBtn">Run Decision Engine</button>
     <button class="btn btn-ghost" id="challengeBtn" style="display:none;">⚡ Challenge</button>
     <button class="btn btn-ghost" id="resetBtn">Clear</button>
   </div>
@@ -271,19 +262,31 @@ textarea:focus{border-color:#7c3aed;}textarea::placeholder{color:rgba(255,255,25
 </div>
 
 <!-- CENTER CONFLICT ROOM -->
-<div class="panel">
-  <div class="p-title">⚡ Conflict Room</div>
+<div class="center">
+  <div class="room-title">⚡ Conflict Room</div>
   <div id="chatArea">
-    <div class="empty-chat">Models will appear here as they debate...</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.15);padding:20px 0;text-align:center;">Paste model responses and run the engine...</div>
   </div>
 </div>
 
 <!-- RIGHT LEDGER -->
-<div class="panel right">
-  <div class="p-title">📊 Decision Ledger</div>
-  <div id="ledgerArea">
-    <div class="ledger-empty">Waiting for compilation...</div>
+<div class="right">
+  <div class="r-section">
+    <h3>🧠 Consensus</h3>
+    <div id="consensusArea"><span style="font-size:11px;color:rgba(255,255,255,0.15);">Awaiting analysis...</span></div>
   </div>
+  <div class="r-section">
+    <h3>⚠️ Conflicts</h3>
+    <div id="conflictArea"><span style="font-size:11px;color:rgba(255,255,255,0.15);">Awaiting analysis...</span></div>
+  </div>
+  <div class="r-section">
+    <h3>📊 Decision Confidence</h3>
+    <div id="confidenceArea">
+      <div class="score">—</div>
+      <div id="credArea"></div>
+    </div>
+  </div>
+  <button class="btn-premium" id="premiumBtn">Generate Final Report (¥9.9)</button>
 </div>
 
 </div>
@@ -353,17 +356,16 @@ async function run(){
 function renderBubbles(entries, analysis){
   let html = '<div class="chat-flow">';
   entries.forEach((e,i) => {
-    const c = getColor(e.label), av = getAvatar(e.label);
+    const n = e.label.toLowerCase();
+    let bg = 'bg-other';
+    if(n.includes('gpt')) bg = 'bg-gpt';
+    else if(n.includes('claude')) bg = 'bg-claude';
+    else if(n.includes('deep')) bg = 'bg-ds';
     const dissent = analysis.dissent||[];
-    // Check if this model has a conflict
     const hasConflict = dissent.some(d => (d.positions||[]).some(p => p.model===e.label));
-    html += `<div class="bubble${hasConflict?' conflict':''}" style="animation-delay:${i*0.12}s">
-      <div class="bubble-av" style="border:2px solid ${c}20;">${av}</div>
-      <div class="bubble-body">
-        <div class="bubble-hdr" style="color:${c};">${e.label}${hasConflict?' <span class="conflict-badge">⚡ conflict</span>':''}</div>
-        <div class="bubble-txt">${e.content.slice(0,250)}</div>
-      </div>
-    </div>`;
+    html += `<div class="bubble ${bg}${hasConflict?' conflict':''}" style="animation-delay:${i*0.12}s">
+      <div class="name">${e.label}${hasConflict?' <span class="cb">⚡ conflict</span>':''}</div>
+      ${e.content.slice(0,300)}</div>`;
   });
   html += '</div>';
   CHAT.innerHTML = html;
@@ -376,51 +378,34 @@ function renderLedger(entries, analysis){
   const total = Math.max(consensus.length + dissent.length, 1);
   const ratio = consensus.length / total;
 
-  let html = '';
-
-  // Confidence score
-  html += `<div class="ledger-card">
-    <span class="tag" style="background:rgba(124,58,237,0.1);color:#a78bfa;">🧠 Confidence ${Math.round(ratio*100)}%</span>
-    <div class="bar"><div class="fill" style="width:${Math.round(ratio*100)}%"></div></div>
-  </div>`;
-
   // Consensus
-  html += `<div class="ledger-card">
-    <span class="tag" style="background:rgba(34,197,94,0.1);color:#4ade80;">✔ Consensus (${consensus.length})</span>`;
-  if(consensus.length===0) html+='<div style="font-size:10px;color:rgba(255,255,255,0.2);padding:2px 0;">None identified</div>';
-  else consensus.slice(0,3).forEach(c => { html+=`<div style="font-size:10px;padding:2px 0;color:rgba(255,255,255,0.5);">• ${c.point||''}</div>`; });
-  html += `</div>`;
+  let conHtml = '';
+  if(consensus.length===0) conHtml='<span style="font-size:11px;color:rgba(255,255,255,0.15);">None identified</span>';
+  else consensus.slice(0,3).forEach(c => { conHtml+=`<span class="tag tag-ok">${c.point||''}</span><br>`; });
+  document.getElementById('consensusArea').innerHTML = conHtml;
 
-  // Conflict
-  html += `<div class="ledger-card">
-    <span class="tag" style="background:rgba(239,68,68,0.1);color:#ef4444;">⚠ Conflict (${dissent.length})</span>`;
-  if(dissent.length===0) html+='<div style="font-size:10px;color:rgba(255,255,255,0.2);padding:2px 0;">None identified</div>';
+  // Conflicts
+  let disHtml = '';
+  if(dissent.length===0) disHtml='<span style="font-size:11px;color:rgba(255,255,255,0.15);">None identified</span>';
   else dissent.slice(0,3).forEach(d => {
-    html+=`<div style="font-size:10px;padding:2px 0;"><span style="color:#fbbf24;">${d.topic||''}</span><br>`;
-    (d.positions||[]).forEach(p => { html+=`<span style="color:rgba(255,255,255,0.35);margin-left:4px;">${p.model}: ${p.stance||''}</span><br>`; });
-    html+=`</div>`;
+    disHtml+=`<div style="font-size:11px;margin-bottom:4px;">`;
+    disHtml+=`<span style="color:rgba(255,255,255,0.7);">${d.topic||''}</span><br>`;
+    (d.positions||[]).forEach(p => { disHtml+=`<span class="tag tag-warn">${p.model}: ${p.stance||''}</span>`; });
+    disHtml+=`</div>`;
   });
-  html += `</div>`;
+  document.getElementById('conflictArea').innerHTML = disHtml;
 
-  // Model credibility
-  html += `<div class="ledger-card">
-    <span class="tag" style="background:rgba(99,102,241,0.1);color:#818cf8;">📊 Model Credibility</span>`;
+  // Confidence
+  document.querySelector('#confidenceArea .score').textContent = Math.round(ratio*100) + '%';
+
+  // Credibility
+  let credHtml = '';
   entries.forEach((e,i) => {
     const s = Math.round((0.6+Math.random()*0.35)*100);
-    const c = getColor(e.label);
-    html+=`<div class="score-row"><span style="color:${c};">${e.label}</span><span>${s}%</span></div>
-      <div class="bar"><div class="fill" style="width:${s}%;background:${c};"></div></div>`;
+    credHtml+=`<div class="model-row"><span>${e.label}</span><span>${s}%</span></div>
+      <div class="score-bar"><div class="fill" style="width:${s}%"></div></div>`;
   });
-  html += `</div>`;
-
-  // Recommendation
-  html += `<div class="ledger-card" style="background:linear-gradient(135deg,#064e3b,#0f172a);border-color:rgba(34,197,94,0.2);">
-    <span class="tag" style="background:rgba(34,197,94,0.1);color:#4ade80;">🎯 Recommendation</span>
-    <div style="font-size:11px;line-height:1.5;color:rgba(255,255,255,0.8);">${recommendation||'Awaiting analysis...'}</div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.15);margin-top:4px;">Based on ${entries.length} models</div>
-  </div>`;
-
-  LEDGER.innerHTML = html;
+  document.getElementById('credArea').innerHTML = credHtml;
 }
 
 function showErr(m){ ERROR.textContent='⚠ '+m; ERROR.classList.add('open'); }
@@ -430,23 +415,27 @@ async function challengeConsensus(){
   const resp=await fetch('/api/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({consensus_points:lastAnalysis.consensus,topic:''})});
   const data=await resp.json();
   if(data.error)return;
-  LEDGER.innerHTML+=`<div class="ledger-card" style="background:linear-gradient(135deg,#1a0a0a,#0f172a);border-color:rgba(239,68,68,0.15);">
-    <span class="tag" style="background:rgba(239,68,68,0.1);color:#ef4444;">⚡ Anti-Consensus</span>
-    <div style="font-size:11px;color:#fca5a5;">${data.challenge||''}</div>
-    <ul style="font-size:10px;color:rgba(255,255,255,0.4);padding-left:14px;margin-top:4px;">${(data.blindspots||[]).map(b=>`<li>${b}</li>`).join('')}</ul>
-  </div>`;
+  const div=document.createElement('div');div.style.cssText='margin-top:12px;padding:10px;border-radius:8px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);font-size:11px;';
+  div.innerHTML=`<strong style="color:#ef4444;">⚡ Anti-Consensus</strong><br><span style="color:#fca5a5;">${data.challenge||''}</span><ul style="color:rgba(255,255,255,0.4);padding-left:14px;margin-top:4px;">${(data.blindspots||[]).map(b=>`<li>${b}</li>`).join('')}</ul>`;
+  document.querySelector('.right').appendChild(div);
 }
 
 function reset(){
   PASTE.value='';lastAnalysis=null;
-  CHAT.innerHTML='<div class="empty-chat">Models will appear here as they debate...</div>';
-  LEDGER.innerHTML='<div class="ledger-empty">Waiting for compilation...</div>';
+  CHAT.innerHTML='<div style="font-size:12px;color:rgba(255,255,255,0.15);padding:20px 0;text-align:center;">Paste model responses and run the engine...</div>';
+  document.getElementById('consensusArea').innerHTML='<span style="font-size:11px;color:rgba(255,255,255,0.15);">Awaiting analysis...</span>';
+  document.getElementById('conflictArea').innerHTML='<span style="font-size:11px;color:rgba(255,255,255,0.15);">Awaiting analysis...</span>';
+  document.querySelector('#confidenceArea .score').textContent='—';
+  document.getElementById('credArea').innerHTML='';
   CHALLENGE.style.display='none';ERROR.classList.remove('open');
 }
 
 ANALYZE.addEventListener('click',run);
 CHALLENGE.addEventListener('click',challengeConsensus);
 document.getElementById('resetBtn').addEventListener('click',reset);
+document.getElementById('premiumBtn').addEventListener('click',()=>{
+  alert('🧠 Premium Report ¥9.9\n\n包含：终极裁决 · 商业逻辑解构 · 执行路径 · 生死红线 · 反共识推演\n\n支付系统即将上线。');
+});
 </script>
 </body>
 </html>
