@@ -122,6 +122,187 @@ class DecisionEngine:
         }
     
     # ═══════════════════════════════════════
+    # V2 可信度引擎 — 五维度评分（融资级）
+    # ═══════════════════════════════════════
+
+    def credibility_v2(self, question: str, answers: Dict[str, str],
+                       task_type: str = "general") -> dict:
+        """
+        V2 可信度引擎：对每个模型输出进行5维度深度评分
+        
+        维度：
+        1. 逻辑结构 (Logic Depth) — 因果链/推导过程
+        2. 证据密度 (Evidence Density) — 数据/案例引用
+        3. 语义一致性 (Semantic Consistency) — 内部自洽
+        4. 反事实鲁棒性 (Counterfactual Robustness) — 是否过度绝对
+        5. 领域适配 (Domain Fit) — 模型擅长的领域
+        """
+        models = list(answers.keys())
+        texts = list(answers.values())
+        
+        results = {}
+        for model, text in zip(models, texts):
+            # 1. 逻辑结构评分
+            logic = self._v2_logic_depth(text)
+            
+            # 2. 证据密度
+            evidence = self._v2_evidence_density(text)
+            
+            # 3. 语义一致性
+            consistency = self._v2_semantic_consistency(text)
+            
+            # 4. 反事实鲁棒性
+            robustness = self._v2_counterfactual_robustness(text)
+            
+            # 5. 领域适配
+            domain = self._model_domain_fit(model, task_type)
+            
+            # 加权融合
+            weights = {"logic": 0.25, "evidence": 0.20, "consistency": 0.20,
+                       "robustness": 0.20, "domain": 0.15}
+            raw = (logic * weights["logic"] + evidence * weights["evidence"] +
+                   consistency * weights["consistency"] + robustness * weights["robustness"] +
+                   domain * weights["domain"])
+            
+            final = round(raw * 100, 2)
+            
+            # 生成维度分解
+            breakdown = {
+                "logic": {"score": round(logic * 100, 1), "label": "逻辑结构",
+                          "desc": self._v2_logic_desc(logic)},
+                "evidence": {"score": round(evidence * 100, 1), "label": "证据密度",
+                             "desc": self._v2_evidence_desc(evidence)},
+                "consistency": {"score": round(consistency * 100, 1), "label": "语义一致性",
+                                "desc": self._v2_consistency_desc(consistency)},
+                "robustness": {"score": round(robustness * 100, 1), "label": "反事实鲁棒性",
+                               "desc": self._v2_robustness_desc(robustness)},
+                "domain": {"score": round(domain * 100, 1), "label": "领域适配",
+                           "desc": f"该模型在{task_type}领域评分为{round(domain*100,1)}%"}
+            }
+            
+            # 优势与劣势分析
+            dims = [("logic", logic), ("evidence", evidence), ("consistency", consistency),
+                    ("robustness", robustness), ("domain", domain)]
+            sorted_dims = sorted(dims, key=lambda x: -x[1])
+            strengths = [breakdown[d[0]]["label"] for d in sorted_dims[:2] if d[1] >= 0.5]
+            weaknesses = [breakdown[d[0]]["label"] for d in sorted_dims[-2:] if d[1] < 0.5]
+            
+            results[model] = {
+                "total_score": final,
+                "breakdown": breakdown,
+                "strengths": strengths,
+                "weaknesses": weaknesses,
+                "verdict": self._v2_verdict(final, strengths, weaknesses)
+            }
+        
+        # 排序
+        ranked = sorted(results.items(), key=lambda x: -x[1]["total_score"])
+        
+        return {
+            "results": results,
+            "ranking": [{"model": m, "score": d["total_score"],
+                         "verdict": d["verdict"]} for m, d in ranked],
+            "dimensions": ["logic", "evidence", "consistency", "robustness", "domain"]
+        }
+    
+    def _v2_logic_depth(self, text: str) -> float:
+        """逻辑结构深度评分"""
+        score = 0.3
+        # 因果连词
+        if re.search(r'(因为|所以|如果|那么|因此|但|然而|由于|导致|意味着)', text): score += 0.15
+        # 推导结构
+        if re.search(r'(第一步|第二步|首先|其次|最后|总结)', text): score += 0.10
+        # 条件假设
+        if re.search(r'(假设|假如|如果.*则|条件)', text): score += 0.10
+        # 对比分析
+        if re.search(r'(相比|对比|一方面|另一方面|优劣)', text): score += 0.10
+        # 多层次（分段）
+        paragraphs = text.strip().split('\n')
+        if len(paragraphs) >= 3: score += 0.10
+        if len(text) > 300: score += 0.10
+        if len(text) > 800: score += 0.05
+        return min(score, 1.0)
+    
+    def _v2_evidence_density(self, text: str) -> float:
+        """证据密度评分"""
+        score = 0.3
+        if re.search(r'\d+%|百分之\d+|\d+\.\d+%', text): score += 0.15
+        if re.search(r'\d{3,}|\d+万|\d+亿|\d+人|\d+元', text): score += 0.10
+        if re.search(r'(例如|比如|案例|case|example|举例)', text, re.I): score += 0.10
+        if re.search(r'(根据|数据显示|研究表明|报告|统计|调查)', text): score += 0.10
+        if re.search(r'(1\.|2\.|3\.|第一|第二|第三|①|②|③)', text): score += 0.10
+        if re.search(r'(https?://|www\.|参见|参考)', text, re.I): score += 0.05
+        words = len(text)
+        if 100 < words < 3000: score += 0.05
+        return min(score, 1.0)
+    
+    def _v2_semantic_consistency(self, text: str) -> float:
+        """语义一致性：检测内部是否自相矛盾"""
+        score = 0.7  # 默认较高
+        # 检测矛盾信号词
+        contradictions = [
+            (r'(但是|然而).{0,20}(不|反对|有问题)', -0.05),
+            (r'(支持|同意).{0,30}(但|不过|然而).{0,20}(风险|问题|担忧)', -0.05),
+            (r'(必须|一定|绝对|肯定).{0,40}(可能|或许|不一定)', -0.08),
+            (r'(风险低).{0,30}(风险高)', -0.10),
+            (r'(增长).{0,30}(下降|萎缩|衰退)', -0.05),
+            (r'(建议).{0,30}(不推荐|反对)', -0.08),
+        ]
+        sentences = re.split(r'[。！？.!?]', text)
+        for pat, penalty in contradictions:
+            if re.search(pat, text):
+                score += penalty
+        # 长度一致性：如果很短，难以判断（不扣分）
+        if len(text) < 50:
+            score = 0.5
+        return max(0.1, min(1.0, score))
+    
+    def _v2_counterfactual_robustness(self, text: str) -> float:
+        """反事实鲁棒性：检测是否过度绝对"""
+        score = 0.6
+        # 绝对化语言 → 扣分
+        if re.search(r'(绝对|一定|肯定|必然|毫无疑问|百分百)', text): score -= 0.15
+        if re.search(r'(永远|从不|不可能|毫无)', text): score -= 0.10
+        if re.search(r'(必须|只能|唯一)', text): score -= 0.08
+        # 反事实思维 → 加分
+        if re.search(r'(如果.*不|假如.*反之|另一种可能|备选)', text): score += 0.15
+        if re.search(r'(风险|不确定性|未知|可能.*变化)', text): score += 0.10
+        if re.search(r'(条件|假设前提|取决于|视情况)', text): score += 0.10
+        # 平衡观点 → 加分
+        if re.search(r'(一方面.*另一方面|利弊|优缺点|权衡)', text): score += 0.10
+        return max(0.1, min(1.0, score))
+    
+    def _v2_logic_desc(self, score: float) -> str:
+        if score >= 0.7: return "完整的因果推导链和结构化论证"
+        if score >= 0.5: return "有基本的逻辑结构，但推导不够深入"
+        return "以结论为主，缺乏逻辑推导过程"
+    
+    def _v2_evidence_desc(self, score: float) -> str:
+        if score >= 0.7: return "引用了具体数据、案例和研究支撑"
+        if score >= 0.5: return "有部分论据但不充分"
+        return "缺乏可验证的数据或案例支撑"
+    
+    def _v2_consistency_desc(self, score: float) -> str:
+        if score >= 0.7: return "观点自洽，前后一致"
+        if score >= 0.5: return "基本一致，存在轻微内部矛盾"
+        return "存在明显的自相矛盾"
+    
+    def _v2_robustness_desc(self, score: float) -> str:
+        if score >= 0.7: return "考虑了反事实情景和条件假设，不绝对化"
+        if score >= 0.5: return "部分考虑了不确定性"
+        return "过度绝对化，缺乏条件思维"
+    
+    def _v2_verdict(self, total: float, strengths: list, weaknesses: list) -> str:
+        if total >= 80 and len(weaknesses) == 0:
+            return "高度可信"
+        elif total >= 70:
+            return "可信" if len(weaknesses) <= 1 else "部分可信"
+        elif total >= 55:
+            return "需谨慎参考" if len(weaknesses) >= 2 else "部分可信"
+        else:
+            return "可信度较低"
+    
+    # ═══════════════════════════════════════
     # 1. 一致性评分 (纯 Python TF-IDF)
     # ═══════════════════════════════════════
     def _consistency_score(self, texts: List[str],

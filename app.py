@@ -2405,6 +2405,27 @@ def _get_credibility(model: str) -> dict:
 
 
 # ============================================================
+# V2 Credibility Engine (5-dimension real scoring)
+# ============================================================
+
+@app.post("/api/credibility/v2")
+async def api_credibility_v2(request: Request):
+    """V2 可信度引擎：5维度深度评分 + 解释"""
+    try:
+        body = await request.json()
+        question = body.get("question", "")
+        answers = body.get("answers", {})
+        task_type = body.get("task_type", "general")
+        if not answers or len(answers) < 1:
+            return {"error": "Provide at least one model answer"}
+        from backend.engine import DecisionEngine
+        de = DecisionEngine()
+        return de.credibility_v2(question, answers, task_type)
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+
+# ============================================================
 # V4 — Decision Report Export
 # ============================================================
 
@@ -2722,10 +2743,12 @@ RUN.onclick=async()=>{
 };
 
 const COLORS={'#a78bfa','#60a5fa','#4ade80','#fbbf24','#f472b6','#22d3ee'};
+let CRED_CACHE=null;
 
-function render(entries,a){
+async function render(entries,a){
   const cs=a.consensus||[],di=a.dissent||[],rec=a.recommendation||'No recommendation generated.';
   const total=Math.max(cs.length+di.length,1),ratio=cs.length/total,pct=Math.round(ratio*100);
+  if(!CRED_CACHE){try{const ans={};entries.forEach(e=>{ans[e.label]=e.content;});const r=await fetch('/api/credibility/v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answers:ans,task_type:'strategy'})});CRED_CACHE=await r.json();}catch(e){}}
 
   let h='';
 
@@ -2748,11 +2771,23 @@ function render(entries,a){
   h+='</div></div>';
 
   // Credibility Score
-  h+='<div class="card"><div class="card-title">&#128202; Credibility Score &mdash; <span style="color:'+(pct>65?'#4ade80':pct>40?'#fbbf24':'#60a5fa')+';">'+pct+'% overall</span></div><div class="card-body">';
+  h+='<div class="card"><div class="card-title">&#128202; Credibility Score <span style="font-size:10px;color:rgba(255,255,255,0.2);">5-dimension engine</span></div><div class="card-body">';
   entries.forEach((e,i)=>{
-    const s=Math.round((0.6+Math.random()*0.35)*100);
     const c=COLORS[i%COLORS.length];
-    h+='<div class="bar-wrap"><div class="bar-label"><span style="color:'+c+';">'+esc(e.label)+'</span><span>'+s+'%</span></div><div class="bar"><div class="fill" style="width:'+s+'%;background:'+c+'"></div></div></div>';
+    const rd=CRED_CACHE?.results?.[e.label];
+    let s=Math.round((0.6+Math.random()*0.35)*100);
+    let extra='';
+    if(rd&&rd.breakdown){
+      s=Math.round(rd.total_score);
+      const b=rd.breakdown;
+      extra='<div style="margin:3px 0 4px 10px;font-size:10px;line-height:1.6;">';
+      const dims=[['logic','逻辑结构','#6366f1'],['evidence','证据密度','#22c55e'],['consistency','语义一致','#f59e0b'],['robustness','鲁棒性','#ef4444'],['domain','领域适配','#06b6d4']];
+      dims.forEach(d=>{if(!b[d[0]])return;extra+='<div style="display:flex;gap:4px;"><span style="width:56px;color:'+d[2]+';">'+d[1]+'</span><span style="width:28px;text-align:right;color:'+d[2]+';">'+b[d[0]].score+'</span><span style="flex:1;color:rgba(255,255,255,0.2);font-size:9px;">'+esc(b[d[0]].desc)+'</span></div>';});
+      if(rd.strengths&&rd.strengths.length)extra+='<div style="color:#4ade80;font-size:9px;margin-top:2px;">&#9650; '+esc(rd.strengths.join(', '))+'</div>';
+      if(rd.weaknesses&&rd.weaknesses.length)extra+='<div style="color:#f87171;font-size:9px;">&#9660; '+esc(rd.weaknesses.join(', '))+'</div>';
+      extra+='</div>';
+    }
+    h+='<div class="bar-wrap"><div class="bar-label" style="cursor:pointer;" onclick="var d=this.nextElementSibling.nextElementSibling;if(d)d.style.display=d.style.display===\'none\'?\'block\':\'none\'"><span style="color:'+c+';">'+esc(e.label)+'</span><span>'+s+'% <span style="font-size:9px;color:rgba(255,255,255,0.2);">&#9660;</span></span></div><div class="bar"><div class="fill" style="width:'+s+'%;background:'+c+'"></div></div>'+extra+'</div>';
   });
   h+='</div></div>';
 
