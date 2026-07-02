@@ -199,6 +199,7 @@ V1_FINAL_HTML = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Decision OS · V1</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:Inter,system-ui;background:#0b0f17;color:#e6e6e6;overflow:hidden;height:100vh;}
@@ -262,11 +263,11 @@ textarea:focus{border-color:#4ea1ff;}
 </div>
 
 <!-- CENTER CONFLICT ROOM -->
-<div class="center">
+<div class="center" style="position:relative;">
   <div class="room-title">⚡ Conflict Room</div>
-  <div id="chatArea">
-    <div style="font-size:12px;color:rgba(255,255,255,0.15);padding:20px 0;text-align:center;">Paste model responses and run the engine...</div>
-  </div>
+  <svg id="graphSvg" width="100%" height="calc(100% - 30px)"></svg>
+  <div id="graphEmpty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;color:rgba(255,255,255,0.08);text-align:center;pointer-events:none;line-height:1.8;">Paste model responses
+and run the engine</div>
 </div>
 
 <!-- RIGHT LEDGER -->
@@ -294,8 +295,8 @@ textarea:focus{border-color:#4ea1ff;}
 <script>
 const PASTE = document.getElementById('pasteInput');
 const ANALYZE = document.getElementById('analyzeBtn');
-const CHAT = document.getElementById('chatArea');
-const LEDGER = document.getElementById('ledgerArea');
+const GRAPH_SVG = document.getElementById('graphSvg');
+const GRAPH_EMPTY = document.getElementById('graphEmpty');
 const ERROR = document.getElementById('errorBar');
 const CHALLENGE = document.getElementById('challengeBtn');
 
@@ -335,7 +336,6 @@ async function run(){
   if(entries.length<2){ showErr('Need at least 2 models'); return; }
 
   ERROR.classList.remove('open');
-  CHAT.innerHTML = '<div style="padding:8px 0;"><div class="typing"><span class="d"></span><span class="d"></span><span class="d"></span></div></div>';
 
   try{
     const resp = await fetch('/api/compare',{
@@ -347,28 +347,67 @@ async function run(){
     const a = data.analysis;
     if(!a||a.error){ showErr(a?.error||'Failed'); return; }
     lastAnalysis = a;
-    renderBubbles(entries, a);
+    renderGraph(entries, a);
     renderLedger(entries, a);
     CHALLENGE.style.display = (a.consensus&&a.consensus.length>=2)?'inline-block':'none';
   }catch(e){showErr(e.message);}
 }
 
-function renderBubbles(entries, analysis){
-  let html = '<div class="chat-flow">';
-  entries.forEach((e,i) => {
-    const n = e.label.toLowerCase();
-    let bg = 'bg-other';
-    if(n.includes('gpt')) bg = 'bg-gpt';
-    else if(n.includes('claude')) bg = 'bg-claude';
-    else if(n.includes('deep')) bg = 'bg-ds';
-    const dissent = analysis.dissent||[];
-    const hasConflict = dissent.some(d => (d.positions||[]).some(p => p.model===e.label));
-    html += `<div class="bubble ${bg}${hasConflict?' conflict':''}" style="animation-delay:${i*0.12}s">
-      <div class="name">${e.label}${hasConflict?' <span class="cb">⚡ conflict</span>':''}</div>
-      ${e.content.slice(0,300)}</div>`;
+let simulation = null;
+
+function renderGraph(entries, analysis){
+  if(simulation) simulation.stop();
+  GRAPH_EMPTY.style.display = 'none';
+
+  const W = document.querySelector('.center').offsetWidth;
+  const H = document.querySelector('.center').offsetHeight - 40;
+
+  const nodes = entries.map((e,i) => ({
+    id: e.label, r: 16 + Math.random()*4,
+    color: ['#4ea1ff','#f472b6','#4ade80','#fbbf24','#a78bfa','#22d3ee','#fb7185'][i%7],
+  }));
+  nodes.push({id:'⚡ Consensus', r:24, color:'#7c3aed'});
+
+  const links = [];
+  entries.forEach(e => links.push({source:e.label, target:'⚡ Consensus', type:'attract'}));
+  if(entries.length>=2) links.push({source:entries[0].label, target:entries[1].label, type:'attract'});
+  if(entries.length>=3) links.push({source:entries[1].label, target:entries[2].label, type:'conflict'});
+
+  const svg = d3.select('#graphSvg');
+  svg.selectAll('*').remove();
+  svg.attr('width',W).attr('height',H);
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(140).strength(0.3))
+    .force('charge', d3.forceManyBody().strength(-300))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide().radius(d=>d.r+8));
+
+  const link = svg.append('g').selectAll('line').data(links).enter()
+    .append('line')
+    .style('stroke', d => d.type==='conflict'?'#ff4d6d':'rgba(255,255,255,0.1)')
+    .style('stroke-width', d => d.type==='conflict'?2:1)
+    .style('opacity', d => d.type==='conflict'?0.7:0.3);
+
+  const node = svg.append('g').selectAll('circle').data(nodes).enter()
+    .append('circle')
+    .attr('r', d=>d.r)
+    .style('fill', d=>d.color)
+    .style('stroke', d=>d.id==='⚡ Consensus'?'rgba(124,58,237,0.4)':'rgba(255,255,255,0.06)')
+    .style('stroke-width', d=>d.id==='⚡ Consensus'?3:1)
+    .style('cursor','grab')
+    .call(d3.drag().on('start',function(e,d){if(!e.active)simulation.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;}).on('drag',function(e,d){d.fx=e.x;d.fy=e.y;}).on('end',function(e,d){if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null;}));
+
+  const label = svg.append('g').selectAll('text').data(nodes).enter()
+    .append('text').text(d=>d.id)
+    .style('fill','#fff').style('font-size',d=>d.id==='⚡ Consensus'?'13px':'10px')
+    .style('font-weight',d=>d.id==='⚡ Consensus'?600:400).style('pointer-events','none');
+
+  simulation.on('tick',()=>{
+    link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    node.attr('cx',d=>d.x).attr('cy',d=>d.y);
+    label.attr('x',d=>d.x-d.id.length*3.5).attr('y',d=>d.y+d.r+12);
   });
-  html += '</div>';
-  CHAT.innerHTML = html;
 }
 
 function renderLedger(entries, analysis){
@@ -422,7 +461,9 @@ async function challengeConsensus(){
 
 function reset(){
   PASTE.value='';lastAnalysis=null;
-  CHAT.innerHTML='<div style="font-size:12px;color:rgba(255,255,255,0.15);padding:20px 0;text-align:center;">Paste model responses and run the engine...</div>';
+  if(simulation) simulation.stop();
+  d3.select('#graphSvg').selectAll('*').remove();
+  GRAPH_EMPTY.style.display='block';
   document.getElementById('consensusArea').innerHTML='<span style="font-size:11px;color:rgba(255,255,255,0.15);">Awaiting analysis...</span>';
   document.getElementById('conflictArea').innerHTML='<span style="font-size:11px;color:rgba(255,255,255,0.15);">Awaiting analysis...</span>';
   document.querySelector('#confidenceArea .score').textContent='—';
