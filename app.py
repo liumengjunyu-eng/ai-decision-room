@@ -145,137 +145,148 @@ LANDING_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AI Decision OS</title>
+<title>Decision OS — Turn AI Conflict into Clarity</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-body {
-  margin: 0;
-  font-family: Inter, system-ui, sans-serif;
-  background: radial-gradient(circle at 50% 20%, #1a1440, #070A12 60%);
-  color: white;
-  overflow: hidden;
-}
-.glow {
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(124,58,237,0.35), transparent 60%);
-  top: -100px;
-  left: 50%;
-  transform: translateX(-50%);
-  filter: blur(40px);
-  animation: float 6s ease-in-out infinite;
-}
-@keyframes float {
-  0%,100% { transform: translateX(-50%) translateY(0px); }
-  50% { transform: translateX(-50%) translateY(20px); }
-}
-.container {
-  position: relative;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 40px;
-}
-h1 {
-  font-size: 56px;
-  margin: 0;
-  letter-spacing: 1px;
-}
-h1 span { color: #8b5cf6; }
-.subtitle {
-  margin-top: 16px;
-  font-size: 16px;
-  opacity: 0.8;
-  max-width: 600px;
-  line-height: 1.6;
-}
-.conflict {
-  margin-top: 30px;
-  font-size: 14px;
-  opacity: 0.6;
-  line-height: 1.8;
-}
-.cards {
-  display: flex;
-  gap: 16px;
-  margin-top: 40px;
-}
-.card {
-  width: 220px;
-  padding: 18px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  transition: 0.3s;
-}
-.card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(139,92,246,0.5);
-}
-.card h3 {
-  font-size: 14px;
-  margin: 0 0 10px 0;
-  color: #a78bfa;
-}
-.card p {
-  font-size: 12px;
-  opacity: 0.7;
-  line-height: 1.5;
-}
-.cta {
-  margin-top: 50px;
-  display: inline-block;
-  padding: 14px 26px;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  transition: 0.3s;
-  text-decoration: none;
-}
-.cta:hover {
-  transform: scale(1.03);
-}
-.footer {
-  position: absolute;
-  bottom: 30px;
-  font-size: 12px;
-  opacity: 0.5;
-}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e5e7eb;min-height:100vh;}
+.top{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;padding:12px 24px;background:rgba(11,15,23,0.8);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top .logo{font-size:13px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.7);}
+.top .logo span{color:#7c3aed;}
+.top .nav{margin-left:auto;display:flex;gap:20px;align-items:center;}
+.top .nav a{font-size:12px;color:rgba(255,255,255,0.3);text-decoration:none;transition:color .15s;}
+.top .nav a:hover{color:rgba(255,255,255,0.6);}
+.top .nav .btn-top{padding:6px 14px;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:11px;font-weight:600;text-decoration:none;}
+.hero{max-width:960px;margin:0 auto;padding:120px 24px 60px;text-align:center;}
+.hero .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.12);color:#a78bfa;margin-bottom:20px;}
+.hero h1{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1.15;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;}
+.hero h1 span{background:linear-gradient(135deg,#7c3aed,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero p{font-size:17px;color:rgba(255,255,255,0.45);max-width:580px;margin:0 auto 30px;line-height:1.7;}
+.hero .btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.hero .btn{padding:14px 28px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;transition:all .2s;display:inline-block;}
+.hero .btn-primary{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;}
+.hero .btn-primary:hover{transform:translateY(-2px);}
+.hero .btn-secondary{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.08);}
+.hero .btn-secondary:hover{background:rgba(255,255,255,0.07);}
+.section{max-width:960px;margin:0 auto;padding:60px 24px;}
+.section h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:40px;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+@media(max-width:768px){.steps{grid-template-columns:1fr;}}
+.step{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;text-align:center;}
+.step .num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:14px;font-weight:700;background:rgba(124,58,237,0.1);color:#a78bfa;}
+.step h3{font-size:15px;font-weight:600;margin-bottom:6px;}
+.step p{font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;}
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:800px;margin:0 auto;}
+@media(max-width:768px){.pricing{grid-template-columns:1fr;}}
+.plan{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;text-align:center;}
+.plan.popular{border-color:rgba(124,58,237,0.2);background:rgba(124,58,237,0.03);}
+.plan .p-name{font-size:13px;font-weight:600;color:rgba(255,255,255,0.4);margin-bottom:4px;}
+.plan .p-price{font-size:32px;font-weight:800;margin-bottom:4px;}
+.plan .p-unit{font-size:11px;color:rgba(255,255,255,0.25);margin-bottom:14px;}
+.plan .p-features{font-size:12px;color:rgba(255,255,255,0.4);line-height:2;margin-bottom:16px;}
+.plan .p-btn{padding:8px 20px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;display:inline-block;}
+.plan .p-btn.free{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.08);}
+.plan .p-btn.paid{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;}
+.models{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:40px 0 0;}
+.models a{font-size:12px;color:rgba(255,255,255,0.2);text-decoration:none;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);transition:all .15s;}
+.models a:hover{color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);}
+.footer{text-align:center;padding:40px;font-size:11px;color:rgba(255,255,255,0.12);}
 </style>
 </head>
 <body>
-<div class="glow"></div>
-<div class="container">
-  <h1>AI Decision <span>OS</span></h1>
-  <div class="subtitle">The first system that turns multiple AI opinions into one structured decision.</div>
-  <div class="conflict">
-    ChatGPT disagrees with Claude<br/>
-    Gemini disagrees with DeepSeek<br/>
-    We don't pick one. We resolve them.
+<div class="top">
+  <div class="logo">Decision <span>OS</span></div>
+  <div class="nav">
+    <a href="/engine">Compare</a>
+    <a href="/v3">Reports</a>
+    <a href="/v4">Forecast</a>
+    <a class="btn-top" href="/engine">Get Started</a>
   </div>
-  <div class="cards">
-    <div class="card">
-      <h3>Conflict Layer</h3>
-      <p>Multiple AI opinions collide into structured disagreement.</p>
+</div>
+
+<div class="hero">
+  <div class="badge">&#129302; Decision Intelligence SaaS</div>
+  <h1>Turn <span>AI disagreement</span><br>into clear decisions.</h1>
+  <p>ChatGPT says A. Claude says B. Gemini says C.<br>Stop guessing. One platform to resolve them all.</p>
+  <div class="btn-row">
+    <a class="btn btn-primary" href="/engine">Start Free Analysis &#8594;</a>
+    <a class="btn btn-secondary" href="/v3">See Sample Report</a>
+  </div>
+</div>
+
+<div class="section">
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <h3>Ask multiple AIs</h3>
+      <p>Go to ChatGPT, Claude, DeepSeek — ask the same question. Copy their answers.</p>
     </div>
-    <div class="card">
-      <h3>Credibility Engine</h3>
-      <p>We don't vote. We weight trust and evidence.</p>
+    <div class="step">
+      <div class="num">2</div>
+      <h3>Paste & Compare</h3>
+      <p>Paste each response into our compiler. We detect consensus, conflict, and credibility.</p>
     </div>
-    <div class="card">
-      <h3>Decision Output</h3>
-      <p>One structured report. Not an answer — a decision.</p>
+    <div class="step">
+      <div class="num">3</div>
+      <h3>Get a Decision Report</h3>
+      <p>Receive a structured report with executive summary, risk analysis, and execution plan.</p>
     </div>
   </div>
-  <a class="cta" href="/v1">Enter Decision System</a>
-  <div class="footer">AI Decision OS — Turning disagreement into clarity</div>
+  <div class="models">
+    <a href="https://chatgpt.com" target="_blank">ChatGPT</a>
+    <a href="https://claude.ai" target="_blank">Claude</a>
+    <a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>
+    <a href="https://gemini.google.com" target="_blank">Gemini</a>
+    <a href="https://kimi.moonshot.cn" target="_blank">Kimi</a>
+    <a href="https://tongyi.aliyun.com" target="_blank">Qwen</a>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Simple pricing</h2>
+  <div class="pricing">
+    <div class="plan">
+      <div class="p-name">Free</div>
+      <div class="p-price">$0</div>
+      <div class="p-unit">forever</div>
+      <div class="p-features">
+        3 analyses / day<br>
+        Conflict detection<br>
+        Model credibility<br>
+        <span style="color:rgba(255,255,255,0.15);">No reports</span>
+      </div>
+      <a class="p-btn free" href="/engine">Get Started</a>
+    </div>
+    <div class="plan popular">
+      <div class="p-name" style="color:#a78bfa;">Pro</div>
+      <div class="p-price" style="color:#a78bfa;">&yen;9.9</div>
+      <div class="p-unit">per report</div>
+      <div class="p-features">
+        Full decision report<br>
+        Risk analysis<br>
+        Execution plan<br>
+        <span style="color:#a78bfa;">Forecast simulation</span>
+      </div>
+      <a class="p-btn paid" href="/v3">Try Report</a>
+    </div>
+    <div class="plan">
+      <div class="p-name">Monthly</div>
+      <div class="p-price">&yen;29</div>
+      <div class="p-unit">/ month</div>
+      <div class="p-features">
+        Unlimited reports<br>
+        Priority support<br>
+        Advanced analytics<br>
+        <span style="color:rgba(255,255,255,0.15);">Enterprise API</span>
+      </div>
+      <a class="p-btn free" href="#">Coming Soon</a>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Decision OS 1.0 &middot; Turn AI conflict into clarity &middot; &copy; 2026
 </div>
 </body>
 </html>
