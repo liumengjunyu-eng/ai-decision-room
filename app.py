@@ -143,95 +143,111 @@ DEBATE_ROLES = [k for k in BOARD_MEMBERS if k != "CEO裁决官"]
 LANDING_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Decision OS — Turn AI Conflict into Clarity</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Decision OS — Turn AI Conflicts Into Decisions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Inter,system-ui;background:#0b0f17;color:#e5e7eb;min-height:100vh;}
-.top{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;padding:12px 24px;background:rgba(11,15,23,0.8);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.04);}
-.top .logo{font-size:13px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.7);}
-.top .logo span{color:#7c3aed;}
-.top .nav{margin-left:auto;display:flex;gap:20px;align-items:center;}
-.top .nav a{font-size:12px;color:rgba(255,255,255,0.3);text-decoration:none;transition:color .15s;}
-.top .nav a:hover{color:rgba(255,255,255,0.6);}
-.top .nav .btn-top{padding:6px 14px;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:11px;font-weight:600;text-decoration:none;}
-.hero{max-width:960px;margin:0 auto;padding:120px 24px 60px;text-align:center;}
+body{font-family:Inter,system-ui;background:radial-gradient(circle at top,#0a0a0f,#050507);color:#fff;min-height:100vh;}
+
+.top{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;padding:12px 24px;background:rgba(5,5,7,0.8);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.top .logo{font-size:12px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.5);}
+.top .logo span{background:linear-gradient(90deg,#7c3aed,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.top .nav{margin-left:auto;display:flex;gap:16px;align-items:center;}
+.top .nav a{font-size:12px;color:rgba(255,255,255,0.25);text-decoration:none;transition:color .15s;}
+.top .nav a:hover{color:rgba(255,255,255,0.5);}
+.top .nav .btn-top{padding:6px 14px;border-radius:6px;background:linear-gradient(90deg,#7c3aed,#4f46e5);color:#fff;font-size:11px;font-weight:600;text-decoration:none;}
+
+.hero{text-align:center;padding:140px 20px 60px;max-width:800px;margin:0 auto;}
 .hero .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.12);color:#a78bfa;margin-bottom:20px;}
-.hero h1{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1.15;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;}
-.hero h1 span{background:linear-gradient(135deg,#7c3aed,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hero p{font-size:17px;color:rgba(255,255,255,0.45);max-width:580px;margin:0 auto 30px;line-height:1.7;}
-.hero .btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
-.hero .btn{padding:14px 28px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;transition:all .2s;display:inline-block;}
-.hero .btn-primary{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;}
-.hero .btn-primary:hover{transform:translateY(-2px);}
-.hero .btn-secondary{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.08);}
-.hero .btn-secondary:hover{background:rgba(255,255,255,0.07);}
-.section{max-width:960px;margin:0 auto;padding:60px 24px;}
-.section h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:40px;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
-@media(max-width:768px){.steps{grid-template-columns:1fr;}}
-.step{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;text-align:center;}
-.step .num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:14px;font-weight:700;background:rgba(124,58,237,0.1);color:#a78bfa;}
-.step h3{font-size:15px;font-weight:600;margin-bottom:6px;}
-.step p{font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;}
-.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:800px;margin:0 auto;}
-@media(max-width:768px){.pricing{grid-template-columns:1fr;}}
-.plan{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;text-align:center;}
-.plan.popular{border-color:rgba(124,58,237,0.2);background:rgba(124,58,237,0.03);}
-.plan .p-name{font-size:13px;font-weight:600;color:rgba(255,255,255,0.4);margin-bottom:4px;}
-.plan .p-price{font-size:32px;font-weight:800;margin-bottom:4px;}
-.plan .p-unit{font-size:11px;color:rgba(255,255,255,0.25);margin-bottom:14px;}
-.plan .p-features{font-size:12px;color:rgba(255,255,255,0.4);line-height:2;margin-bottom:16px;}
-.plan .p-btn{padding:8px 20px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;display:inline-block;}
-.plan .p-btn.free{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.08);}
-.plan .p-btn.paid{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;}
-.models{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:40px 0 0;}
-.models a{font-size:12px;color:rgba(255,255,255,0.2);text-decoration:none;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);transition:all .15s;}
-.models a:hover{color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);}
-.footer{text-align:center;padding:40px;font-size:11px;color:rgba(255,255,255,0.12);}
+.hero h1{font-size:56px;font-weight:800;letter-spacing:-1px;line-height:1.15;background:linear-gradient(90deg,#7c3aed,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;}
+.hero p{font-size:18px;color:rgba(255,255,255,0.45);max-width:520px;margin:0 auto 28px;line-height:1.7;}
+.hero .btn{padding:14px 28px;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;display:inline-block;background:linear-gradient(90deg,#7c3aed,#06b6d4);color:#fff;transition:transform .15s;}
+.hero .btn:hover{transform:translateY(-2px);}
+
+.section{max-width:800px;margin:0 auto;padding:80px 20px;}
+.section h2{font-size:28px;font-weight:700;margin-bottom:24px;color:rgba(255,255,255,0.8);}
+.section h2 .hl{background:linear-gradient(90deg,#7c3aed,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+
+.card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.6);}
+.card strong{color:rgba(255,255,255,0.8);}
+
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+@media(max-width:600px){.demo-grid{grid-template-columns:1fr;}}
+.demo-box{padding:18px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);font-size:14px;line-height:1.5;}
+.demo-box .db-label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);margin-bottom:4px;}
+.demo-box .db-val{font-size:18px;}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media(max-width:600px){.steps{grid-template-columns:1fr;}}
+.step{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:20px;text-align:center;}
+.step .s-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:13px;font-weight:700;background:rgba(124,58,237,0.1);color:#a78bfa;}
+.step h3{font-size:14px;font-weight:600;margin-bottom:4px;color:rgba(255,255,255,0.7);}
+.step p{font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;}
+
+.pricing{text-align:center;}
+.price-cards{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+.price-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:28px;width:240px;text-align:center;}
+.price-card.popular{border-color:rgba(124,58,237,0.2);background:rgba(124,58,237,0.04);}
+.price-card .pc-name{font-size:13px;color:rgba(255,255,255,0.3);margin-bottom:4px;}
+.price-card .pc-price{font-size:36px;font-weight:800;margin-bottom:2px;background:linear-gradient(90deg,#7c3aed,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.price-card .pc-unit{font-size:11px;color:rgba(255,255,255,0.2);margin-bottom:16px;}
+.price-card .pc-features{font-size:13px;color:rgba(255,255,255,0.4);line-height:2;margin-bottom:20px;}
+.price-card .pc-btn{padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;display:inline-block;background:linear-gradient(90deg,#7c3aed,#06b6d4);color:#fff;}
+
+.models{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:40px;}
+.models a{font-size:12px;color:rgba(255,255,255,0.15);text-decoration:none;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);transition:all .15s;}
+.models a:hover{color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.08);}
+
+.footer{text-align:center;padding:40px;font-size:11px;color:rgba(255,255,255,0.1);}
 </style>
 </head>
 <body>
 <div class="top">
-  <div class="logo">Decision <span>OS</span></div>
+  <div class="logo">AI <span>Decision OS</span></div>
   <div class="nav">
     <a href="/engine">Compare</a>
     <a href="/v3">Reports</a>
-    <a href="/v4">Forecast</a>
-    <a class="btn-top" href="/engine">Get Started</a>
+    <a class="btn-top" href="/engine">Start Free</a>
   </div>
 </div>
 
 <div class="hero">
   <div class="badge">&#129302; Decision Intelligence SaaS</div>
-  <h1>Turn <span>AI disagreement</span><br>into clear decisions.</h1>
-  <p>ChatGPT says A. Claude says B. Gemini says C.<br>Stop guessing. One platform to resolve them all.</p>
-  <div class="btn-row">
-    <a class="btn btn-primary" href="/engine">Start Free Analysis &#8594;</a>
-    <a class="btn btn-secondary" href="/v3">See Sample Report</a>
+  <h1>Turn AI Conflicts<br>Into Decisions</h1>
+  <p>We analyze multiple AI opinions and convert them into structured, executable decisions.</p>
+  <a class="btn" href="/engine">Start Free Analysis &#8594;</a>
+</div>
+
+<div class="section">
+  <h2>The <span class="hl">Problem</span></h2>
+  <div class="card">
+    People use multiple AI models, but:<br><br>
+    &#10060; They give <strong>conflicting answers</strong><br>
+    &#10060; There is <strong>no trust layer</strong><br>
+    &#10060; No <strong>final decision logic</strong><br><br>
+    &#8594; You still don&rsquo;t know what to choose.
   </div>
 </div>
 
 <div class="section">
-  <h2>How it works</h2>
+  <h2>What We <span class="hl">Build</span></h2>
+  <div class="demo-grid">
+    <div class="demo-box"><div class="db-label" style="color:#60a5fa;">GPT-4o</div><div class="db-val">&#128640; "Go fast"</div></div>
+    <div class="demo-box"><div class="db-label" style="color:#f472b6;">Claude</div><div class="db-val">&#9888;&#65039; "Risk high"</div></div>
+    <div class="demo-box"><div class="db-label" style="color:#4ade80;">DeepSeek</div><div class="db-val">&#128202; "Needs data"</div></div>
+    <div class="demo-box"><div class="db-label" style="color:#fbbf24;">Gemini</div><div class="db-val">&#129302; "Balanced view"</div></div>
+  </div>
+  <div class="card" style="text-align:center;border-color:rgba(124,58,237,0.1);">&#8594; We convert this chaos into a <strong>single structured decision report</strong>.</div>
+</div>
+
+<div class="section">
+  <h2>How It <span class="hl">Works</span></h2>
   <div class="steps">
-    <div class="step">
-      <div class="num">1</div>
-      <h3>Ask multiple AIs</h3>
-      <p>Go to ChatGPT, Claude, DeepSeek — ask the same question. Copy their answers.</p>
-    </div>
-    <div class="step">
-      <div class="num">2</div>
-      <h3>Paste & Compare</h3>
-      <p>Paste each response into our compiler. We detect consensus, conflict, and credibility.</p>
-    </div>
-    <div class="step">
-      <div class="num">3</div>
-      <h3>Get a Decision Report</h3>
-      <p>Receive a structured report with executive summary, risk analysis, and execution plan.</p>
-    </div>
+    <div class="step"><div class="s-num">1</div><h3>Paste AI Outputs</h3><p>Copy responses from ChatGPT, Claude, DeepSeek and paste them in.</p></div>
+    <div class="step"><div class="s-num">2</div><h3>Analyze Conflict</h3><p>Our engine detects consensus, disagreements, and assigns credibility scores.</p></div>
+    <div class="step"><div class="s-num">3</div><h3>Get Decision Report</h3><p>Receive a structured report with executive summary, risks, and execution plan.</p></div>
   </div>
   <div class="models">
     <a href="https://chatgpt.com" target="_blank">ChatGPT</a>
@@ -243,51 +259,34 @@ body{font-family:Inter,system-ui;background:#0b0f17;color:#e5e7eb;min-height:100
   </div>
 </div>
 
-<div class="section">
-  <h2>Simple pricing</h2>
-  <div class="pricing">
-    <div class="plan">
-      <div class="p-name">Free</div>
-      <div class="p-price">$0</div>
-      <div class="p-unit">forever</div>
-      <div class="p-features">
-        3 analyses / day<br>
-        Conflict detection<br>
-        Model credibility<br>
-        <span style="color:rgba(255,255,255,0.15);">No reports</span>
-      </div>
-      <a class="p-btn free" href="/engine">Get Started</a>
+<div class="section pricing">
+  <h2>Simple <span class="hl">Pricing</span></h2>
+  <div class="price-cards">
+    <div class="price-card">
+      <div class="pc-name">Free</div>
+      <div class="pc-price">$0</div>
+      <div class="pc-unit">forever</div>
+      <div class="pc-features">3 analyses/day<br>Conflict detection<br>Credibility scores</div>
+      <a class="pc-btn" href="/engine" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);">Get Started</a>
     </div>
-    <div class="plan popular">
-      <div class="p-name" style="color:#a78bfa;">Pro</div>
-      <div class="p-price" style="color:#a78bfa;">&yen;9.9</div>
-      <div class="p-unit">per report</div>
-      <div class="p-features">
-        Full decision report<br>
-        Risk analysis<br>
-        Execution plan<br>
-        <span style="color:#a78bfa;">Forecast simulation</span>
-      </div>
-      <a class="p-btn paid" href="/v3">Try Report</a>
+    <div class="price-card popular">
+      <div class="pc-name">Pro</div>
+      <div class="pc-price">&yen;9.9</div>
+      <div class="pc-unit">per report</div>
+      <div class="pc-features">Full decision report<br>Risk analysis<br>Execution plan</div>
+      <a class="pc-btn" href="/v3">Try Report</a>
     </div>
-    <div class="plan">
-      <div class="p-name">Monthly</div>
-      <div class="p-price">&yen;29</div>
-      <div class="p-unit">/ month</div>
-      <div class="p-features">
-        Unlimited reports<br>
-        Priority support<br>
-        Advanced analytics<br>
-        <span style="color:rgba(255,255,255,0.15);">Enterprise API</span>
-      </div>
-      <a class="p-btn free" href="#">Coming Soon</a>
+    <div class="price-card">
+      <div class="pc-name">Monthly</div>
+      <div class="pc-price">&yen;29</div>
+      <div class="pc-unit">/ month</div>
+      <div class="pc-features">Unlimited reports<br>Priority support<br>Forecast access</div>
+      <a class="pc-btn" href="#" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);">Coming Soon</a>
     </div>
   </div>
 </div>
 
-<div class="footer">
-  Decision OS 1.0 &middot; Turn AI conflict into clarity &middot; &copy; 2026
-</div>
+<div class="footer">AI Decision OS 1.0 &middot; Turn AI conflict into clarity &middot; &copy; 2026</div>
 </body>
 </html>
 """
