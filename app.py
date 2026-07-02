@@ -2718,6 +2718,107 @@ try{
 """
 
 
+TIMELINE_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Decision Timeline · V4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Inter,system-ui;background:#0b0f17;color:#e6e6e6;height:100vh;overflow:hidden;}
+.header{position:fixed;top:0;left:0;right:0;height:56px;border-bottom:1px solid #1f2a3a;display:flex;align-items:center;padding:0 20px;font-weight:600;background:rgba(10,14,22,0.85);backdrop-filter:blur(10px);z-index:10;}
+.header span{color:#4ea1ff;}.header a{color:rgba(255,255,255,0.3);text-decoration:none;font-size:11px;margin-left:16px;}
+.panel{position:fixed;top:56px;left:0;bottom:0;width:300px;border-right:1px solid #1f2a3a;padding:16px;overflow-y:auto;}
+.panel h3{font-size:13px;font-weight:500;margin-bottom:6px;opacity:.7;}
+textarea{width:100%;height:calc(100vh - 280px);background:#0f1623;border:1px solid #2a3b55;border-radius:8px;padding:10px;color:#fff;font-size:12px;outline:none;resize:none;font-family:inherit;}
+textarea:focus{border-color:#4ea1ff;}
+.btn{width:100%;margin-top:8px;padding:10px;border:none;border-radius:8px;background:linear-gradient(90deg,#4ea1ff,#7c4dff);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .12s;}
+.btn:hover{opacity:.9;}
+.hint{font-size:10px;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.5;}
+.error-bar{font-size:10px;color:#ef4444;display:none;margin-bottom:4px;}.error-bar.open{display:block;}
+.main{position:fixed;left:300px;top:56px;right:340px;bottom:0;overflow-y:auto;padding:24px 32px;}
+.timeline{position:relative;}.timeline::before{content:'';position:absolute;left:16px;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.06);}
+.round-block{margin-bottom:32px;position:relative;padding-left:44px;}
+.round-marker{position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;background:#1f2a3a;border:2px solid #4ea1ff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#4ea1ff;}
+.entries{display:flex;flex-direction:column;gap:8px;}
+.tl-bubble{background:#0f1623;border:1px solid #1f2a3a;border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.5;border-left:3px solid transparent;}
+.tl-bubble .tl-name{font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:2px;}.tl-bubble .tl-conf{font-size:9px;color:rgba(255,255,255,0.2);margin-top:2px;}
+.convergence{background:linear-gradient(135deg,#064e3b,#0f172a);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:14px;margin-top:16px;text-align:center;}
+.convergence .cv-title{font-size:12px;color:#4ade80;font-weight:600;margin-bottom:4px;}.convergence .cv-sub{font-size:11px;color:rgba(255,255,255,0.5);}
+.right{position:fixed;top:56px;right:0;bottom:0;width:340px;border-left:1px solid #1f2a3a;padding:16px;overflow-y:auto;background:#0b0f17;}
+.r-section{margin-bottom:16px;}.r-section h3{font-size:12px;opacity:.5;margin-bottom:4px;font-weight:500;}
+.change-card{background:rgba(78,161,255,0.04);border:1px solid rgba(78,161,255,0.1);border-radius:8px;padding:8px;margin-bottom:6px;font-size:11px;}
+.change-card .cc-name{font-weight:600;color:#4ea1ff;}.change-card .cc-dir{color:rgba(255,255,255,0.5);font-size:10px;margin:2px 0;}
+.stat{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.4);padding:2px 0;}
+.empty-state{padding:60px 0;text-align:center;color:rgba(255,255,255,0.08);font-size:12px;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="header">⏳ Decision Timeline <span>V4</span> <a href="/v1">← Graph</a></div>
+<div class="panel">
+  <h3>Input Multi-Round Answers</h3>
+  <textarea id="pasteInput" placeholder="Use ## Round 1, ## Round 2 etc.
+
+## Round 1
+GPT-4o: Launch immediately.
+Claude: Too risky.
+
+## Round 2
+GPT-4o: Phased launch.
+Claude: Agreed."></textarea>
+  <button class="btn" id="analyzeBtn">▶ Build Timeline</button>
+  <div class="hint">Use ## Round N markers. Format: ModelName: opinion</div>
+  <div class="error-bar" id="errorBar"></div>
+</div>
+<div class="main" id="mainArea"><div class="empty-state">Paste multi-round answers<br>and build the timeline</div></div>
+<div class="right" id="rightPanel">
+  <div class="r-section"><h3>🔄 Opinion Changes</h3><div id="changesArea"><span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting...</span></div></div>
+  <div class="r-section"><h3>📊 Timeline Stats</h3><div id="statsArea"><span style="font-size:11px;color:rgba(255,255,255,0.1);">Awaiting...</span></div></div>
+</div>
+<script>
+const PASTE=document.getElementById('pasteInput');const ANALYZE=document.getElementById('analyzeBtn');
+const MAIN=document.getElementById('mainArea');const ERROR=document.getElementById('errorBar');
+const CHANGES=document.getElementById('changesArea');const STATS=document.getElementById('statsArea');
+async function run(){
+  const raw=PASTE.value.trim();if(!raw){showErr('Paste multi-round answers');return;}
+  const rounds=[];let currentRound=[];
+  for(const line of raw.split('\n')){
+    const t=line.trim();
+    if(t.match(/^#{1,3}\s*round\s*\d+/i)){if(currentRound.length>0)rounds.push(currentRound);currentRound=[];}
+    else if(t.includes(':')){const idx=t.indexOf(':');const model=t.substring(0,idx).trim();const content=t.substring(idx+1).trim();if(model&&content)currentRound.push({model,content});}
+  }
+  if(currentRound.length>0)rounds.push(currentRound);
+  if(rounds.length<2){showErr('Need at least 2 rounds (use ## Round N)');return;}
+  ERROR.classList.remove('open');
+  MAIN.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.15);font-size:12px;">Analyzing...</div>';
+  try{
+    const resp=await fetch('/api/timeline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rounds})});
+    const data=await resp.json();if(data.error){showErr(data.error);return;}
+    render(data);
+  }catch(e){showErr(e.message);}
+}
+const COLORS={gpt:'#4ea1ff',claude:'#f472b6',deepseek:'#4ade80',qwen:'#22d3ee',gemini:'#fbbf24',kimi:'#a78bfa',default:'#6b7280'};
+function gc(n){const m=n.toLowerCase();if(m.includes('gpt'))return COLORS.gpt;if(m.includes('claude'))return COLORS.claude;if(m.includes('deep'))return COLORS.deepseek;if(m.includes('qwen'))return COLORS.qwen;if(m.includes('gemini'))return COLORS.gemini;if(m.includes('kimi'))return COLORS.kimi;return COLORS.default;}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function showErr(m){ERROR.textContent='⚠ '+m;ERROR.classList.add('open');}
+function render(data){
+  const tl=data.timeline||[];const ch=data.changes||[];const cv=data.convergence||{};const mr=Math.max(...tl.map(e=>e.round));
+  let h='<div class="timeline">';
+  for(let r=1;r<=mr;r++){const e=tl.filter(x=>x.round===r);h+='<div class="round-block"><div class="round-marker">R'+r+'</div><div class="entries">';for(const x of e){const c=gc(x.model);h+='<div class="tl-bubble" style="border-left-color:'+c+';"><div class="tl-name" style="color:'+c+';">'+esc(x.model)+'</div><div>'+esc(x.opinion)+'</div><div class="tl-conf">conf. '+(x.confidence*100).toFixed(0)+'%</div></div>';}h+='</div></div>';}
+  if(cv.stability){const p=(cv.stability*100).toFixed(0);h+='<div class="convergence"><div class="cv-title">'+(cv.converged?'✅ Converged':'🔄 Still Evolving')+'</div><div class="cv-sub">Round '+mr+' · Stability '+p+'%</div></div>';}
+  h+='</div>';MAIN.innerHTML=h;
+  if(ch.length===0)CHANGES.innerHTML='<span style="font-size:11px;color:rgba(255,255,255,0.1);">No shifts</span>';
+  else{let chh='';ch.slice(0,6).forEach(c=>{chh+='<div class="change-card"><div class="cc-name" style="color:'+gc(c.model)+';">'+esc(c.model)+'</div><div class="cc-dir">R'+c.from_round+' → R'+c.to_round+'</div><div style="font-size:10px;color:rgba(255,255,255,0.3);">"'+esc(c.from_opinion)+'" → "'+esc(c.to_opinion)+'"</div></div>';});CHANGES.innerHTML=chh;}
+  STATS.innerHTML='<div class="stat"><span>Models</span><span>'+data.model_count+'</span></div><div class="stat"><span>Rounds</span><span>'+mr+'</span></div><div class="stat"><span>Shifts</span><span>'+ch.length+'</span></div><div class="stat"><span>Stability</span><span>'+(cv.stability?((cv.stability*100).toFixed(0)+'%'):'—')+'</span></div><div class="stat"><span>Converged</span><span>'+(cv.converged?'✅':'🔄')+'</span></div>';
+}
+ANALYZE.addEventListener('click',run);
+</script>
+</body>
+</html>
+"""
+
 # ============================================================
 # ROUTES
 
@@ -3182,6 +3283,10 @@ def pitch_deck():
 @app.get("/v1", response_class=HTMLResponse)
 def v1_final():
     return V1_FINAL_HTML
+
+@app.get("/timeline", response_class=HTMLResponse)
+def timeline():
+    return TIMELINE_HTML
 
 # ============================================================
 
