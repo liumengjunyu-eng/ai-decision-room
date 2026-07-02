@@ -141,150 +141,68 @@ DEBATE_ROLES = [k for k in BOARD_MEMBERS if k != "CEO裁决官"]
 # ============================================================
 
 LANDING_HTML = """<!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MindTrust OS · AI 智囊局</title>
+<title>Decision OS · Ask every AI. Trust one decision.</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{
-  font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
-  background:radial-gradient(ellipse at 30% 20%,#1b1f3a,#0b0f1a);
-  color:#e6e9f2;min-height:100vh;
-}
-.container{max-width:960px;margin:0 auto;padding:60px 24px 40px;text-align:center;}
-.hero-title{
-  font-size:56px;font-weight:600;letter-spacing:-1px;margin-bottom:12px;
-  background:linear-gradient(90deg,#7C5CFF,#22d3ee);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.hero-sub{font-size:16px;color:rgba(255,255,255,0.6);max-width:520px;margin:0 auto 28px;line-height:1.6;}
-.hero-input{
-  width:100%;max-width:680px;padding:16px 22px;border-radius:14px;
-  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
-  color:#fff;font-size:16px;font-family:inherit;outline:none;transition:all .2s;
-}
-.hero-input:focus{border-color:#7C5CFF;box-shadow:0 0 0 3px rgba(124,92,255,0.12);}
-.hero-input::placeholder{color:rgba(255,255,255,0.3);}
-.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;}
-.btn{
-  padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;
-  cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block;
-}
-.btn-primary{background:linear-gradient(90deg,#7C5CFF,#6366f1);color:#fff;border:none;}
-.btn-primary:hover{transform:translateY(-1px);}
-.btn-secondary{background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);}
-.btn-secondary:hover{background:rgba(255,255,255,0.08);}
-.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:48px;text-align:left;}
-@media(max-width:640px){.layers{grid-template-columns:1fr;}}
-.layer-card{
-  padding:20px;border-radius:16px;
-  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
-  backdrop-filter:blur(8px);transition:all .2s;cursor:default;
-}
-.layer-card:hover{transform:translateY(-2px);border-color:rgba(124,92,255,0.3);}
-.layer-card.highlight{border-color:rgba(34,211,238,0.3);background:rgba(34,211,238,0.04);}
-.layer-card h3{font-size:14px;font-weight:600;margin-bottom:4px;}
-.layer-card p{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5;}
-.entry-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:36px;}
-@media(max-width:640px){.entry-grid{grid-template-columns:1fr;}}
-.entry-card{
-  padding:16px;border-radius:14px;text-align:center;
-  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);
-  cursor:pointer;transition:all .2s;text-decoration:none;display:block;color:#e6e9f2;
-}
-.entry-card:hover{transform:translateY(-2px);border-color:rgba(124,92,255,0.3);}
-.entry-card .em{font-size:16px;font-weight:600;}
-.entry-card .em-sub{font-size:12px;color:rgba(255,255,255,0.4);display:block;margin-top:2px;}
-.model-links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:32px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06);}
-.model-links a{font-size:12px;color:rgba(255,255,255,0.35);text-decoration:none;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);transition:all .1s;}
-.model-links a:hover{color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.15);}
-.footer{text-align:center;margin-top:48px;font-size:11px;color:rgba(255,255,255,0.2);}
-
-/* 简版题词 */
-.promo-badge{
-  display:inline-block;font-size:11px;padding:4px 12px;border-radius:20px;
-  background:rgba(124,92,255,0.1);border:1px solid rgba(124,92,255,0.15);
-  color:#a78bfa;margin-bottom:16px;
-}
+body{background:#08090d;font-family:Inter,system-ui,-apple-system,sans-serif;color:#e6e6e6;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;}
+.container{display:flex;flex-direction:column;align-items:center;gap:3rem;max-width:800px;width:100%;padding:2rem;}
+.brand{font-size:.75rem;letter-spacing:4px;text-transform:uppercase;color:#6b7280;}
+.slogan{font-size:3rem;font-weight:700;text-align:center;line-height:1.3;background:linear-gradient(135deg,#e6e6e6 0%,#6b7280 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.input-wrapper{width:100%;}
+.main-input{width:100%;background:#0d1117;border:1px solid #1a1f2e;border-radius:16px;padding:1.5rem 2rem;font-size:1.2rem;color:#e6e6e6;outline:none;transition:all .3s ease;font-family:inherit;}
+.main-input:focus{border-color:#3b82f6;box-shadow:0 0 40px rgba(59,130,246,0.08);}
+.main-input::placeholder{color:#374151;}
+.entries{display:flex;gap:1.5rem;width:100%;justify-content:center;flex-wrap:wrap;}
+.entry-card{background:#0d1117;border:1px solid #1a1f2e;border-radius:16px;padding:1.5rem;text-align:center;flex:1;max-width:220px;min-width:160px;cursor:pointer;transition:all .3s ease;text-decoration:none;color:#e6e6e6;}
+.entry-card:hover{border-color:#3b82f6;background:#111620;transform:translateY(-2px);}
+.entry-icon{font-size:1.8rem;margin-bottom:.6rem;}
+.entry-title{font-size:1rem;font-weight:600;margin-bottom:.3rem;}
+.entry-desc{font-size:.75rem;color:#6b7280;line-height:1.4;}
+.footer{font-size:.65rem;color:#374151;position:fixed;bottom:1.5rem;width:100%;text-align:center;}
 </style>
 </head>
 <body>
 <div class="container">
-
-  <div class="promo-badge">🧠 MindTrust OS · v5 — AI 智囊局</div>
-
-  <div class="hero-title">不要一个人<br>做艰难的决定</div>
-  <div class="hero-sub">聚合全球最强大脑，为你提供确定性方案。</div>
-
-  <textarea class="hero-input" id="landingQuestion" rows="1" placeholder="你正在纠结什么决策？例如：五官灸加盟能不能做？"></textarea>
-
-  <div class="hero-btns">
-    <a class="btn btn-primary" href="/room" id="landingGoBtn">▶ 开始智囊会议</a>
-    <a class="btn btn-secondary" href="/compare">📄 手动粘贴 · 多模型对比</a>
+  <div class="brand">Decision OS</div>
+  <div class="slogan">Ask every AI.<br>Trust one decision.</div>
+  <div class="input-wrapper">
+    <input class="main-input" placeholder="你正在面临什么决策？" id="mainInput">
   </div>
-
-  <div class="layers">
-    <div class="layer-card">
-      <h3>🌐 Layer 1 · 智能辩论</h3>
-      <p>7 位 AI 角色实时辩论，展示多模型观点的冲突与共识。</p>
-    </div>
-    <div class="layer-card">
-      <h3>💬 Layer 2 · 手动编译器</h3>
-      <p>粘贴各模型官网的回答，自动提取共识&分歧，生成决策报告。</p>
-    </div>
-    <div class="layer-card highlight">
-      <h3>🚀 Layer 3 · 深度裁决</h3>
-      <p>调用最强付费模型，输出含置信区间与执行路径的战略报告。</p>
-    </div>
-  </div>
-
-  <div class="entry-grid">
-    <a class="entry-card" href="/room">
-      <div class="em">🧠 AI 董事会</div>
-      <span class="em-sub">免费多模型辩论层</span>
+  <div class="entries">
+    <a href="/explore" class="entry-card">
+      <div class="entry-icon">🌐</div>
+      <div class="entry-title">Explore</div>
+      <div class="entry-desc">观看全球AI实时辩论</div>
     </a>
-    <a class="entry-card" href="/compare">
-      <div class="em">📄 编译器</div>
-      <span class="em-sub">手动多模型汇总</span>
+    <a href="/compile" class="entry-card">
+      <div class="entry-icon">⚡</div>
+      <div class="entry-title">Compile</div>
+      <div class="entry-desc">整理所有AI观点</div>
     </a>
-    <a class="entry-card" href="/room" style="border-color:rgba(34,211,238,0.2);">
-      <div class="em">⚡ 深度报告</div>
-      <span class="em-sub">加权战略决策报告</span>
+    <a href="/decide" class="entry-card">
+      <div class="entry-icon">🧠</div>
+      <div class="entry-title">Decide</div>
+      <div class="entry-desc">获取深度决策报告</div>
     </a>
   </div>
-
-  <div class="model-links">
-    <a href="https://claude.ai" target="_blank">Claude</a>
-    <a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>
-    <a href="https://kimi.moonshot.cn" target="_blank">Kimi</a>
-    <a href="https://chatgpt.com" target="_blank">ChatGPT</a>
-    <a href="https://gemini.google.com" target="_blank">Gemini</a>
-    <a href="https://tongyi.aliyun.com" target="_blank">通义千问</a>
-    <a href="https://chatglm.cn" target="_blank">智谱GLM</a>
-    <a href="https://www.doubao.com" target="_blank">豆包</a>
-  </div>
-
-  <div class="footer">
-    MindTrust OS — AI Decision Infrastructure · 免费版每日 3 次 · 高级版 9.9 元起
-  </div>
-
 </div>
-
+<div class="footer">Decision OS 1.0 · MindTrust</div>
 <script>
-document.getElementById('landingQuestion').addEventListener('keydown',function(e){
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();var v=this.value.trim();if(v){sessionStorage.setItem('mindtrust_question',v);window.location.href='/room';}}
+document.getElementById('mainInput').addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();var v=this.value.trim();if(v){sessionStorage.setItem('decision_question',v);window.location.href='/explore';}}
 });
-document.getElementById('landingGoBtn').addEventListener('click',function(e){var v=document.getElementById('landingQuestion').value.trim();if(v){e.preventDefault();sessionStorage.setItem('mindtrust_question',v);window.location.href='/room';}});
 </script>
-
 </body>
 </html>
 """
 
 # ============================================================
+
 
 # ============================================================
 # ============================================================
@@ -2913,6 +2831,18 @@ def compare():
 
 @app.get("/report", response_class=HTMLResponse)
 def report():
+    return REPORT_HTML
+
+@app.get("/explore", response_class=HTMLResponse)
+def explore():
+    return ROOM_HTML
+
+@app.get("/compile", response_class=HTMLResponse)
+def compile_page():
+    return COMPARE_HTML
+
+@app.get("/decide", response_class=HTMLResponse)
+def decide():
     return REPORT_HTML
 
 # ============================================================
